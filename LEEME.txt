@@ -1,0 +1,9 @@
+BixStudio · Semitono + mejora de calidad
+
+1. Ejecuta INICIAR_BIXSTUDIO.bat en Windows.
+2. El navegador abrirá BixStudio desde un servidor local.
+3. Selecciona una imagen.
+4. Usa “Mejorar calidad con IA” directamente: el progreso aparece sobre la imagen, sin ventanas.
+5. “Crear semitono” usa Intensidad Ligero por defecto.
+
+Los archivos de procesamiento deben mantenerse dentro de esta carpeta.

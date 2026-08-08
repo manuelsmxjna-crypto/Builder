@@ -1,0 +1,4085 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BixStudio — Gang Sheet Builder</title>
+  <style>
+:root{
+  --bg:#f5f6f8; --panel:#fff; --line:#dfe3e8; --text:#171a1f; --muted:#6b7280;
+  --primary:#111827; --primary2:#0f172a; --accent:#22c55e; --danger:#dc2626;
+  --shadow:0 10px 30px rgba(15,23,42,.08);
+}
+*{box-sizing:border-box} html,body,#app{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text)}
+body{overflow:hidden;background:var(--bg)}
+button,input,select,textarea{font:inherit} button{cursor:pointer}
+.topbar{height:62px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px 0 12px;position:relative;z-index:20}
+.brand{display:flex;align-items:center;gap:10px;min-width:210px}.brand-mark{width:34px;height:34px;background:#111827;color:#fff;border-radius:9px;display:grid;place-items:center;font-weight:900}.brand-title{font-weight:800}.brand-sub{font-size:10px;color:#8a919c;margin-top:1px}
+.top-actions{display:flex;align-items:center;gap:7px}.divider{width:1px;height:24px;background:#e4e7eb;margin:0 3px}
+.icon-btn,.mini-btn,.ghost-btn,.primary-btn{border-radius:7px;border:1px solid #d7dce2;background:#fff;color:#1f2937;min-height:34px;padding:7px 11px;transition:.15s}
+.icon-btn{width:34px;padding:0;font-size:18px}.mini-btn{min-height:28px;padding:4px 9px}.ghost-btn:hover,.mini-btn:hover,.icon-btn:hover{background:#f4f6f8;border-color:#bfc6cf}
+.primary-btn{background:#111827;color:#fff;border-color:#111827;font-weight:700}.primary-btn:hover{background:#000}.wide{width:100%}
+.variant-label{font-size:11px;color:#6b7280;display:flex;align-items:center;gap:7px}.variant-label select{height:34px;border:1px solid #d7dce2;border-radius:7px;background:#fff;padding:0 8px;color:#111827;font-weight:600}
+.workspace{height:calc(100% - 62px);display:grid;grid-template-columns:68px 278px minmax(420px,1fr) 286px}
+.leftbar{background:#111827;border-right:1px solid #202838;display:flex;flex-direction:column;padding:10px 6px;gap:5px}
+.tool-nav{height:58px;border:0;border-radius:8px;background:transparent;color:#9ca3af;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:16px}.tool-nav b{font-size:10px;font-weight:600}.tool-nav:hover{background:#ffffff0d;color:#fff}.tool-nav.active{background:#fff;color:#111827}
+.sidepanel{background:#fff;border-right:1px solid var(--line);min-width:0;overflow:hidden;display:flex;flex-direction:column}.panel-head{padding:16px 15px 12px;border-bottom:1px solid #edf0f2}.panel-head h2{margin:0;font-size:16px}.panel-head p{font-size:11px;line-height:1.4;color:#78818c;margin:5px 0 0}
+
+#settingsPanel{display:none;min-height:100%}
+#settingsPanel.active{display:flex;flex-direction:column}
+.settings-bottom-spacer{flex:1;min-height:28px}
+.reset-project-btn{
+  border:1px solid #fca5a5;
+  background:#fff;
+  color:#b91c1c;
+  border-radius:7px;
+  min-height:38px;
+  padding:8px 11px;
+  font-weight:800;
+}
+.reset-project-btn:hover{background:#fef2f2;border-color:#f87171}
+
+.panel-view{display:none;padding:13px;overflow:auto;flex:1}.panel-view.active{display:block}.upload-zone{height:128px;border:1.5px dashed #b8c0ca;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#374151;background:#fafbfc}.upload-zone:hover{background:#f4f6f8;border-color:#6b7280}.upload-icon{font-size:22px}.upload-zone span{font-size:10px;color:#8a919c}
+.panel-row{margin:12px 0}.text-input{width:100%;border:1px solid #d6dce3;border-radius:7px;padding:8px 10px;outline:none;background:#fff}.text-input:focus{border-color:#6b7280;box-shadow:0 0 0 2px #1118270c}.textarea{min-height:90px;resize:vertical}
+.library-head{font-size:11px;font-weight:700;display:flex;justify-content:space-between;color:#555f6b;margin:7px 0}.asset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.asset-card{border:1px solid #e0e4e8;border-radius:8px;background:#f7f8fa;aspect-ratio:1;position:relative;overflow:hidden;cursor:pointer}.asset-card img{width:100%;height:100%;object-fit:contain}.asset-card .name{position:absolute;left:0;right:0;bottom:0;background:#fffdf5e8;border-top:1px solid #e7eaee;font-size:9px;padding:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.field{display:block;font-size:11px;color:#535d69;margin-bottom:13px}.field>input[type=range]{width:100%;margin-top:8px}.field>input[type=color]{display:block;margin-top:7px;width:100%;height:36px;border:1px solid #d6dce3;border-radius:7px;padding:3px;background:#fff}.unit-input{margin-top:5px;display:flex;align-items:center;border:1px solid #d6dce3;border-radius:7px;overflow:hidden;background:#fff}.unit-input input{min-width:0;width:100%;border:0;padding:7px 9px;outline:0}.unit-input span{padding:0 8px;color:#7a838d;font-size:11px}.toggle-row{display:flex;gap:8px;align-items:center;font-size:12px;margin:12px 0}.info-card{background:#f6f7f9;border:1px solid #e1e5e9;border-radius:8px;padding:11px;margin-bottom:14px}.info-card b{font-size:13px}.info-card p{font-size:11px;line-height:1.45;color:#67717e;margin:5px 0 0}
+.stage-wrap{display:flex;flex-direction:column;min-width:0;background:#eef0f3}.stage-toolbar{height:42px;border-bottom:1px solid #d9dde3;background:#f8f9fa;display:flex;align-items:center;justify-content:space-between;padding:0 10px}.stage-toolbar .left{display:flex;align-items:center;gap:6px;font-size:11px}.status-inline{display:flex;align-items:center;gap:5px;color:#69717c;font-size:9px}.dot{width:7px;height:7px;border-radius:50%}.dot.good{background:#16a34a}.dot.warn{background:#d97706}.dot.bad{background:#dc2626}
+.stage-scroller{flex:1;overflow:hidden;position:relative;background:#eef0f3;cursor:default;touch-action:none}.stage-scroller.pan-ready{cursor:grab}.stage-scroller.panning{cursor:grabbing}.artboard-shell{position:absolute;left:0;top:0;transform-origin:0 0;width:max-content;height:max-content;will-change:transform}.artboard{position:relative;background:#fff;box-shadow:0 3px 16px #11182724;width:1240px;height:600px;overflow:visible}.safe-area{position:absolute;pointer-events:none;border:1px dashed #a7afb9;inset:3px;z-index:10}.objects-layer{position:absolute;inset:0}
+.ruler{position:absolute;color:#7b8490;font-size:8px;pointer-events:none}.ruler-x{left:0;right:0;height:20px;top:-24px;border-bottom:1px solid #b9c0c8}.ruler-y{top:0;bottom:0;width:25px;left:-29px;border-right:1px solid #b9c0c8}
+.ruler-mark-x,.ruler-mark-y{position:absolute;background:#9ca3af}.ruler-mark-x{width:1px;height:5px;bottom:0}.ruler-mark-y{height:1px;width:5px;right:0}.ruler-label-x{position:absolute;bottom:6px;transform:translateX(-50%)}.ruler-label-y{position:absolute;right:7px;transform:translateY(-50%)}
+.design-object{
+  position:absolute;
+  transform-origin:center center;
+  touch-action:none;
+  user-select:none;
+  outline:2px solid transparent;
+  outline-offset:1px;
+}
+.design-object.dpi-good{outline-color:#16a34a}
+.design-object.dpi-warn{outline-color:#d97706}
+.design-object.dpi-bad{outline-color:#dc2626}
+.design-object.selected{
+  z-index:5;
+  box-shadow:0 0 0 2px #2563eb,0 0 0 4px rgba(37,99,235,.15);
+}
+.design-object.overlap{box-shadow:0 0 0 2px #ef4444,0 0 0 4px rgba(239,68,68,.12)}
+.design-object.offboard{box-shadow:0 0 0 2px #ef4444,0 0 0 4px rgba(239,68,68,.12)}.design-object img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;image-rendering:auto;backface-visibility:hidden;transform:translateZ(0)}.design-object .text-obj{width:100%;height:100%;display:flex;align-items:center;justify-content:center;white-space:pre-wrap;text-align:center;overflow:hidden;line-height:1}.dpi-chip{display:none!important}
+.rightbar{background:#fff;border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:auto}.right-tabs{display:flex;height:44px;border-bottom:1px solid #e5e8ec}.right-tab{flex:1;border:0;background:#fff;font-size:11px;color:#6b7280;border-bottom:2px solid transparent}.right-tab.active{color:#111827;font-weight:800;border-color:#111827}.pill{background:#e5e7eb;border-radius:999px;padding:1px 5px;margin-left:3px}
+.empty-state{padding:55px 28px;text-align:center;color:#7b8490}.empty-state b{display:block;color:#424b55;font-size:13px}.empty-state p{font-size:11px;line-height:1.5}.empty-icon{font-size:32px;margin-bottom:10px}
+
+
+.duplicate-primary-btn{
+  min-height:36px;
+  border:1px solid #2563eb;
+  border-radius:7px;
+  background:#eff6ff;
+  color:#1d4ed8;
+  font-weight:800;
+  padding:7px 10px;
+}
+.duplicate-primary-btn:hover{background:#dbeafe;border-color:#60a5fa}
+
+.aspect-lock-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 13px}
+.aspect-lock-label{display:block;font-size:10px;font-weight:700;color:#5f6975}
+.aspect-lock-row small{display:block;margin-top:2px;font-size:9px;color:#8a939f}
+.aspect-lock-btn{border:1px solid #cfd5dc;background:#fff;border-radius:7px;min-height:32px;padding:6px 10px;font-size:10px;font-weight:800;color:#4b5563}
+.aspect-lock-btn.locked{background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+.aspect-lock-btn.unlocked{background:#fff7ed;border-color:#fdba74;color:#c2410c}
+
+.selection-panel{padding:14px}.hidden{display:none!important}.selection-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.selection-title .muted{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#8b939d}.selection-title b{font-size:13px}.danger-icon{border:1px solid #fecaca;color:#dc2626;background:#fff5f5;border-radius:6px;height:30px;width:30px}.resolution-badge{display:flex;align-items:center;justify-content:space-between;border-radius:7px;padding:9px 10px;margin-bottom:13px;font-size:11px}.resolution-badge.good{background:#ecfdf5;color:#047857}.resolution-badge.warn{background:#fffbeb;color:#b45309}.resolution-badge.bad{background:#fef2f2;color:#b91c1c}.resolution-badge span{font-size:10px}
+.prop-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.prop-grid label{font-size:10px;color:#66707b}.rotation-row{display:flex;align-items:center;border:1px solid #d6dce3;border-radius:7px;margin-top:5px;overflow:hidden}.rotation-row input{width:100%;border:0;padding:7px 9px}.rotation-row span{font-size:11px;color:#6b7280}.rotation-row button{margin:3px}
+.button-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}.section-divider{height:1px;background:#e8ebee;margin:15px 0}.align-title{font-size:10px;font-weight:700;color:#69717b;margin-bottom:7px}.align-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.align-grid button{height:30px;border:1px solid #d7dce2;background:#fff;border-radius:6px}.align-grid button:hover{background:#f4f5f7}
+.modal-backdrop{position:fixed;inset:0;background:#0f172a7a;z-index:100;display:flex;align-items:center;justify-content:center;padding:24px}.modal{background:#fff;border-radius:11px;box-shadow:0 24px 70px #0f172a47;overflow:hidden;max-height:calc(100vh - 48px)}.modal-head{height:54px;border-bottom:1px solid #e4e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 18px}.modal-head h2{margin:0;font-size:18px}.modal-head.dark{background:#101827;color:#fff;height:70px}.kicker{font-size:9px;color:#67e8f9;font-weight:900;letter-spacing:.12em}.close-btn{border:0;background:transparent;font-size:26px;color:inherit}.modal-foot{border-top:1px solid #e4e7eb;padding:10px 18px;display:flex;justify-content:flex-end}
+.quality-modal{width:min(980px,95vw)}.quality-body{display:grid;grid-template-columns:300px 1fr;min-height:480px}.quality-preview{background:#e5edf6;border-right:1px solid #d8dee6;padding:20px;display:flex;flex-direction:column;gap:13px}.score-ring{width:92px;height:92px;border-radius:50%;padding:7px;background:conic-gradient(#22c55e var(--score,100%),#dbe4ec 0);align-self:center}.score-ring>div{height:100%;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}.score-ring strong{font-size:26px}.score-ring span{font-size:9px;color:#047857;font-weight:900}.checker{flex:1;min-height:250px;background-color:#fff;background-image:conic-gradient(#f1f5f9 25%,transparent 0 50%,#f1f5f9 0 75%,transparent 0);background-size:16px 16px;border:1px solid #cad1da;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center}.checker canvas{max-width:100%;max-height:100%}.quality-file{text-align:center;font-size:10px;color:#596575;font-weight:700}.quality-list-wrap{padding:20px;display:flex;flex-direction:column}.quality-heading{display:flex;justify-content:space-between;align-items:flex-start}.quality-heading h3{margin:0;font-size:16px}.quality-heading p{margin:3px 0 12px;font-size:11px;color:#718096}.scan-pill{background:#ecfeff;border:1px solid #a5f3fc;color:#0e7490;border-radius:999px;padding:5px 8px;font-size:9px;font-weight:900}.quality-list{display:flex;flex-direction:column;gap:8px;overflow:auto}.check-row{border:1px solid #e0e5ea;border-radius:8px;padding:11px;display:grid;grid-template-columns:34px 1fr max-content;gap:10px;align-items:center}.check-icon{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-weight:900}.check-icon.ok{background:#ecfdf5;color:#047857}.check-icon.warn{background:#fff7ed;color:#c2410c}.check-row b{font-size:12px}.check-row p{font-size:10px;color:#717b87;margin:2px 0 0}.check-status{font-size:9px;font-weight:900}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:8px;font-size:11px;z-index:200;box-shadow:var(--shadow)}
+
+
+.autonest-top-btn{
+  min-height:34px;
+  padding:7px 14px;
+  border:1px solid #2563eb;
+  border-radius:7px;
+  background:#2563eb;
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 1px 2px rgba(37,99,235,.24);
+  transition:.15s;
+}
+.autonest-top-btn:hover{background:#1d4ed8;border-color:#1d4ed8;transform:translateY(-1px)}
+
+
+.color-help-wrap{position:relative;display:flex;align-items:center}
+.color-help-btn{
+  border:1px solid #93c5fd;
+  background:#eff6ff;
+  color:#1d4ed8;
+  border-radius:7px;
+  min-height:30px;
+  padding:5px 10px;
+  font-size:9px;
+  font-weight:800;
+  box-shadow:0 1px 2px rgba(37,99,235,.10);
+  transition:.15s;
+}
+.color-help-btn:hover{
+  background:#dbeafe;
+  border-color:#60a5fa;
+  color:#1e40af;
+  transform:translateY(-1px);
+}
+.color-help-popover{
+  position:absolute;right:0;top:34px;width:290px;background:#fff;border:1px solid #d9dee5;
+  border-radius:9px;box-shadow:0 12px 32px rgba(15,23,42,.16);padding:11px;z-index:80
+}
+.color-help-title{font-size:11px;font-weight:800;margin-bottom:8px;color:#313944}
+.color-help-item{display:grid;grid-template-columns:25px 1fr;gap:8px;align-items:center;padding:7px 2px;border-top:1px solid #f0f2f4}
+.color-help-item:first-of-type{border-top:0}
+.color-help-item b{display:block;font-size:10px}
+.color-help-item small{display:block;font-size:9px;color:#77818d;margin-top:1px;line-height:1.35}
+.legend-stroke{width:22px;height:14px;border:3px solid;border-radius:4px;display:block}
+.legend-stroke.optimal{border-color:#16a34a}
+.legend-stroke.good{border-color:#2563eb}
+.legend-stroke.bad{border-color:#d97706}
+.legend-stroke.minimum{border-color:#dc2626}
+.legend-stroke.overlap{border-color:#a855f7}
+
+
+kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:19px;padding:0 5px;border:1px solid #cbd1d8;border-bottom-width:2px;border-radius:4px;background:#fff;color:#39424e;font:600 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
+.stage-scroller.space-held{cursor:grab}
+.stage-scroller.space-held.panning{cursor:grabbing}
+.viewport-coordinates{position:absolute;left:10px;bottom:10px;z-index:20;background:#ffffffdc;border:1px solid #d7dce2;border-radius:6px;padding:4px 7px;font-size:9px;color:#66707b;pointer-events:none}
+
+
+#settingsPanel.active{
+  display:flex !important;
+  flex-direction:column;
+  min-height:100%;
+}
+.settings-bottom-spacer{flex:1;min-height:36px}
+.reset-project-btn{
+  position:sticky;
+  bottom:0;
+  z-index:5;
+  width:100%;
+  min-height:42px;
+  margin-top:14px;
+  border:1px solid #fca5a5;
+  border-radius:8px;
+  background:#fff;
+  color:#b91c1c;
+  font-weight:800;
+  padding:9px 12px;
+  box-shadow:0 -8px 16px rgba(255,255,255,.92);
+}
+.reset-project-btn:hover{background:#fef2f2;border-color:#f87171}
+
+
+.design-object.dpi-optimal{outline-color:#16a34a}
+.design-object.dpi-good{outline-color:#2563eb}
+.design-object.dpi-bad{outline-color:#d97706}
+.design-object.dpi-minimum{outline-color:#dc2626}
+.design-object.overlap{
+  outline-color:#a855f7 !important;
+  box-shadow:0 0 0 2px rgba(168,85,247,.30) !important;
+}
+
+
+.design-object{overflow:visible}
+.object-visual{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform-origin:center center;
+  pointer-events:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.object-visual img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  pointer-events:none;
+  image-rendering:auto;
+  backface-visibility:hidden;
+}
+.object-visual .text-obj{
+  width:100%;
+  height:100%;
+}
+
+
+.object-visual img{transform:none!important}
+
+
+.sheet-size-chip{
+  display:inline-flex;align-items:center;height:30px;padding:0 9px;border:1px solid #d7dce2;
+  border-radius:7px;background:#fff;color:#111827;font-weight:800;font-size:11px
+}
+.sheets-view{padding:12px;overflow:auto;flex:1}
+.sheets-header{padding:2px 2px 10px}
+.sheets-header b{display:block;font-size:12px}
+.sheets-header small{display:block;color:#7b8490;font-size:9px;margin-top:2px}
+.sheets-list{display:flex;flex-direction:column;gap:8px}
+.sheet-card{
+  width:100%;border:1px solid #dde2e7;background:#fff;border-radius:9px;padding:10px;
+  text-align:left;display:grid;grid-template-columns:38px 1fr auto;gap:9px;align-items:center
+}
+.sheet-card:hover{background:#f8fafc;border-color:#c7ced7}
+.sheet-card.active{border-color:#2563eb;background:#eff6ff}
+.sheet-thumb{width:34px;height:45px;border:1px solid #cbd2da;background:#fff;border-radius:3px;position:relative;overflow:hidden}
+.sheet-thumb-fill{position:absolute;left:3px;right:3px;top:3px;background:#dbeafe;border-radius:2px;min-height:3px}
+.sheet-card b{display:block;font-size:11px}
+.sheet-card small{display:block;color:#7a8490;font-size:9px;margin-top:2px}
+.sheet-card .sheet-badge{font-size:8px;font-weight:900;color:#2563eb}
+
+
+.sheet-card-actions{display:flex;align-items:center;gap:5px}
+.sheet-delete-btn{
+  width:28px;height:28px;border:1px solid #fecaca;border-radius:6px;
+  background:#fff;color:#dc2626;font-weight:800;display:grid;place-items:center
+}
+.sheet-delete-btn:hover{background:#fef2f2;border-color:#f87171}
+
+
+.packing-toolbar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 8px;
+}
+.packing-field{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:9px;
+  color:#66707b;
+  white-space:nowrap;
+}
+.packing-input-wrap{
+  display:flex;
+  align-items:center;
+  height:28px;
+  border:1px solid #d7dce2;
+  border-radius:6px;
+  background:#fff;
+  overflow:hidden;
+}
+.packing-input-wrap input{
+  width:54px;
+  border:0;
+  outline:0;
+  padding:4px 5px;
+  font-size:10px;
+  background:transparent;
+}
+.packing-input-wrap small{
+  padding-right:6px;
+  color:#7a838d;
+  font-size:9px;
+}
+.packing-check{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  font-size:9px;
+  color:#66707b;
+  white-space:nowrap;
+}
+.packing-check input{margin:0}
+.fill-selection-btn{
+  margin-top:7px;
+  min-height:36px;
+  border:1px solid #cbd5e1;
+  border-radius:7px;
+  background:#f8fafc;
+  color:#334155;
+  font-weight:800;
+  padding:7px 10px;
+}
+.fill-selection-btn:hover{
+  background:#f1f5f9;
+  border-color:#94a3b8;
+}
+
+
+.stage-toolbar{
+  height:42px;
+  border-bottom:1px solid #d9dde3;
+  background:#f8f9fa;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:12px;
+  padding:0 10px;
+}
+.stage-toolbar .left{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:11px;
+}
+.packing-toolbar{
+  justify-self:center;
+}
+.color-help-wrap{
+  justify-self:end;
+}
+.floating-shortcuts{
+  position:absolute;
+  left:50%;
+  bottom:12px;
+  transform:translateX(-50%);
+  z-index:25;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:8px 12px;
+  max-width:calc(100% - 120px);
+  padding:7px 10px;
+  border:1px solid rgba(203,209,216,.95);
+  border-radius:9px;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(8px);
+  color:#66707b;
+  font-size:9px;
+  box-shadow:0 3px 12px rgba(15,23,42,.08);
+  pointer-events:none;
+}
+.floating-shortcuts span{white-space:nowrap}
+
+
+
+
+
+.artboard-shell{
+  will-change:left,top;
+  transform:none !important;
+}
+.artboard{
+  image-rendering:auto;
+  transform:none !important;
+  backface-visibility:visible;
+}
+.object-visual{
+  backface-visibility:visible;
+}
+.object-visual img{
+  image-rendering:auto;
+  backface-visibility:visible !important;
+  transform:none !important;
+}
+
+
+.alpha-tools{margin-top:12px;border:1px solid #dbe3ea;border-radius:9px;padding:11px;background:#f8fafc}
+.alpha-tools-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.alpha-tools-head b{display:block;font-size:11px}.alpha-tools-head small{display:block;color:#74808c;font-size:9px;line-height:1.35;margin-top:2px}
+.alpha-count-badge{border-radius:999px;background:#fff7ed;color:#c2410c;border:1px solid #fdba74;padding:3px 6px;font-size:9px;font-weight:900;white-space:nowrap}
+.alpha-threshold-label{display:block;margin:10px 0;font-size:10px;color:#59636f}.alpha-threshold-label span{display:flex;justify-content:space-between;margin-bottom:5px}.alpha-threshold-label input{width:100%}
+
+
+.preview-scrollbar{
+  position:absolute;
+  z-index:34;
+  user-select:none;
+}
+.preview-scrollbar-x{left:8px;right:22px;bottom:5px;height:12px}
+.preview-scrollbar-y{top:8px;bottom:22px;right:5px;width:12px}
+.preview-scroll-track{
+  position:relative;width:100%;height:100%;
+  background:rgba(203,213,225,.45);
+  border-radius:999px;
+}
+.preview-scrollbar-y .preview-scroll-track{width:100%;height:100%}
+.preview-scroll-thumb{
+  position:absolute;
+  background:#94a3b8;
+  border-radius:999px;
+  transition:background .12s;
+}
+.preview-scroll-thumb:hover,.preview-scroll-thumb.dragging{background:#64748b}
+.preview-scrollbar-x .preview-scroll-thumb{top:2px;height:8px;min-width:34px}
+.preview-scrollbar-y .preview-scroll-thumb{left:2px;width:8px;min-height:34px}
+
+
+
+
+
+
+
+
+
+
+
+.resize-point{
+  display:none;
+  position:absolute;
+  width:12px;
+  height:12px;
+  border:2px solid #111827;
+  background:#fff;
+  border-radius:50%;
+  z-index:16;
+}
+.design-object.selected .resize-point{display:block}
+.resize-point.tl{left:-7px;top:-7px;cursor:nwse-resize}
+.resize-point.tr{right:-7px;top:-7px;cursor:nesw-resize}
+.resize-point.bl{left:-7px;bottom:-7px;cursor:nesw-resize}
+.resize-point.br{right:-7px;bottom:-7px;cursor:nwse-resize}
+
+.rotation-stem{
+  display:none;
+  position:absolute;
+  left:50%;
+  top:-34px;
+  width:2px;
+  height:28px;
+  transform:translateX(-50%);
+  background:#94a3b8;
+  z-index:14;
+  pointer-events:none;
+}
+.rotation-point{
+  display:none;
+  position:absolute;
+  left:50%;
+  top:-45px;
+  width:15px;
+  height:15px;
+  transform:translateX(-50%);
+  border:2px solid #111827;
+  background:#fff;
+  border-radius:50%;
+  z-index:17;
+  cursor:grab;
+}
+.rotation-point:hover{background:#eff6ff;border-color:#2563eb}
+.rotation-point:active{cursor:grabbing}
+.design-object.selected .rotation-stem,
+.design-object.selected .rotation-point{display:block}
+
+
+.design-object.selected{
+  outline-width:2px;
+  outline-style:solid;
+}
+
+
+.objects-layer{overflow:visible!important}
+.design-object{overflow:visible!important}
+
+
+.rotation-point{box-shadow:0 1px 4px rgba(15,23,42,.18)}
+.rotation-stem{background:#94a3b8!important}
+.artboard-shell{overflow:visible!important}
+
+
+.design-object.offboard{
+  box-shadow:0 0 0 2px #e11d48,0 0 0 4px rgba(225,29,72,.14)!important;
+}
+
+
+.create-sheet-btn{
+  width:100%;
+  min-height:40px;
+  margin-top:10px;
+  border:1px dashed #94a3b8;
+  border-radius:8px;
+  background:#f8fafc;
+  color:#334155;
+  font-weight:800;
+  font-size:11px;
+}
+.create-sheet-btn:hover{
+  background:#eff6ff;
+  border-color:#60a5fa;
+  color:#1d4ed8;
+}
+
+
+.selection-marquee{
+  position:absolute;
+  display:none;
+  z-index:80;
+  pointer-events:none!important;
+  border:1.5px solid #6366f1;
+  background:rgba(99,102,241,.18);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);
+}
+.selection-marquee.active{display:block}
+.design-object.multi-selected:not(.selected){
+  box-shadow:0 0 0 2px #6366f1,0 0 0 4px rgba(99,102,241,.12);
+}
+
+
+/* Evita que el navegador seleccione texto mientras se dibuja el marco. */
+.stage-scroller,
+.stage-scroller *{
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+
+.restart-nav-btn{
+  margin-top:2px;
+  color:#fca5a5;
+}
+.restart-nav-btn:hover{
+  background:#7f1d1d!important;
+  color:#fff!important;
+}
+
+
+.asset-count-badge{
+  position:absolute;
+  right:6px;
+  bottom:30px;
+  min-width:20px;
+  height:20px;
+  padding:0 6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  background:#111827;
+  color:#fff;
+  border:2px solid #fff;
+  font-size:10px;
+  line-height:1;
+  font-weight:900;
+  box-shadow:0 1px 4px rgba(15,23,42,.28);
+  z-index:6;
+  pointer-events:none;
+}
+.asset-count-badge.zero{display:none}
+
+
+.transform-toolbar-title{
+  font-size:10px;
+  font-weight:800;
+  color:#69717b;
+  margin-bottom:8px;
+}
+.transform-toolbar{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:7px;
+  width:100%;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  overflow:visible;
+}
+.transform-tool-btn{
+  width:100%;
+  min-width:0;
+  height:38px;
+  display:grid;
+  place-items:center;
+  border:1px solid #d5dbe2;
+  border-radius:7px;
+  background:#fff;
+  color:#1f2937;
+  font-size:17px;
+  line-height:1;
+  font-weight:800;
+  padding:0;
+  cursor:pointer;
+  transition:.12s;
+}
+.transform-tool-btn:hover{
+  background:#eff6ff;
+  border-color:#93c5fd;
+  color:#1d4ed8;
+  transform:translateY(-1px);
+}
+.transform-tool-btn:active{
+  transform:translateY(0);
+  background:#dbeafe;
+}
+.transform-tool-btn.danger{
+  color:#dc2626;
+  border-color:#fecaca;
+  background:#fff;
+}
+.transform-tool-btn.danger:hover{
+  background:#fef2f2;
+  border-color:#f87171;
+  color:#b91c1c;
+}
+.transform-separator{
+  display:none;
+}
+
+
+.image-processing-card{border:1px solid #dbe3ea;border-radius:9px;padding:10px;margin:0 0 13px;background:#f8fafc}
+.image-processing-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.image-processing-title b{font-size:11px}.image-processing-title small{font-size:9px;color:#7a8490}
+.image-processing-actions{display:grid;grid-template-columns:1fr;gap:7px}
+.process-image-btn{min-height:36px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-weight:800;font-size:10px;padding:7px 9px;text-align:left}
+.process-image-btn:hover{border-color:#60a5fa;background:#eff6ff;color:#1d4ed8}.process-image-btn.ai{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.process-image-btn.halftone{border-color:#c4b5fd;background:#f5f3ff;color:#6d28d9}
+.process-image-btn.restore{border-style:dashed;color:#64748b;background:#fff}.process-image-status{margin-top:7px;font-size:9px;color:#64748b;line-height:1.35}
+.processing-modal{width:min(480px,94vw)}.processing-body{padding:18px}.processing-body h3{margin:0 0 5px;font-size:15px}.processing-body p{font-size:10px;line-height:1.5;color:#64748b;margin:0 0 14px}.simple-option{display:block;font-size:10px;font-weight:700;color:#4b5563;margin:12px 0}.simple-option select,.simple-option input[type=color]{display:block;width:100%;margin-top:6px;height:38px;border:1px solid #d7dce2;border-radius:7px;background:#fff;padding:5px 8px}.processing-progress{height:7px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:13px}.processing-progress span{display:block;height:100%;width:0;background:#2563eb;border-radius:inherit;transition:width .15s}.processing-progress-label{display:block;margin-top:5px;font-size:9px;color:#64748b}.processing-note{padding:9px 10px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:7px;font-size:9px;color:#64748b;line-height:1.4}.modal-action-row{display:flex;gap:7px;justify-content:flex-end;margin-top:15px}.modal-action-row button{min-height:36px}.garment-custom-row.hidden{display:none!important}
+
+.object-processing-overlay{
+  position:absolute;
+  inset:0;
+  z-index:30;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border-radius:4px;
+  overflow:hidden;
+  background:rgba(15,23,42,.48);
+  backdrop-filter:blur(1.5px);
+  color:#fff;
+  pointer-events:none;
+}
+.object-processing-overlay::before{
+  content:"";
+  position:absolute;
+  inset:-35%;
+  background:linear-gradient(105deg,transparent 36%,rgba(255,255,255,.14) 46%,rgba(255,255,255,.78) 50%,rgba(255,255,255,.14) 54%,transparent 64%);
+  transform:translateX(-65%);
+  animation:bixAiSweep 1.35s linear infinite;
+}
+.object-processing-spinner{
+  position:relative;
+  z-index:2;
+  width:25px;
+  height:25px;
+  border:3px solid rgba(255,255,255,.28);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:bixAiSpin .75s linear infinite;
+}
+.object-processing-label{
+  position:relative;
+  z-index:2;
+  font-size:10px;
+  font-weight:900;
+  text-shadow:0 1px 2px rgba(0,0,0,.35);
+}
+.object-processing-progress{
+  position:relative;
+  z-index:2;
+  width:min(72%,160px);
+  height:5px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.24);
+}
+.object-processing-progress span{
+  display:block;
+  width:0%;
+  height:100%;
+  border-radius:inherit;
+  background:#fff;
+  transition:width .16s ease;
+}
+.design-object.ai-processing{outline-color:#2563eb!important;box-shadow:0 0 0 2px #2563eb,0 0 0 5px rgba(37,99,235,.18)!important}
+@keyframes bixAiSpin{to{transform:rotate(360deg)}}
+@keyframes bixAiSweep{from{transform:translateX(-65%)}to{transform:translateX(65%)}}
+
+
+@media(max-width:1100px){.workspace{grid-template-columns:60px 240px minmax(360px,1fr)}.rightbar{display:none}.top-actions .variant-label{display:none}.top-actions #qualityBtn{display:none}}
+
+
+.context-menu{position:fixed;display:none;z-index:9999;background:#fff;border:1px solid #d7dce2;border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);min-width:220px;padding:6px 0}
+.context-menu.show{display:block}
+.context-menu button{display:flex;justify-content:space-between;align-items:center;width:100%;border:0;background:#fff;padding:10px 14px;font-size:13px;text-align:left}
+.context-menu button:hover{background:#eff6ff}
+.context-menu button:disabled{opacity:.38;cursor:not-allowed;background:#fff;color:#9ca3af}
+.context-menu hr{border:0;border-top:1px solid #e5e7eb;margin:4px 0}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">B</div>
+      <div>
+        <div class="brand-title">BixStudio</div>
+        <div class="brand-sub">Gang Sheet Builder</div>
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button class="icon-btn" id="undoBtn" title="Deshacer">↶</button>
+      <button class="icon-btn" id="redoBtn" title="Rehacer">↷</button>
+      <div class="divider"></div>
+      <label class="variant-label">Hoja activa <span id="activeSheetSize" class="sheet-size-chip">62 × 30 cm</span></label>
+      <button class="ghost-btn" id="qualityBtn">✓ Revisar lienzo</button>
+      <button class="autonest-top-btn" id="autoNestTopBtn">✦ Auto Organizar</button>
+      <button class="ghost-btn" id="saveBtn">Guardar</button>
+      <button class="primary-btn" id="exportBtn">Exportar PNG</button>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <aside class="leftbar">
+      <button class="tool-nav active" data-panel="uploads"><span>▣</span><b>Archivos</b></button>
+      <button class="tool-nav" data-panel="text"><span>T</span><b>Texto</b></button>
+      <button class="tool-nav" data-panel="settings"><span>⚙</span><b>Ajustes</b></button>
+      <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Iniciar de nuevo</b></button>
+    </aside>
+
+    <section class="sidepanel">
+      <div class="panel-head">
+        <div>
+          <h2 id="panelTitle">Añadir imagen</h2>
+          <p id="panelSubtitle">Sube tus diseños y colócalos en la hoja.</p>
+        </div>
+      </div>
+
+      <div id="uploadsPanel" class="panel-view active">
+        <label class="upload-zone">
+          <input id="fileInput" type="file" multiple accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+          <div class="upload-icon">⬆</div>
+          <b>Subir imágenes</b>
+          <span>PNG, JPG, WEBP o SVG</span>
+        </label>
+        <div class="panel-row">
+          <input id="searchFiles" class="text-input" placeholder="Buscar archivo…">
+        </div>
+        <div class="library-head">
+          <span>Recientes</span><span id="assetCount">0 archivos</span>
+        </div>
+        <div id="assetGrid" class="asset-grid"></div>
+      </div>
+
+      <div id="textPanel" class="panel-view">
+        <label class="field">Texto
+          <textarea id="textValue" class="text-input textarea">BIXPRINT</textarea>
+        </label>
+        <label class="field">Tamaño
+          <input id="textSize" type="range" min="12" max="160" value="52">
+        </label>
+        <label class="field">Color
+          <input id="textColor" type="color" value="#111111">
+        </label>
+        <button id="addTextBtn" class="primary-btn wide">Añadir texto</button>
+      </div>
+<div id="settingsPanel" class="panel-view">
+        <label class="field">Ancho
+          <div class="unit-input"><input id="sheetWidth" type="number" value="62" min="5" step="0.1"><span>cm</span></div>
+        </label>
+        <label class="field">Alto
+          <div class="unit-input"><input id="sheetHeight" type="number" value="30" min="30" max="310" step="0.1"><span>cm</span></div>
+        </label>
+        <label class="field">Margen
+          <div class="unit-input"><input id="sheetMargin" type="number" value="0.3" min="0" step="0.1"><span>cm</span></div>
+        </label>
+        <label class="toggle-row"><input id="showResolution" type="checkbox" checked><span>Mostrar calidad de resolución</span></label>
+        <label class="toggle-row"><input id="snapToggle" type="checkbox" checked><span>Snap a guías</span></label>
+        <button id="applySettingsBtn" class="primary-btn wide">Aplicar ajustes</button>
+        <div class="settings-bottom-spacer"></div>
+        <button id="resetProjectBtn" class="reset-project-btn wide">↺ Volver a empezar</button>
+      </div>
+    </section>
+
+    <main class="stage-wrap">
+      <div class="stage-toolbar">
+        <div class="left">
+          <button class="mini-btn" id="zoomOut">−</button>
+          <span id="zoomLabel">100%</span>
+          <button class="mini-btn" id="zoomIn">+</button>
+          <button class="mini-btn" id="fitBtn">Ajustar</button>
+        </div>
+
+        <div class="packing-toolbar">
+          <label class="packing-field">
+            <span>Separación</span>
+            <div class="packing-input-wrap">
+              <input id="nestGap" type="number" value="0.5" min="0" step="0.1">
+              <small>cm</small>
+            </div>
+          </label>
+          <label class="packing-check">
+            <input id="allowRotate" type="checkbox" checked>
+            <span>Permitir rotación</span>
+          </label>
+        </div>
+<div class="color-help-wrap">
+          <button id="colorHelpBtn" class="color-help-btn" type="button">ⓘ ¿Qué significan los colores?</button>
+          <div id="colorHelpPopover" class="color-help-popover hidden">
+            <div class="color-help-title">Indicadores del contorno</div><div style="font-size:9px;color:#7b8490;margin-bottom:6px">El contorno representa el espacio físico real que ocupa el diseño.</div>
+            <div class="color-help-item"><span class="legend-stroke optimal"></span><div><b>Resolución óptima</b><small>300 DPI o más. Ideal para impresión.</small></div></div>
+            <div class="color-help-item"><span class="legend-stroke good"></span><div><b>Buena resolución</b><small>250–299 DPI. Buena calidad de impresión.</small></div></div>
+            <div class="color-help-item"><span class="legend-stroke bad"></span><div><b>Mala resolución</b><small>200–249 DPI. Puede perder definición.</small></div></div>
+            <div class="color-help-item"><span class="legend-stroke minimum"></span><div><b>Resolución mínima</b><small>Menos de 200 DPI. No recomendable.</small></div></div>
+            <div class="color-help-item"><span class="legend-stroke overlap"></span><div><b>Imágenes superpuestas</b><small>Dos o más diseños están invadiendo el mismo espacio.</small></div></div><div class="color-help-item"><span class="legend-stroke" style="border-color:#e11d48"></span><div><b>Fuera del margen</b><small>Parte del diseño está fuera del área útil de impresión.</small></div></div>
+          </div>
+        </div>
+      </div>
+      <div id="stageScroller" class="stage-scroller">
+        <div id="selectionMarquee" class="selection-marquee"></div>
+        <div id="viewportCoordinates" class="viewport-coordinates">X 0 · Y 0 · 100%</div>
+        <div class="preview-scrollbar preview-scrollbar-x" aria-label="Desplazamiento horizontal">
+          <div id="scrollTrackX" class="preview-scroll-track">
+            <div id="scrollThumbX" class="preview-scroll-thumb"></div>
+          </div>
+        </div>
+        <div class="preview-scrollbar preview-scrollbar-y" aria-label="Desplazamiento vertical">
+          <div id="scrollTrackY" class="preview-scroll-track">
+            <div id="scrollThumbY" class="preview-scroll-thumb"></div>
+          </div>
+        </div>
+
+        <div class="floating-shortcuts" aria-label="Atajos del lienzo">
+          <span><kbd>Espacio</kbd> mover lienzo</span>
+          <span><kbd>Ctrl</kbd> + rueda zoom</span>
+          <span><kbd>Alt</kbd> + arrastrar duplicar</span>
+          <span><kbd>Ctrl+C</kbd> copiar</span>
+          <span><kbd>Ctrl+V</kbd> pegar</span>
+          <span><kbd>Delete</kbd> eliminar</span><span>Barras: desplazar lienzo</span>
+        </div>
+        <div id="artboardShell" class="artboard-shell">
+          <div id="rulerX" class="ruler ruler-x"></div>
+          <div id="rulerY" class="ruler ruler-y"></div>
+          <div id="artboard" class="artboard">
+            <div id="safeArea" class="safe-area"></div>
+            <div id="objectsLayer" class="objects-layer"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="rightbar">
+      <div class="right-tabs">
+        <button id="propertiesTabBtn" class="right-tab active" type="button">Propiedades</button>
+        <button id="sheetsTabBtn" class="right-tab" type="button">Hojas <span id="sheetsCount" class="pill">1</span></button>
+      </div>
+
+      <div id="propertiesView">
+      <div id="noSelection" class="empty-state">
+        <div class="empty-icon">↖</div>
+        <b>Selecciona un diseño</b>
+        <p>Haz clic en un objeto para editar tamaño, posición y rotación.</p>
+      </div>
+
+      <div id="selectionPanel" class="selection-panel hidden">
+        <div class="selection-title">
+          <div>
+            <span class="muted">Seleccionado</span>
+            <b id="selName">Diseño</b>
+          </div>
+          
+        </div>
+
+        <div id="resolutionBadge" class="resolution-badge good">
+          <b id="dpiValue">300 DPI</b><span id="dpiText">Excelente</span>
+        </div>
+
+        <div id="imageProcessingTools" class="image-processing-card">
+          <div class="image-processing-title"><b>Procesamiento de imagen</b><small>DTF</small></div>
+          <div class="image-processing-actions">
+            <button id="enhanceImageBtn" class="process-image-btn ai" type="button">✨ Mejorar calidad con IA</button>
+            <button id="halftoneImageBtn" class="process-image-btn halftone" type="button">◉ Crear semitono</button>
+            <button id="restoreOriginalBtn" class="process-image-btn restore hidden" type="button">↶ Restaurar imagen original</button>
+          </div>
+          <div id="imageProcessingStatus" class="image-processing-status">Trabaja sobre la imagen seleccionada sin cambiar su tamaño físico.</div>
+        </div>
+
+        <div class="prop-grid">
+          <label>Ancho<div class="unit-input"><input id="objWidth" type="number" step="0.1"><span>cm</span></div></label>
+          <label>Alto<div class="unit-input"><input id="objHeight" type="number" step="0.1"><span>cm</span></div></label>
+          <label>X<div class="unit-input"><input id="objX" type="number" step="0.1"><span>cm</span></div></label>
+          <label>Y<div class="unit-input"><input id="objY" type="number" step="0.1"><span>cm</span></div></label>
+        </div>
+
+        <div class="aspect-lock-row">
+          <div>
+            <span class="aspect-lock-label">Proporción</span>
+            <small id="aspectLockHint">Ancho y alto vinculados</small>
+          </div>
+          <button id="aspectLockBtn" class="aspect-lock-btn locked" type="button">🔒 Bloqueada</button>
+        </div>
+
+        <label class="field">Rotación
+          <div class="rotation-row">
+            <input id="objRotation" type="number" step="1" value="0"><span>°</span>
+          </div>
+        </label>
+
+        <div class="button-row">
+          <button id="duplicateBtn" class="duplicate-primary-btn">⧉ Duplicar</button>
+          <button id="fillSelectedBtn" class="fill-selection-btn">▦ Auto rellenar</button>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <div class="transform-toolbar-title">Transformar y alinear</div>
+        <div class="transform-toolbar" role="toolbar" aria-label="Transformar y alinear">
+          <button id="rotateCCWBtn" class="transform-tool-btn" type="button" title="Girar 90° antihorario" aria-label="Girar 90 grados antihorario">↶</button>
+          <button id="rotateCWBtn" class="transform-tool-btn" type="button" title="Girar 90° horario" aria-label="Girar 90 grados horario">↷</button>
+          <span class="transform-separator"></span>
+          <button id="flipHorizontalBtn" class="transform-tool-btn" type="button" title="Voltear horizontalmente" aria-label="Voltear horizontalmente">⇋</button>
+          <button id="flipVerticalBtn" class="transform-tool-btn" type="button" title="Voltear verticalmente" aria-label="Voltear verticalmente">⇵</button>
+          <span class="transform-separator"></span>
+          <button id="stretchWidthBtn" class="transform-tool-btn" type="button" title="Estirar al ancho útil de la hoja" aria-label="Stretch to artboard width">↔|</button>
+          <button id="centerHorizontalBtn" class="transform-tool-btn" type="button" title="Centrar horizontalmente en la hoja" aria-label="Centrar horizontalmente">↔</button>
+          <span class="transform-separator"></span>
+          <button id="alignLeftBtn" class="transform-tool-btn" type="button" title="Ajustar a la izquierda" aria-label="Ajustar a la izquierda">⊣</button>
+          <button id="alignRightBtn" class="transform-tool-btn" type="button" title="Ajustar a la derecha" aria-label="Ajustar a la derecha">⊢</button>
+          <button id="alignTopBtn" class="transform-tool-btn" type="button" title="Ajustar al principio" aria-label="Ajustar al principio">⊤</button>
+          <span class="transform-separator"></span>
+          <button id="toolbarDeleteBtn" class="transform-tool-btn danger" type="button" title="Borrar" aria-label="Borrar">⌫</button>
+        </div>
+
+        <div class="section-divider"></div>
+</div>
+      </div>
+
+      <div id="sheetsView" class="sheets-view hidden">
+        <div class="sheets-header">
+          <div><b>Gang sheets activas</b><small>Cambia entre hojas sin perder tu trabajo.</small></div>
+        </div>
+        <div id="sheetsList" class="sheets-list"></div>
+        <button id="createSheetBtn" class="create-sheet-btn" type="button">＋ Crear nueva hoja</button>
+      </div>
+    </aside>
+  </div>
+
+  <div id="qualityModal" class="modal-backdrop hidden">
+    <div class="modal quality-modal">
+      <div class="modal-head dark">
+        <div><span class="kicker">PRE-FLIGHT</span><h2>Revisar lienzo</h2></div>
+        <button class="close-btn" data-close="qualityModal">×</button>
+      </div>
+      <div class="quality-body">
+        <div class="quality-preview">
+          <div id="qualityScore" class="score-ring"><div><strong>100</strong><span>SCORE</span></div></div>
+          <div class="checker"><canvas id="qualityCanvas"></canvas></div>
+          <div id="qualityFile" class="quality-file">Hoja completa</div>
+        </div>
+        <div class="quality-list-wrap">
+          <div class="quality-heading">
+            <div><h3>Revisión del lienzo</h3><p>Problemas detectados antes de exportar.</p></div>
+            <span class="scan-pill">● ANALIZADO</span>
+          </div>
+          <div id="qualityList" class="quality-list"></div>
+          <div id="alphaTools" class="alpha-tools hidden">
+            <div class="alpha-tools-head">
+              <div><b>Limpiar semitransparencias</b><small>Alfa menor al umbral → transparente; igual o mayor → opaco.</small></div>
+              <span id="alphaCountBadge" class="alpha-count-badge">0 px</span>
+            </div>
+            <label class="alpha-threshold-label"><span>Umbral <b id="alphaThresholdValue">128</b></span><input id="alphaThreshold" type="range" min="1" max="254" value="128" step="1"></label>
+            <button id="cleanAlphaBtn" class="primary-btn wide" type="button">Limpiar píxeles semitransparentes</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-foot"><button class="primary-btn" data-close="qualityModal">Continuar</button></div>
+    </div>
+  </div>
+  <div id="halftoneModal" class="modal-backdrop hidden">
+    <div class="modal processing-modal">
+      <div class="modal-head"><h2>◉ Crear semitono</h2><button class="close-btn" data-close="halftoneModal">×</button></div>
+      <div class="processing-body">
+        <h3>Preparación sencilla para DTF</h3>
+        <p>Selecciona la prenda y qué tan fuerte quieres la separación. Los ajustes técnicos del semitono se calculan internamente.</p>
+        <label class="simple-option">Tipo de prenda
+          <select id="halftoneGarment">
+            <option value="negra">Negra</option><option value="blanca">Blanca</option><option value="roja">Roja</option><option value="azul">Azul</option><option value="gris">Gris</option><option value="beige">Beige</option><option value="verde">Verde</option><option value="custom">Otro color…</option>
+          </select>
+        </label>
+        <label id="halftoneCustomRow" class="simple-option garment-custom-row hidden">Color de la prenda<input id="halftoneCustomColor" type="color" value="#7d7d7d"></label>
+        <label class="simple-option">Intensidad
+          <select id="halftoneIntensity"><option value="light" selected>Ligero</option><option value="balanced">Balanceado</option><option value="strong">Fuerte</option></select>
+        </label>
+        <div class="processing-note">La salida se genera a 300 DPI y con alpha sólido para evitar semitransparencias problemáticas en DTF.</div>
+        <div class="processing-progress"><span id="halftoneProgressBar"></span></div>
+        <small id="halftoneProgressLabel" class="processing-progress-label">Listo para procesar</small>
+        <div class="modal-action-row"><button class="ghost-btn" data-close="halftoneModal">Cancelar</button><button id="runHalftoneBtn" class="primary-btn">Aplicar semitono</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+</div>
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const state = {
+  sheets:[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:.3},objects:[]}],
+  activeSheetIndex:0,
+  zoom:1,
+  viewport:{x:80,y:70},
+  snap:true,
+  showResolution:true,
+  assets:[],
+  selectedId:null,
+  selectedIds:[],
+  clipboard:[],
+  history:[],
+  future:[],
+  nextId:1,
+  nextSheetId:2
+};
+Object.defineProperty(state,"sheet",{
+  get(){return state.sheets[state.activeSheetIndex].sheet},
+  set(v){state.sheets[state.activeSheetIndex].sheet=v}
+});
+Object.defineProperty(state,"objects",{
+  get(){return state.sheets[state.activeSheetIndex].objects},
+  set(v){state.sheets[state.activeSheetIndex].objects=v}
+});
+const MIN_SHEET_HEIGHT=30;
+const MAX_SHEET_HEIGHT=310;
+const PX_PER_CM = 20;
+const artboard = $("#artboard"), layer=$("#objectsLayer"), shell=$("#artboardShell");
+const fileInput=$("#fileInput");
+
+const ASSET_DB_NAME="bixstudio_assets_v1", ASSET_STORE="assets";
+function openAssetDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(ASSET_DB_NAME,1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(ASSET_STORE))db.createObjectStore(ASSET_STORE,{keyPath:"id"})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+async function persistAsset(asset){
+ try{const db=await openAssetDB();await new Promise((resolve,reject)=>{const tx=db.transaction(ASSET_STORE,"readwrite");tx.objectStore(ASSET_STORE).put({id:asset.id,name:asset.name,blob:asset.file,w:asset.w,h:asset.h,dpiX:asset.dpiX,dpiY:asset.dpiY,dpiSource:asset.dpiSource,physicalWcm:asset.physicalWcm,physicalHcm:asset.physicalHcm,
+        alphaCleaned:!!asset.alphaCleaned,
+        alphaThreshold:Number.isFinite(asset.alphaThreshold)?asset.alphaThreshold:null,
+        alphaBinary:!!asset.alphaBinary,
+        updatedAt:Date.now()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}catch(e){console.warn("No se pudo guardar localmente",e)}
+}
+async function loadPersistedAssets(){
+ try{
+  const db=await openAssetDB();
+  const rows=await new Promise((resolve,reject)=>{const tx=db.transaction(ASSET_STORE,"readonly"),req=tx.objectStore(ASSET_STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)});
+  db.close();
+  for(const row of rows){
+   if(state.assets.some(a=>a.id===row.id))continue;
+   state.assets.push({id:row.id,name:row.name,src:URL.createObjectURL(row.blob),w:row.w,h:row.h,file:row.blob,dpiX:row.dpiX||null,dpiY:row.dpiY||row.dpiX||null,dpiSource:row.dpiSource||null,physicalWcm:row.physicalWcm||null,physicalHcm:row.physicalHcm||null,
+        alphaCleaned:!!row.alphaCleaned,
+        alphaThreshold:Number.isFinite(row.alphaThreshold)?row.alphaThreshold:null,
+        alphaBinary:row.alphaBinary===true,
+        updatedAt:row.updatedAt||0})
+  }
+  state.assets.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+  for(const a of state.assets){
+    if(a.alphaBinary!==true && !a.alphaCleaned){
+      const info=await inspectSourceAlpha(a);
+      a.alphaBinary=!!info.binary;
+      persistAsset(a);
+    }
+  }
+  renderAssets()
+ }catch(e){console.warn("No se restauraron cargas locales",e)}
+}
+
+function assetById(id){return state.assets.find(a=>a.id===id)||null}
+
+function readAscii(view,offset,len){
+  let s=""; for(let i=0;i<len;i++) s+=String.fromCharCode(view.getUint8(offset+i)); return s;
+}
+function readTiffDpi(view,base){
+  try{
+    const little=readAscii(view,base,2)==="II";
+    const u16=o=>view.getUint16(base+o,little);
+    const u32=o=>view.getUint32(base+o,little);
+    if(u16(2)!==42) return null;
+    const ifd=u32(4), count=u16(ifd);
+    let x=null,y=null,unit=2;
+    const rational=off=>{
+      const num=u32(off),den=u32(off+4); return den?num/den:null;
+    };
+    for(let i=0;i<count;i++){
+      const e=ifd+2+i*12, tag=u16(e), type=u16(e+2), cnt=u32(e+4), val=u32(e+8);
+      if((tag===0x011A||tag===0x011B) && type===5 && cnt>=1){
+        const r=rational(val);
+        if(tag===0x011A)x=r; else y=r;
+      }else if(tag===0x0128 && type===3){
+        unit=little?view.getUint16(base+e+8,true):view.getUint16(base+e+8,false);
+      }
+    }
+    if(!x&&!y) return null;
+    x=x||y; y=y||x;
+    if(unit===3){x*=2.54;y*=2.54}
+    return {x,y,source:"EXIF"};
+  }catch{return null}
+}
+async function readEmbeddedDpi(file){
+  try{
+    const buf=await file.arrayBuffer();
+    const view=new DataView(buf);
+
+    // PNG pHYs: pixels per meter.
+    if(buf.byteLength>24 && view.getUint32(0)===0x89504e47){
+      let p=8;
+      while(p+12<=buf.byteLength){
+        const len=view.getUint32(p,false);
+        const type=readAscii(view,p+4,4);
+        if(type==="pHYs" && len>=9){
+          const xppm=view.getUint32(p+8,false), yppm=view.getUint32(p+12,false), unit=view.getUint8(p+16);
+          if(unit===1 && xppm>0 && yppm>0) return {x:xppm*.0254,y:yppm*.0254,source:"PNG pHYs"};
+        }
+        p+=12+len;
+      }
+    }
+
+    // JPEG JFIF / EXIF.
+    if(buf.byteLength>4 && view.getUint16(0,false)===0xFFD8){
+      let p=2;
+      while(p+4<buf.byteLength){
+        if(view.getUint8(p)!==0xFF){p++;continue}
+        const marker=view.getUint8(p+1); p+=2;
+        if(marker===0xD9||marker===0xDA) break;
+        const len=view.getUint16(p,false);
+        if(len<2||p+len>buf.byteLength) break;
+        const data=p+2;
+        if(marker===0xE0 && len>=16 && readAscii(view,data,5)==="JFIF\0"){
+          const units=view.getUint8(data+7);
+          let x=view.getUint16(data+8,false),y=view.getUint16(data+10,false);
+          if(units===1 && x&&y) return {x,y,source:"JPEG JFIF"};
+          if(units===2 && x&&y) return {x:x*2.54,y:y*2.54,source:"JPEG JFIF"};
+        }
+        if(marker===0xE1 && len>=10 && readAscii(view,data,6)==="Exif\0\0"){
+          const r=readTiffDpi(view,data+6);
+          if(r) return r;
+        }
+        p+=len;
+      }
+    }
+
+    // WEBP EXIF chunk, when present.
+    if(buf.byteLength>16 && readAscii(view,0,4)==="RIFF" && readAscii(view,8,4)==="WEBP"){
+      let p=12;
+      while(p+8<=buf.byteLength){
+        const type=readAscii(view,p,4), len=view.getUint32(p+4,true), data=p+8;
+        if(type==="EXIF"){
+          let base=data;
+          if(readAscii(view,data,6)==="Exif\0\0") base=data+6;
+          const r=readTiffDpi(view,base);
+          if(r) return r;
+        }
+        p=data+len+(len%2);
+      }
+    }
+  }catch(e){console.warn("No se pudo leer DPI:",e)}
+  return null;
+}
+
+function objectSrc(o){
+  if(o.type!=="image") return "";
+  const a=assetById(o.assetId);
+  return a ? a.src : (o.src||"");
+}
+
+
+function uid(){return "o"+(state.nextId++)}
+function toast(msg){const t=$("#toast"); t.textContent=msg;t.classList.remove("hidden");clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.add("hidden"),1800)}
+function serializableObject(o){
+  const n={...o};
+  delete n.el;
+  delete n.src;
+  return n;
+}
+function snapshot(){
+  return JSON.stringify({
+    sheets:state.sheets.map(s=>({
+      id:s.id,name:s.name,
+      sheet:{...s.sheet},
+      objects:s.objects.map(serializableObject)
+    })),
+    activeSheetIndex:state.activeSheetIndex,
+    nextSheetId:state.nextSheetId
+  });
+}
+function pushHistory(){state.history.push(snapshot()); if(state.history.length>35)state.history.shift(); state.future=[]}
+function restore(raw){
+  const d=JSON.parse(raw);
+  if(Array.isArray(d.sheets)){
+    state.sheets=d.sheets;
+    state.activeSheetIndex=Math.max(0,Math.min(d.activeSheetIndex||0,state.sheets.length-1));
+    state.nextSheetId=d.nextSheetId||state.sheets.length+1;
+  }else{
+    state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:d.sheet||{w:62,h:30,margin:.3},objects:d.objects||[]}];
+    state.activeSheetIndex=0;
+  }
+  state.selectedId=null;
+  state.selectedIds=[];
+  syncSheetInputs();
+  renderAll();
+}
+function undo(){if(!state.history.length)return;state.future.push(snapshot());restore(state.history.pop())}
+function redo(){if(!state.future.length)return;state.history.push(snapshot());restore(state.future.pop())}
+
+function syncSheetInputs(){
+ $("#sheetWidth").value=state.sheet.w;
+ $("#sheetHeight").value=state.sheet.h;
+ $("#sheetMargin").value=state.sheet.margin;
+ const chip=$("#activeSheetSize");
+ if(chip) chip.textContent=`${state.sheet.w.toFixed(0)} × ${state.sheet.h.toFixed(1).replace(".0","")} cm`;
+}
+function cmToPx(v){return v*PX_PER_CM}
+function updateBoard(){
+ artboard.style.width=cmToPx(state.sheet.w)+"px";
+ artboard.style.height=cmToPx(state.sheet.h)+"px";
+ $("#safeArea").style.inset=cmToPx(state.sheet.margin)+"px";
+ applyViewport();
+ buildRulers();
+ const sizeChip=$("#activeSheetSize"); if(sizeChip) sizeChip.textContent=`${state.sheet.w.toFixed(0)} × ${state.sheet.h.toFixed(1).replace(".0","")} cm`;
+}
+function applyViewport(){
+ // Use layout zoom instead of scaling the whole artboard as a composited texture.
+ // Chrome/Edge render raster images more sharply this way.
+ shell.style.transform="none";
+ shell.style.zoom=String(state.zoom);
+ shell.style.left=(state.viewport.x/state.zoom)+"px";
+ shell.style.top=(state.viewport.y/state.zoom)+"px";
+
+ $("#zoomLabel").textContent=Math.round(state.zoom*100)+"%";
+
+ const vc=$("#viewportCoordinates");
+ if(vc) vc.textContent=`X ${Math.round(state.viewport.x)} · Y ${Math.round(state.viewport.y)} · ${Math.round(state.zoom*100)}%`;
+
+ syncPanSliders();
+}
+
+function viewportPanRange(){
+  const sc=$("#stageScroller").getBoundingClientRect();
+  const aw=cmToPx(state.sheet.w)*state.zoom;
+  const ah=cmToPx(state.sheet.h)*state.zoom;
+
+  // Symmetrical travel around the centered position.
+  const centerX=(sc.width-aw)/2;
+  const centerY=(sc.height-ah)/2;
+  const spanX=Math.max(sc.width*.65,aw*.35,180);
+  const spanY=Math.max(sc.height*.65,ah*.35,180);
+
+  return {
+    minX:centerX-spanX,
+    maxX:centerX+spanX,
+    minY:centerY-spanY,
+    maxY:centerY+spanY
+  };
+}
+function syncPanSliders(){
+  const tx=$("#scrollTrackX"),ty=$("#scrollTrackY"),hx=$("#scrollThumbX"),hy=$("#scrollThumbY");
+  if(!tx||!ty||!hx||!hy)return;
+
+  const r=viewportPanRange();
+  const sc=$("#stageScroller").getBoundingClientRect();
+  const aw=cmToPx(state.sheet.w)*state.zoom;
+  const ah=cmToPx(state.sheet.h)*state.zoom;
+
+  // Larger thumbs = lower sensitivity and a more browser-like feel.
+  const xThumb=Math.max(64,Math.min(tx.clientWidth*.72,tx.clientWidth*(sc.width/Math.max(sc.width,aw+sc.width*.55))));
+  const yThumb=Math.max(64,Math.min(ty.clientHeight*.72,ty.clientHeight*(sc.height/Math.max(sc.height,ah+sc.height*.55))));
+  hx.style.width=xThumb+"px";
+  hy.style.height=yThumb+"px";
+
+  const xn=(state.viewport.x-r.minX)/Math.max(.0001,r.maxX-r.minX);
+  // Vertical scrollbar follows browser convention: thumb down => content up.
+  const yn=(r.maxY-state.viewport.y)/Math.max(.0001,r.maxY-r.minY);
+
+  hx.style.left=Math.max(0,Math.min(tx.clientWidth-xThumb,xn*(tx.clientWidth-xThumb)))+"px";
+  hy.style.top=Math.max(0,Math.min(ty.clientHeight-yThumb,yn*(ty.clientHeight-yThumb)))+"px";
+}
+
+function screenToWorld(clientX,clientY){
+ const sc=$("#stageScroller").getBoundingClientRect();
+ return {
+   x:(clientX-sc.left-state.viewport.x)/state.zoom,
+   y:(clientY-sc.top-state.viewport.y)/state.zoom
+ };
+}
+function zoomAt(clientX,clientY,newZoom){
+ const sc=$("#stageScroller").getBoundingClientRect();
+ const sx=clientX-sc.left, sy=clientY-sc.top;
+ const worldX=(sx-state.viewport.x)/state.zoom;
+ const worldY=(sy-state.viewport.y)/state.zoom;
+ state.zoom=Math.max(.15,Math.min(4,newZoom));
+ state.viewport.x=sx-worldX*state.zoom;
+ state.viewport.y=sy-worldY*state.zoom;
+ applyViewport();
+}
+function fitViewport(){
+ const sc=$("#stageScroller");
+ const rect=sc.getBoundingClientRect();
+ if(rect.width<50 || rect.height<50) return;
+
+ const aw=cmToPx(state.sheet.w);
+ const ah=cmToPx(state.sheet.h);
+
+ // Keep enough room for rulers and the floating shortcut strip.
+ const leftRight=72;
+ const topSpace=72;
+ const bottomSpace=68;
+ const availW=Math.max(100,rect.width-leftRight*2);
+ const availH=Math.max(100,rect.height-topSpace-bottomSpace);
+
+ const z=Math.min(availW/aw,availH/ah,1.5);
+ state.zoom=Math.max(.10,Math.min(4,z));
+
+ state.viewport.x=(rect.width-aw*state.zoom)/2;
+ state.viewport.y=topSpace + Math.max(0,(availH-ah*state.zoom)/2);
+
+ applyViewport();
+
+}
+function buildRulers(){
+ const rx=$("#rulerX"),ry=$("#rulerY");rx.innerHTML="";ry.innerHTML="";
+ for(let x=0;x<=state.sheet.w;x+=5){
+   const m=document.createElement("i");m.className="ruler-mark-x";m.style.left=cmToPx(x)+"px";rx.appendChild(m);
+   const l=document.createElement("span");l.className="ruler-label-x";l.style.left=cmToPx(x)+"px";l.textContent=x;rx.appendChild(l);
+ }
+ for(let y=0;y<=state.sheet.h;y+=5){
+   const m=document.createElement("i");m.className="ruler-mark-y";m.style.top=cmToPx(y)+"px";ry.appendChild(m);
+   const l=document.createElement("span");l.className="ruler-label-y";l.style.top=cmToPx(y)+"px";l.textContent=y;ry.appendChild(l);
+ }
+}
+function objById(id){return state.objects.find(o=>o.id===id)}
+function ensureAspect(o){
+  if(!o) return;
+  if(typeof o.aspectLocked!=="boolean") o.aspectLocked = o.type==="image";
+  if(!Number.isFinite(o.aspectRatio) || o.aspectRatio<=0) o.aspectRatio = Math.max(.0001,(o.w||1)/(o.h||1));
+}
+
+
+
+function ensureRotationModel(o){
+  ensureAspect(o);
+
+  if(!Number.isFinite(o.w)||o.w<=0) o.w=1;
+  if(!Number.isFinite(o.h)||o.h<=0) o.h=1;
+
+  // baseW/baseH = canonical unrotated physical size used by Auto Organizar.
+  // For legacy objects, infer it from the current local dimensions once.
+  if(!Number.isFinite(o.baseW)||o.baseW<=0) o.baseW=o.w;
+  if(!Number.isFinite(o.baseH)||o.baseH<=0) o.baseH=o.h;
+
+  // Local transform-box dimensions follow the actual object size.
+  o.visualW=o.w;
+  o.visualH=o.h;
+}
+function rotatedCorners(o){
+  ensureRotationModel(o);
+  const rad=(o.rot||0)*Math.PI/180;
+  const c=Math.cos(rad),s=Math.sin(rad);
+  const cx=o.x+o.w/2,cy=o.y+o.h/2;
+  const local=[
+    {x:-o.w/2,y:-o.h/2},
+    {x:o.w/2,y:-o.h/2},
+    {x:o.w/2,y:o.h/2},
+    {x:-o.w/2,y:o.h/2}
+  ];
+  return local.map(p=>({
+    x:cx+p.x*c-p.y*s,
+    y:cy+p.x*s+p.y*c
+  }));
+}
+function rotatedAABB(o){
+  const pts=rotatedCorners(o);
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  return {x:minX,y:minY,w:maxX-minX,h:maxY-minY};
+}
+function pointToArtboardCm(clientX,clientY){
+  const r=artboard.getBoundingClientRect();
+  const scale=PX_PER_CM*state.zoom;
+  return {x:(clientX-r.left)/scale,y:(clientY-r.top)/scale};
+}
+function rotateVector(x,y,deg){
+  const rad=deg*Math.PI/180,c=Math.cos(rad),s=Math.sin(rad);
+  return {x:x*c-y*s,y:x*s+y*c};
+}
+function inverseRotateVector(x,y,deg){
+  return rotateVector(x,y,-deg);
+}
+function polygonAxes(poly){
+  const axes=[];
+  for(let i=0;i<poly.length;i++){
+    const a=poly[i],b=poly[(i+1)%poly.length];
+    const ex=b.x-a.x,ey=b.y-a.y;
+    const len=Math.hypot(ex,ey)||1;
+    axes.push({x:-ey/len,y:ex/len});
+  }
+  return axes;
+}
+function projectPoly(poly,axis){
+  const vals=poly.map(p=>p.x*axis.x+p.y*axis.y);
+  return {min:Math.min(...vals),max:Math.max(...vals)};
+}
+function rotatedObjectsOverlap(a,b){
+  const pa=rotatedCorners(a),pb=rotatedCorners(b);
+  const axes=[...polygonAxes(pa),...polygonAxes(pb)];
+  for(const axis of axes){
+    const A=projectPoly(pa,axis),B=projectPoly(pb,axis);
+    if(A.max<=B.min+.01 || B.max<=A.min+.01) return false;
+  }
+  return true;
+}
+
+function baseCopyName(name){
+  return String(name||"Diseño")
+    .replace(/\s+x\d+$/i,"")
+    .replace(/\s+copia(?:\s+copia)*$/i,"")
+    .trim();
+}
+function nextCopyName(sourceName){
+  const base=baseCopyName(sourceName);
+  let max=1;
+  for(const o of state.objects){
+    const n=String(o.name||"");
+    if(baseCopyName(n)!==base) continue;
+    const m=n.match(/\s+x(\d+)$/i);
+    const num=m?parseInt(m[1],10):1;
+    if(Number.isFinite(num)) max=Math.max(max,num);
+  }
+  return `${base} x${max+1}`;
+}
+
+function calcDpi(o){
+ if(o.type==="text") return 999;
+ const pxw=o.naturalW||1; const inches=o.w/2.54;
+ return Math.round(pxw/Math.max(.01,inches));
+}
+function dpiClass(d){return d>=300?"optimal":d>=250?"good":d>=200?"bad":"minimum"}
+function objRect(o){return rotatedAABB(o)}
+function rectsOverlap(a,b){return a.x < b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y}
+function updateDiagnostics(){
+ state.objects.forEach(o=>{
+   ensureRotationModel(o);
+   o.overlap=false;
+
+   const pts=rotatedCorners(o);
+   const left=state.sheet.margin;
+   const top=state.sheet.margin;
+   const right=state.sheet.w-state.sheet.margin;
+   const bottom=state.sheet.h-state.sheet.margin;
+   const epsilon=.02;
+
+   o.offboard=pts.some(p=>
+     p.x < left-epsilon ||
+     p.y < top-epsilon ||
+     p.x > right+epsilon ||
+     p.y > bottom+epsilon
+   );
+ });
+
+ for(let i=0;i<state.objects.length;i++){
+   for(let j=i+1;j<state.objects.length;j++){
+     if(rotatedObjectsOverlap(state.objects[i],state.objects[j])){
+       state.objects[i].overlap=true;
+       state.objects[j].overlap=true;
+     }
+   }
+ }
+}
+function renderAll(){
+ updateBoard(); updateDiagnostics(); layer.innerHTML="";
+ layer.classList.toggle("show-dpi",state.showResolution);
+ state.objects.forEach(o=>{ensureAspect(o);ensureRotationModel(o);renderObject(o)}); updateSelectionPanel(); renderSheetsPanel(); syncSheetInputs();
+ renderAssets();
+}
+function renderObject(o){
+ const el=document.createElement("div");
+ const dpi=calcDpi(o);
+ const dpiCls=dpiClass(dpi);
+ const isPrimary=o.id===state.selectedId;
+ const isMulti=state.selectedIds.includes(o.id);
+ el.className="design-object dpi-"+dpiCls+(isPrimary?" selected":"")+(isMulti?" multi-selected":"")+(o.overlap?" overlap":"")+(o.offboard?" offboard":"");
+ el.dataset.id=o.id;el.style.left=cmToPx(o.x)+"px";el.style.top=cmToPx(o.y)+"px";el.style.width=cmToPx(o.w)+"px";el.style.height=cmToPx(o.h)+"px";
+ el.style.transform=`rotate(${o.rot||0}deg)`;el.style.transformOrigin="50% 50%";
+ const visual=document.createElement("div");
+ visual.className="object-visual";
+ ensureRotationModel(o);
+ const rotation=((o.rot||0)%360+360)%360;
+ visual.style.width="100%";
+ visual.style.height="100%";
+ visual.style.transform=`translate(-50%,-50%) scale(${o.flipX?-1:1},${o.flipY?-1:1})`;
+
+ if(o.type==="image"){
+   const img=document.createElement("img");
+   img.decoding="sync";
+   img.src=objectSrc(o);
+   // Locked = preserve image proportions. Unlocked = image stretches with hitbox.
+   img.style.objectFit=o.aspectLocked?"contain":"fill";
+   img.addEventListener("load",()=>{
+     if(img.decode){
+       img.decode().catch(()=>{}).finally(()=>{
+         img.style.visibility="hidden";
+         requestAnimationFrame(()=>{img.style.visibility="visible"});
+       });
+     }
+   },{once:true});
+   visual.appendChild(img);
+ } else {
+   const d=document.createElement("div");
+   d.className="text-obj";
+   d.textContent=o.text;
+   d.style.fontSize=(o.fontSize||52)*.65+"px";
+   d.style.color=o.color||"#111";
+   d.style.fontWeight=800;
+   visual.appendChild(d);
+ }
+ el.appendChild(visual);
+ const chip=document.createElement("span");chip.className="dpi-chip";el.appendChild(chip);
+ const resizePoints=["tl","tr","bl","br"].map(pos=>{
+   const p=document.createElement("i");
+   p.className="resize-point "+pos;
+   p.dataset.resizeCorner=pos;
+   p.addEventListener("pointerdown",e=>startResize(e,o,pos));
+   el.appendChild(p);
+   return p;
+ });
+
+ const stem=document.createElement("i");
+ stem.className="rotation-stem";
+ el.appendChild(stem);
+
+ const rotationPoint=document.createElement("i");
+ rotationPoint.className="rotation-point";
+ rotationPoint.addEventListener("pointerdown",e=>startRotate(e,o));
+ el.appendChild(rotationPoint);
+
+ el.addEventListener("pointerdown",e=>{
+   if(e.target.closest && (e.target.closest(".resize-point")||e.target.closest(".rotation-point"))) return;
+   startDrag(e,o,false);
+ });
+ layer.appendChild(el);
+}
+function select(id){state.selectedId=id;state.selectedIds=id?[id]:[];renderAll()}
+
+
+function startResize(e,o,corner){
+  e.preventDefault();
+  e.stopPropagation();
+  ensureAspect(o);
+  ensureRotationModel(o);
+
+  if(state.selectedId!==o.id){
+    state.selectedId=o.id;
+    state.selectedIds=[o.id];
+    renderAll();
+  }
+
+  pushHistory();
+
+  const start={
+    x:o.x,y:o.y,w:o.w,h:o.h,
+    ratio:o.aspectRatio||o.w/o.h,
+    rot:o.rot||0
+  };
+  const center={x:start.x+start.w/2,y:start.y+start.h/2};
+
+  const movingSigns={
+    tl:{x:-1,y:-1},
+    tr:{x: 1,y:-1},
+    bl:{x:-1,y: 1},
+    br:{x: 1,y: 1}
+  }[corner];
+
+  // Opposite corner is fixed in world coordinates.
+  const fixedLocal={
+    x:-movingSigns.x*start.w/2,
+    y:-movingSigns.y*start.h/2
+  };
+  const fixedRot=rotateVector(fixedLocal.x,fixedLocal.y,start.rot);
+  const fixedWorld={x:center.x+fixedRot.x,y:center.y+fixedRot.y};
+
+  const move=ev=>{
+    const pointer=pointToArtboardCm(ev.clientX,ev.clientY);
+    const deltaWorld={x:pointer.x-fixedWorld.x,y:pointer.y-fixedWorld.y};
+    const deltaLocal=inverseRotateVector(deltaWorld.x,deltaWorld.y,start.rot);
+
+    let newW=Math.max(.2,movingSigns.x*deltaLocal.x);
+    let newH=Math.max(.2,movingSigns.y*deltaLocal.y);
+
+    if(o.aspectLocked){
+      const sw=newW/start.w;
+      const sh=newH/start.h;
+      const scale=Math.max(.05,Math.abs(sw-1)>=Math.abs(sh-1)?sw:sh);
+      newW=Math.max(.2,start.w*scale);
+      newH=Math.max(.2,start.h*scale);
+    }
+
+    // Vector from fixed corner to moving corner in LOCAL coordinates.
+    const localDelta={
+      x:movingSigns.x*newW,
+      y:movingSigns.y*newH
+    };
+    const worldDelta=rotateVector(localDelta.x,localDelta.y,start.rot);
+    const newCenter={
+      x:fixedWorld.x+worldDelta.x/2,
+      y:fixedWorld.y+worldDelta.y/2
+    };
+
+    o.w=newW;
+    o.h=newH;
+    o.visualW=newW;
+    o.visualH=newH;
+    o.baseW=newW;
+    o.baseH=newH;
+    o.aspectRatio=newW/newH;
+    o.x=newCenter.x-newW/2;
+    o.y=newCenter.y-newH/2;
+
+    recalcActiveSheetHeight();
+    renderAll();
+  };
+
+  const up=()=>{
+    window.removeEventListener("pointermove",move);
+    window.removeEventListener("pointerup",up);
+    recalcActiveSheetHeight();
+    updateDiagnostics();
+    renderAll();
+  };
+
+  window.addEventListener("pointermove",move);
+  window.addEventListener("pointerup",up);
+}
+
+function startRotate(e,o){
+  e.preventDefault();
+  e.stopPropagation();
+  ensureRotationModel(o);
+
+  if(state.selectedId!==o.id){
+    state.selectedId=o.id;
+    state.selectedIds=[o.id];
+    renderAll();
+  }
+
+  pushHistory();
+
+  const centerWorld={x:o.x+o.w/2,y:o.y+o.h/2};
+  const startPointer=pointToArtboardCm(e.clientX,e.clientY);
+  const startAngle=Math.atan2(startPointer.y-centerWorld.y,startPointer.x-centerWorld.x)*180/Math.PI;
+  const original=o.rot||0;
+
+  const move=ev=>{
+    const p=pointToArtboardCm(ev.clientX,ev.clientY);
+    const a=Math.atan2(p.y-centerWorld.y,p.x-centerWorld.x)*180/Math.PI;
+    let deg=original+(a-startAngle);
+    if(ev.shiftKey) deg=Math.round(deg/15)*15;
+    o.rot=((deg%360)+360)%360;
+    recalcActiveSheetHeight();
+    renderAll();
+  };
+
+  const up=()=>{
+    window.removeEventListener("pointermove",move);
+    window.removeEventListener("pointerup",up);
+    updateDiagnostics();
+    renderAll();
+  };
+
+  window.addEventListener("pointermove",move);
+  window.addEventListener("pointerup",up);
+}
+
+function startDrag(e,o,resizing){
+ if(spaceHeld){
+   beginViewportPan(e);
+   return;
+ }
+ e.preventDefault();e.stopPropagation();
+
+ // Alt + arrastrar = duplicar y mover la copia.
+ if(e.altKey){
+   pushHistory();
+   const cloned=JSON.parse(JSON.stringify(o));
+   delete cloned.src;
+   cloned.id=uid();
+   cloned.name=nextCopyName(o.name||"Diseño");
+   cloned.x=o.x;
+   cloned.y=o.y;
+   state.objects.push(cloned);
+   o=cloned;
+   state.selectedId=o.id;
+   state.selectedIds=[o.id];
+   renderAll();
+ }
+
+ if(state.selectedId!==o.id){state.selectedId=o.id;state.selectedIds=[o.id];renderAll()}
+ ensureRotationModel(o);
+ const start={
+   x:e.clientX,y:e.clientY,
+   ox:o.x,oy:o.y,
+   ow:o.w,oh:o.h,
+   visualW:o.visualW,
+   visualH:o.visualH,
+   ratio:o.aspectRatio||o.visualW/o.visualH
+ };
+ const move=ev=>{
+  const dx=(ev.clientX-start.x)/(PX_PER_CM*state.zoom);
+  const dy=(ev.clientY-start.y)/(PX_PER_CM*state.zoom);
+
+  o.x=start.ox+dx;
+  o.y=start.oy+dy;
+
+  if(state.snap){
+    o.x=Math.round(o.x*10)/10;
+    o.y=Math.round(o.y*10)/10;
+  }
+
+  // Width never changes automatically.
+  // Height follows the lowest rotated edge of every object.
+  recalcActiveSheetHeight();
+
+  renderAll();
+ };
+ const up=()=>{
+   window.removeEventListener("pointermove",move);
+   window.removeEventListener("pointerup",up);
+   recalcActiveSheetHeight();
+   updateDiagnostics();
+   renderAll();
+   pushHistory();
+ };
+ window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);
+}
+let marqueeSession=null;
+
+function stageLocalPoint(clientX,clientY){
+  const r=stageScroller.getBoundingClientRect();
+  return {x:clientX-r.left,y:clientY-r.top};
+}
+function screenRectFromPoints(a,b){
+  return {
+    x:Math.min(a.x,b.x),
+    y:Math.min(a.y,b.y),
+    w:Math.abs(b.x-a.x),
+    h:Math.abs(b.y-a.y)
+  };
+}
+function screenRectsOverlap(a,b){
+  return a.x < b.x+b.w &&
+         a.x+a.w > b.x &&
+         a.y < b.y+b.h &&
+         a.y+a.h > b.y;
+}
+function drawMarqueeScreen(rect){
+  const m=$("#selectionMarquee");
+  if(!m) return;
+  m.classList.add("active");
+  m.style.left=rect.x+"px";
+  m.style.top=rect.y+"px";
+  m.style.width=rect.w+"px";
+  m.style.height=rect.h+"px";
+}
+function clearMarquee(){
+  const m=$("#selectionMarquee");
+  if(!m) return;
+  m.classList.remove("active");
+  m.style.width="0px";
+  m.style.height="0px";
+}
+function marqueeBlockedTarget(target){
+  if(!(target instanceof Element)) return false;
+  return !!target.closest(
+    ".design-object,"+
+    ".preview-scrollbar,"+
+    ".floating-shortcuts,"+
+    ".color-help-wrap"
+  );
+}
+function idsTouchedByScreenRect(rect){
+  const stageRect=stageScroller.getBoundingClientRect();
+  const ids=[];
+
+  for(const o of state.objects){
+    const el=layer.querySelector(`[data-id="${o.id}"]`);
+    if(!el) continue;
+
+    // DOMRect ya incorpora zoom, giro y desplazamiento del preview.
+    const r=el.getBoundingClientRect();
+    const local={
+      x:r.left-stageRect.left,
+      y:r.top-stageRect.top,
+      w:r.width,
+      h:r.height
+    };
+
+    if(screenRectsOverlap(rect,local)) ids.push(o.id);
+  }
+  return ids;
+}
+
+/*
+  Se instala DESPUÉS de declarar stageScroller.
+  No toca state.viewport, applyViewport(), zoomAt() ni el pan.
+*/
+function installStageMarqueeSelection(){
+  stageScroller.addEventListener("pointerdown",e=>{
+    if(e.button!==0 || spaceHeld) return;
+    if(marqueeBlockedTarget(e.target)) return;
+
+    const startPoint=stageLocalPoint(e.clientX,e.clientY);
+    const originalIds=[...state.selectedIds];
+
+    marqueeSession={
+      start:startPoint,
+      additive:e.shiftKey,
+      originalIds,
+      dragging:false
+    };
+
+    const move=ev=>{
+      if(!marqueeSession) return;
+
+      const current=stageLocalPoint(ev.clientX,ev.clientY);
+      const rect=screenRectFromPoints(marqueeSession.start,current);
+
+      // Un clic normal no se convierte en marco hasta superar 4 px.
+      if(!marqueeSession.dragging){
+        if(rect.w<4 && rect.h<4) return;
+        marqueeSession.dragging=true;
+
+        const sel=window.getSelection?.();
+        if(sel && sel.rangeCount) sel.removeAllRanges();
+      }
+
+      drawMarqueeScreen(rect);
+    };
+
+    const up=ev=>{
+      window.removeEventListener("pointermove",move);
+      window.removeEventListener("pointerup",up);
+
+      if(!marqueeSession) return;
+
+      const current=stageLocalPoint(ev.clientX,ev.clientY);
+      const rect=screenRectFromPoints(marqueeSession.start,current);
+
+      if(marqueeSession.dragging){
+        const hits=idsTouchedByScreenRect(rect);
+
+        state.selectedIds=marqueeSession.additive
+          ? [...new Set([...marqueeSession.originalIds,...hits])]
+          : hits;
+
+        state.selectedId=state.selectedIds.length
+          ? state.selectedIds[state.selectedIds.length-1]
+          : null;
+      }else if(!marqueeSession.additive){
+        // Clic simple en cualquier zona vacía, dentro o fuera de la hoja.
+        state.selectedId=null;
+        state.selectedIds=[];
+      }
+
+      marqueeSession=null;
+      clearMarquee();
+
+      // Un único render AL FINAL. No se repinta el preview durante el arrastre.
+      renderAll();
+    };
+
+    window.addEventListener("pointermove",move);
+    window.addEventListener("pointerup",up);
+  });
+}
+
+async function addAsset(file){
+  const dpi=await readEmbeddedDpi(file);
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=async()=>{
+    const dpiX=dpi?.x||null, dpiY=dpi?.y||dpiX;
+    const physicalWcm=dpiX?img.naturalWidth/dpiX*2.54:null;
+    const physicalHcm=dpiY?img.naturalHeight/dpiY*2.54:null;
+    const asset={
+      id:"a"+Date.now()+Math.random().toString(36).slice(2),
+      name:file.name,src:url,w:img.naturalWidth,h:img.naturalHeight,file,
+      dpiX,dpiY,dpiSource:dpi?.source||null,
+      physicalWcm,physicalHcm,
+      alphaCleaned:false,
+      alphaThreshold:null,
+      alphaBinary:false
+    };
+    const alphaInfo=await inspectSourceAlpha(asset);
+    asset.alphaBinary=!!alphaInfo.binary;
+    state.assets.unshift(asset);
+    persistAsset(asset);
+    renderAssets();
+    if(dpiX){
+      toast(`${file.name}: ${Math.round(dpiX)} DPI · ${physicalWcm.toFixed(2)} × ${physicalHcm.toFixed(2)} cm`);
+    }else{
+      toast(`${file.name}: el archivo no trae DPI incrustado`);
+    }
+  };
+  img.onerror=()=>URL.revokeObjectURL(url);
+  img.src=url;
+}
+fileInput.addEventListener("change",()=>[...fileInput.files].forEach(addAsset));
+$(".upload-zone").addEventListener("dragover",e=>e.preventDefault());
+$(".upload-zone").addEventListener("drop",e=>{e.preventDefault();[...e.dataTransfer.files].filter(f=>f.type.startsWith("image/")).forEach(addAsset)});
+function assetInstanceCount(assetId){
+  return state.objects.reduce((count,o)=>{
+    return count + (o.type==="image" && o.assetId===assetId ? 1 : 0);
+  },0);
+}
+
+function renderAssets(){
+ const q=$("#searchFiles").value.toLowerCase(),grid=$("#assetGrid");grid.innerHTML="";
+ const arr=state.assets.filter(a=>a.name.toLowerCase().includes(q));$("#assetCount").textContent=arr.length+" archivos";
+
+ arr.forEach(a=>{
+   const c=document.createElement("div");
+   c.className="asset-card";
+
+   const meta=a.dpiX
+     ? `${Math.round(a.dpiX)} DPI · ${a.physicalWcm.toFixed(1)}×${a.physicalHcm.toFixed(1)} cm`
+     : "DPI no incrustado";
+
+   c.innerHTML=`<img src="${a.src}"><div class="name">${escapeHtml(a.name)}<br><span style="color:#7b8490">${meta}</span></div>`;
+
+   const count=assetInstanceCount(a.id);
+   if(count>0){
+     const badge=document.createElement("span");
+     badge.className="asset-count-badge";
+     badge.textContent=count;
+     badge.title=`${count} en la hoja activa`;
+     c.appendChild(badge);
+   }
+
+   c.onclick=()=>insertAsset(a);
+   grid.appendChild(c);
+ });
+}
+$("#searchFiles").addEventListener("input",renderAssets);
+
+
+function activeSheetRecord(){return state.sheets[state.activeSheetIndex]}
+function renderSheetsPanel(){
+  const count=$("#sheetsCount"); if(count) count.textContent=state.sheets.length;
+  const list=$("#sheetsList"); if(!list) return;
+  list.innerHTML="";
+  state.sheets.forEach((s,i)=>{
+    const used=s.objects.reduce((mx,o)=>Math.max(mx,o.y+o.h+s.sheet.margin),s.sheet.margin);
+    const ratio=Math.min(1,Math.max(.06,used/Math.max(s.sheet.h,1)));
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="sheet-card"+(i===state.activeSheetIndex?" active":"");
+    btn.innerHTML=`<span class="sheet-thumb"><span class="sheet-thumb-fill" style="height:${Math.max(4,ratio*39)}px"></span></span>
+      <span><b>${escapeHtml(s.name)}</b><small>${s.sheet.w.toFixed(0)} × ${s.sheet.h.toFixed(1).replace(".0","")} cm · ${s.objects.length} diseño(s)</small></span>
+      <span class="sheet-card-actions"><span class="sheet-badge">${i===state.activeSheetIndex?"ACTIVA":""}</span><button type="button" class="sheet-delete-btn" title="Eliminar hoja">×</button></span>`;
+    btn.addEventListener("click",e=>{
+      if(e.target.closest(".sheet-delete-btn")) return;
+      switchSheet(i);
+    });
+    btn.querySelector(".sheet-delete-btn").addEventListener("click",e=>{
+      e.stopPropagation();
+      deleteSheet(i);
+    });
+    list.appendChild(btn);
+  });
+}
+function deleteSheet(index){
+  if(index<0||index>=state.sheets.length) return;
+  const target=state.sheets[index];
+  const count=target.objects.length;
+  const msg=count
+    ? `¿Eliminar ${target.name}? Se borrarán los ${count} diseño(s) que contiene.`
+    : `¿Eliminar ${target.name}?`;
+
+  if(!confirm(msg)) return;
+
+  pushHistory();
+
+  state.sheets.splice(index,1);
+
+  if(!state.sheets.length){
+    state.sheets=[{
+      id:"gs"+state.nextSheetId++,
+      name:"Gang Sheet 1",
+      sheet:{w:62,h:MIN_SHEET_HEIGHT,margin:.3},
+      objects:[]
+    }];
+    state.activeSheetIndex=0;
+  }else{
+    if(index<state.activeSheetIndex) state.activeSheetIndex--;
+    else if(index===state.activeSheetIndex){
+      state.activeSheetIndex=Math.min(index,state.sheets.length-1);
+    }
+  }
+
+  // Renombra para mantener numeración simple y comprensible.
+  state.sheets.forEach((s,i)=>s.name=`Gang Sheet ${i+1}`);
+
+  state.selectedId=null;
+  state.selectedIds=[];
+  syncSheetInputs();
+  renderAll();
+  setTimeout(fitViewport,20);
+  toast("Gang Sheet eliminada");
+}
+
+function switchSheet(index){
+  if(index<0||index>=state.sheets.length||index===state.activeSheetIndex)return;
+  state.activeSheetIndex=index;
+  state.selectedId=null;state.selectedIds=[];
+  syncSheetInputs();
+  renderAll();
+  setTimeout(fitViewport,20);
+}
+function createNewSheet(){
+  const margin=state.sheet.margin;
+  const width=state.sheet.w;
+  const id="gs"+state.nextSheetId;
+  const sheet={id,name:`Gang Sheet ${state.nextSheetId}`,sheet:{w:width,h:MIN_SHEET_HEIGHT,margin},objects:[]};
+  state.nextSheetId++;
+  state.sheets.push(sheet);
+  state.activeSheetIndex=state.sheets.length-1;
+  state.selectedId=null;state.selectedIds=[];
+  syncSheetInputs();
+  renderSheetsPanel();
+  return sheet;
+}
+
+function createBlankSheetFromUI(){
+  pushHistory();
+  createNewSheet();
+  state.sheet.h=MIN_SHEET_HEIGHT;
+  state.selectedId=null;
+  state.selectedIds=[];
+  syncSheetInputs();
+  renderAll();
+  showRightPanel("sheets");
+  setTimeout(fitViewport,20);
+  toast(`${activeSheetRecord().name} creada`);
+}
+
+function requiredSheetHeightFor(o){
+  ensureRotationModel(o);
+  const box=rotatedAABB(o);
+  return Math.max(
+    MIN_SHEET_HEIGHT,
+    Math.ceil((box.y+box.h+state.sheet.margin)*10)/10
+  );
+}
+function growSheetTo(height){
+  const h=Math.min(MAX_SHEET_HEIGHT,Math.max(MIN_SHEET_HEIGHT,height));
+  if(h>state.sheet.h+.001){
+    state.sheet.h=h;
+    syncSheetInputs();
+    updateBoard();
+    return true;
+  }
+  return false;
+}
+
+
+function expandedRect(r,g){
+  return {x:r.x-g/2,y:r.y-g/2,w:r.w+g,h:r.h+g};
+}
+function objectAtAABBTopLeft(template,left,top){
+  const o={...template};
+  ensureRotationModel(o);
+  const box=rotatedAABB(o);
+  // Rotated AABB is centered around the object's center.
+  const cx=left+box.w/2;
+  const cy=top+box.h/2;
+  o.x=cx-o.w/2;
+  o.y=cy-o.h/2;
+  return o;
+}
+function objectInsidePrintableArea(o,limitH=state.sheet.h){
+  const m=state.sheet.margin;
+  const eps=.001;
+  return rotatedCorners(o).every(p=>
+    p.x>=m-eps &&
+    p.x<=state.sheet.w-m+eps &&
+    p.y>=m-eps &&
+    p.y<=limitH-m+eps
+  );
+}
+function objectPlacementCollides(o,excludeId=null,gap=null){
+  const g=gap==null?Math.max(0,+$("#nestGap").value||0):gap;
+  const candidateAABB=expandedRect(rotatedAABB(o),g);
+  return state.objects.some(other=>{
+    if(other.id===excludeId) return false;
+    const otherAABB=expandedRect(rotatedAABB(other),g);
+    if(!rectsOverlap(candidateAABB,otherAABB)) return false;
+    // For zero gap use exact rotated geometry; with gap, expanded AABB is intentionally conservative.
+    return g>0 ? true : rotatedObjectsOverlap(o,other);
+  });
+}
+function findFreePlacementForObject(template,limitH=state.sheet.h,excludeId=null,gap=null){
+  ensureRotationModel(template);
+  const m=state.sheet.margin;
+  const g=gap==null?Math.max(0,+$("#nestGap").value||0):gap;
+  const box=rotatedAABB(template);
+  const safe=m+.05;
+
+  if(box.w>state.sheet.w-2*m+.001 || box.h>limitH-2*m+.001) return null;
+
+  const others=state.objects.filter(o=>o.id!==excludeId);
+  const xs=new Set([safe]);
+  const ys=new Set([safe]);
+
+  for(const other of others){
+    const r=rotatedAABB(other);
+    xs.add(r.x+r.w+g);
+    ys.add(r.y+r.h+g);
+  }
+
+  // Cross products find holes bounded by different objects.
+  const xList=[...xs].filter(x=>x>=m-.001 && x+box.w<=state.sheet.w-m+.001).sort((a,b)=>a-b);
+  const yList=[...ys].filter(y=>y>=m-.001 && y+box.h<=limitH-m+.001).sort((a,b)=>a-b);
+
+  const candidates=[];
+  for(const y of yList) for(const x of xList) candidates.push({x,y});
+  candidates.sort((a,b)=>a.y-b.y || a.x-b.x);
+
+  for(const c of candidates){
+    const probe=objectAtAABBTopLeft(template,c.x,c.y);
+    if(!objectInsidePrintableArea(probe,limitH)) continue;
+    if(objectPlacementCollides(probe,excludeId,g)) continue;
+    return {x:probe.x,y:probe.y};
+  }
+
+  // Last safe fallback: directly below all existing rotated bounds.
+  const bottom=others.length?Math.max(...others.map(o=>{const r=rotatedAABB(o);return r.y+r.h}))+g:safe;
+  const probe=objectAtAABBTopLeft(template,safe,bottom);
+  if(objectInsidePrintableArea(probe,limitH) && !objectPlacementCollides(probe,excludeId,g)){
+    return {x:probe.x,y:probe.y};
+  }
+  return null;
+}
+
+function occupiedBottom(excludeId=null){
+  const m=state.sheet.margin;
+  let bottom=m+.05;
+  for(const other of state.objects){
+    if(other.id===excludeId) continue;
+    ensureRotationModel(other);
+    const r=rotatedAABB(other);
+    bottom=Math.max(bottom,r.y+r.h);
+  }
+  return bottom;
+}
+
+function leftmostSafePlacementAtY(template,aabbTop,limitH,excludeId=null){
+  ensureRotationModel(template);
+  const m=state.sheet.margin;
+  const gap=Math.max(0,+$("#nestGap").value||0);
+  const box=rotatedAABB(template);
+  const safe=m+.05;
+
+  // Candidate X positions: left margin + immediately after every object.
+  const xs=new Set([safe]);
+  for(const other of state.objects){
+    if(other.id===excludeId) continue;
+    const r=rotatedAABB(other);
+    xs.add(r.x+r.w+gap);
+  }
+
+  const sorted=[...xs]
+    .filter(x=>x>=m-.001 && x+box.w<=state.sheet.w-m+.001)
+    .sort((a,b)=>a-b);
+
+  for(const left of sorted){
+    const probe=objectAtAABBTopLeft(template,left,aabbTop);
+    if(!objectInsidePrintableArea(probe,limitH)) continue;
+    if(objectPlacementCollides(probe,excludeId,gap)) continue;
+    return {x:probe.x,y:probe.y};
+  }
+  return null;
+}
+
+function placeOnExpandableSheet(o,excludeId=null){
+  ensureRotationModel(o);
+  const m=state.sheet.margin;
+  const gap=Math.max(0,+$("#nestGap").value||0);
+
+  // 1. First, use any hole that already exists in the CURRENT sheet height.
+  let pos=findFreePlacementForObject(o,state.sheet.h,excludeId,gap);
+  if(pos){
+    o.x=pos.x;
+    o.y=pos.y;
+    return {placed:true,grew:false};
+  }
+
+  // 2. No current hole: start a new band directly below existing content.
+  // This is NOT "sheet full"; the sheet is allowed to grow up to 310 cm.
+  const top=state.objects.length
+    ? occupiedBottom(excludeId)+gap
+    : m+.05;
+
+  // Search at the new band's top using the full 310 cm as the only vertical limit.
+  pos=leftmostSafePlacementAtY(o,top,MAX_SHEET_HEIGHT,excludeId);
+
+  // Fallback at the left printable edge.
+  if(!pos){
+    const probe=objectAtAABBTopLeft(o,m+.05,top);
+    if(objectInsidePrintableArea(probe,MAX_SHEET_HEIGHT) &&
+       !objectPlacementCollides(probe,excludeId,gap)){
+      pos={x:probe.x,y:probe.y};
+    }
+  }
+
+  if(!pos) return {placed:false,grew:false};
+
+  o.x=pos.x;
+  o.y=pos.y;
+
+  const needed=requiredSheetHeightFor(o);
+  if(needed>MAX_SHEET_HEIGHT+.001) return {placed:false,grew:false};
+
+  growSheetTo(needed);
+  return {placed:true,grew:needed>state.sheet.h+.001};
+}
+
+function placementAttemptWithRotation(o,excludeId=null){
+  ensureRotationModel(o);
+
+  const original={
+    rot:o.rot||0,
+    x:o.x,
+    y:o.y
+  };
+
+  // First: preserve the orientation the user/file already has.
+  let result=placeOnExpandableSheet(o,excludeId);
+  if(result.placed){
+    return {placed:true,rotated:false};
+  }
+
+  // Second: if rotation is allowed, try exactly +90°.
+  // This is especially important for wide designs that do not fit in 62 cm
+  // but do fit after rotation.
+  if($("#allowRotate")?.checked){
+    o.rot=((original.rot+90)%360+360)%360;
+    o.x=original.x;
+    o.y=original.y;
+
+    result=placeOnExpandableSheet(o,excludeId);
+    if(result.placed){
+      return {placed:true,rotated:true};
+    }
+  }
+
+  // Restore if neither orientation worked.
+  o.rot=original.rot;
+  o.x=original.x;
+  o.y=original.y;
+  return {placed:false,rotated:false};
+}
+
+function objectCanEverFitSheet(o){
+  ensureRotationModel(o);
+  const usableW=state.sheet.w-state.sheet.margin*2;
+  const usableH=MAX_SHEET_HEIGHT-state.sheet.margin*2;
+
+  const testRot=rot=>{
+    const probe={...o,rot};
+    const box=rotatedAABB(probe);
+    return box.w<=usableW+.001 && box.h<=usableH+.001;
+  };
+
+  if(testRot(o.rot||0)) return true;
+  if($("#allowRotate")?.checked && testRot(((o.rot||0)+90)%360)) return true;
+  return false;
+}
+
+function placeObjectWithAutoGrowth(o,excludeId=null){
+  ensureRotationModel(o);
+
+  // Before talking about "capacity", verify that the design can physically
+  // fit inside a 62 x 310 cm sheet in at least one allowed orientation.
+  if(!objectCanEverFitSheet(o)){
+    toast("Este diseño es demasiado grande para el ancho útil de la Gang Sheet, incluso con la rotación permitida.");
+    return false;
+  }
+
+  // Active sheet: current height may grow all the way to 310 cm.
+  let attempt=placementAttemptWithRotation(o,excludeId);
+  if(attempt.placed){
+    growSheetTo(requiredSheetHeightFor(o));
+    return true;
+  }
+
+  // Reaching this point means there is genuinely no valid placement up to 310 cm.
+  const ok=confirm(
+    `La Gang Sheet ${state.activeSheetIndex+1} ya no tiene espacio disponible dentro del máximo de ${MAX_SHEET_HEIGHT} cm.\n\n`+
+    `Se necesita crear una nueva Gang Sheet para continuar. ¿Crear una nueva hoja?`
+  );
+  if(!ok) return false;
+
+  createNewSheet();
+
+  // Retry from scratch on the empty new sheet, including the optional 90° fallback.
+  attempt=placementAttemptWithRotation(o,null);
+  if(!attempt.placed){
+    toast("El diseño no pudo colocarse en una Gang Sheet nueva de 62 × 310 cm.");
+    return false;
+  }
+
+  growSheetTo(requiredSheetHeightFor(o));
+  toast(`${activeSheetRecord().name} creada`);
+  return true;
+}
+
+function insertAsset(a){
+ pushHistory();
+ // Preserve the physical dimensions encoded in the file.
+ // When a file has no DPI metadata, there is no original physical size in the file;
+ // use 300 DPI only as a provisional working size and mark it as such.
+ const dpiX=a.dpiX||300,dpiY=a.dpiY||dpiX;
+ const printW=a.physicalWcm || a.w/dpiX*2.54;
+ const printH=a.physicalHcm || a.h/dpiY*2.54;
+ const o={
+   id:uid(),type:"image",name:a.name,assetId:a.id,
+   naturalW:a.w,naturalH:a.h,
+   sourceDpiX:a.dpiX,sourceDpiY:a.dpiY,dpiDefined:!!a.dpiX,
+   sourceWidthCm:a.physicalWcm,sourceHeightCm:a.physicalHcm,
+   x:state.sheet.margin+0.05,y:state.sheet.margin+0.05,
+   w:printW,h:printH,rot:0,flipX:false,
+   aspectLocked:true,aspectRatio:printW/printH,
+   baseW:printW,baseH:printH
+ };
+ const placed=placeObjectWithAutoGrowth(o);
+ if(!placed){state.history.pop();return}
+ state.objects.push(o);
+ state.selectedId=o.id;state.selectedIds=[o.id];
+ recalcActiveSheetHeight();
+ renderAll();
+}
+
+// =====================================================================
+// PROCESAMIENTO DE IMAGEN: IA + SEMITONO (interfaz simplificada)
+// =====================================================================
+function selectedImageObject(){
+ const o=objById(state.selectedId);
+ if(!o || o.type!=="image"){toast("Selecciona una imagen primero.");return null}
+ return o;
+}
+function modalOpen(id){const el=$("#"+id);if(el)el.classList.remove("hidden")}
+function modalClose(id){const el=$("#"+id);if(el)el.classList.add("hidden")}
+function setProcProgress(prefix,pct,label){
+ const bar=$("#"+prefix+"ProgressBar"),txt=$("#"+prefix+"ProgressLabel");
+ if(bar)bar.style.width=Math.max(0,Math.min(100,pct))+"%";
+ if(txt)txt.textContent=label||Math.round(pct)+"%";
+}
+
+function findObjectElement(id){
+ return [...document.querySelectorAll('.design-object')].find(el=>el.dataset.id===id)||null;
+}
+function showObjectProcessing(id,label="Mejorando calidad…",pct=0){
+ const el=findObjectElement(id); if(!el)return;
+ el.classList.add('ai-processing');
+ let overlay=el.querySelector('.object-processing-overlay');
+ if(!overlay){
+   overlay=document.createElement('div');
+   overlay.className='object-processing-overlay';
+   overlay.innerHTML='<span class="object-processing-spinner"></span><b class="object-processing-label"></b><div class="object-processing-progress"><span></span></div>';
+   el.appendChild(overlay);
+ }
+ const lab=overlay.querySelector('.object-processing-label');
+ const bar=overlay.querySelector('.object-processing-progress span');
+ if(lab)lab.textContent=label;
+ if(bar)bar.style.width=Math.max(2,Math.min(100,pct))+'%';
+}
+function updateObjectProcessing(id,pct,label){
+ const el=findObjectElement(id); if(!el)return;
+ const overlay=el.querySelector('.object-processing-overlay');
+ if(!overlay){showObjectProcessing(id,label,pct);return}
+ const lab=overlay.querySelector('.object-processing-label');
+ const bar=overlay.querySelector('.object-processing-progress span');
+ if(lab&&label)lab.textContent=label;
+ if(bar)bar.style.width=Math.max(2,Math.min(100,pct))+'%';
+}
+function hideObjectProcessing(id){
+ const el=findObjectElement(id); if(!el)return;
+ el.classList.remove('ai-processing');
+ el.querySelector('.object-processing-overlay')?.remove();
+}
+
+function cloneCanvasHQ(src,newW,newH){
+ if(src.width===newW&&src.height===newH)return src;
+ let cur=src;
+ while(cur.width/2>=newW&&cur.height/2>=newH){
+   const c=document.createElement("canvas");c.width=Math.max(newW,Math.floor(cur.width/2));c.height=Math.max(newH,Math.floor(cur.height/2));
+   const x=c.getContext("2d");x.imageSmoothingEnabled=true;x.imageSmoothingQuality="high";x.drawImage(cur,0,0,c.width,c.height);cur=c;
+ }
+ const out=document.createElement("canvas");out.width=newW;out.height=newH;const x=out.getContext("2d");x.imageSmoothingEnabled=true;x.imageSmoothingQuality="high";x.drawImage(cur,0,0,newW,newH);return out;
+}
+async function assetCanvas(asset){
+ const im=await loadImageFromSrc(asset.src);const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;const x=c.getContext("2d",{willReadFrequently:true});x.clearRect(0,0,c.width,c.height);x.drawImage(im,0,0);return c;
+}
+function canvasBlob(c){return new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("No se pudo generar PNG")),"image/png"))}
+async function rgbaToBlob(rgba,w,h){const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.putImageData(new ImageData(new Uint8ClampedArray(rgba),w,h),0,0);return canvasBlob(c)}
+async function createProcessedAsset(base,blob,w,h,nameSuffix,physicalWcm,physicalHcm,flags={}){
+ const dpiX=physicalWcm?w/(physicalWcm/2.54):null,dpiY=physicalHcm?h/(physicalHcm/2.54):dpiX;
+ const a={id:"a"+Date.now()+Math.random().toString(36).slice(2),name:base.name.replace(/\.[^.]+$/,"")+nameSuffix+".png",src:URL.createObjectURL(blob),w,h,file:blob,dpiX,dpiY,dpiSource:"BixStudio",physicalWcm,physicalHcm,alphaCleaned:!!flags.alphaBinary,alphaThreshold:flags.alphaBinary?128:null,alphaBinary:!!flags.alphaBinary,updatedAt:Date.now()};
+ state.assets.unshift(a);await persistAsset(a);renderAssets();return a;
+}
+function applyProcessedAssetToObject(o,newAsset,kind){
+ if(!o.originalAssetId)o.originalAssetId=o.assetId;
+ o.assetId=newAsset.id;o.naturalW=newAsset.w;o.naturalH=newAsset.h;o.sourceDpiX=newAsset.dpiX;o.sourceDpiY=newAsset.dpiY;o.dpiDefined=true;o.sourceWidthCm=o.w;o.sourceHeightCm=o.h;
+ if(kind==="ai")o.aiEnhanced=true;if(kind==="halftone")o.halftoneApplied=true;
+ renderAll();
+}
+function runUpscaleWorkerSimple(rgba,width,height,onProgress){return new Promise((resolve,reject)=>{
+ let worker;try{worker=new Worker("upscaler.worker.js")}catch(e){reject(new Error("No se pudo iniciar el módulo de IA. Abre BixStudio desde un servidor local."));return}
+ const id="up_"+Date.now()+Math.random();
+ worker.onmessage=e=>{const m=e.data||{};if(m.id!==id)return;if(m.type==="progress"){onProgress?.(m);return}if(m.type==="done"){worker.terminate();m.ok?resolve(m):reject(new Error(m.error||"Error de IA"))}};
+ worker.onerror=e=>{try{worker.terminate()}catch{};reject(new Error("No se pudo completar la mejora de calidad"))};
+ worker.postMessage({id,type:"run",rgba,width,height,modelUrl:"./models/realesr-anime-x4.onnx",preferGpu:true,tile:128,pad:8,alphaMode:"binary",ortBase:"./ort/"},[rgba.buffer]);
+})}
+async function enhanceSelectedWithAi(){
+ const o=selectedImageObject();if(!o)return;
+ const asset=assetById(o.assetId);if(!asset)return;
+ const btn=$("#enhanceImageBtn");
+ if(btn.disabled)return;
+ btn.disabled=true;
+ showObjectProcessing(o.id,"Mejorando calidad…",4);
+ try{
+   // Give the overlay one frame to become visible before the heavy work begins.
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   let c=await assetCanvas(asset);
+   const maxLong=1500,long=Math.max(c.width,c.height);
+   if(long>maxLong){
+     updateObjectProcessing(o.id,8,"Preparando imagen…");
+     const k=maxLong/long;
+     c=cloneCanvasHQ(c,Math.round(c.width*k),Math.round(c.height*k));
+   }
+   const d=c.getContext("2d",{willReadFrequently:true}).getImageData(0,0,c.width,c.height);
+   const r=await runUpscaleWorkerSimple(d.data,c.width,c.height,m=>{
+     const pct=m.stage==="load" ? Math.min(14,4+m.pct*.10) : 14+m.pct*.78;
+     updateObjectProcessing(o.id,pct,"Mejorando calidad…");
+   });
+   updateObjectProcessing(o.id,94,"Finalizando…");
+   const blob=await rgbaToBlob(r.rgba,r.width,r.height);
+   const na=await createProcessedAsset(asset,blob,r.width,r.height,"_IA",o.w,o.h,{alphaBinary:true});
+   pushHistory();
+   applyProcessedAssetToObject(o,na,"ai");
+   // renderAll() recreates the object DOM, so show the completion state again.
+   showObjectProcessing(o.id,"Calidad mejorada",100);
+   toast(`Calidad mejorada · ${Math.round(calcDpi(o))} DPI efectivos`);
+   await new Promise(r=>setTimeout(r,650));
+ }catch(e){
+   console.error(e);
+   updateObjectProcessing(o.id,100,"No se pudo mejorar");
+   toast("No se pudo mejorar la calidad de la imagen");
+   await new Promise(r=>setTimeout(r,850));
+ }finally{
+   hideObjectProcessing(o.id);
+   btn.disabled=false;
+ }
+}
+const BIX_GARMENTS={negra:{mode:"luminance",hex:"#000000"},blanca:{mode:"color",hex:"#FFFFFF"},roja:{mode:"color",hex:"#B32219"},azul:{mode:"color",hex:"#1D4ED8"},gris:{mode:"color",hex:"#7D7D7D"},beige:{mode:"color",hex:"#D4C39C"},verde:{mode:"color",hex:"#1F5340"},custom:{mode:"color",hex:null}};
+const BIX_INTENSITIES={negra:{light:[0,0],balanced:[15,25],strong:[30,40]},blanca:{light:[15,40],balanced:[25,60],strong:[40,80]},roja:{light:[25,18],balanced:[40,25],strong:[55,32]},azul:{light:[25,18],balanced:[40,25],strong:[55,32]},verde:{light:[25,18],balanced:[40,25],strong:[55,32]},gris:{light:[20,18],balanced:[35,25],strong:[50,32]},beige:{light:[18,22],balanced:[30,30],strong:[45,40]},custom:{light:[25,18],balanced:[40,25],strong:[55,32]}};
+const BIX_SRGB_LUT=(()=>{const a=new Float32Array(256);for(let i=0;i<256;i++){const c=i/255;a[i]=c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4)}return a})();
+function bixHexToLab(hex){const n=parseInt(hex.slice(1),16),r=(n>>16)&255,g=(n>>8)&255,b=n&255,lr=BIX_SRGB_LUT[r],lg=BIX_SRGB_LUT[g],lb=BIX_SRGB_LUT[b],l=.4122214708*lr+.5363325363*lg+.0514459929*lb,m=.2119034982*lr+.6806995451*lg+.1073969566*lb,s=.0883024619*lr+.2817188376*lg+.6299787005*lb,lc=Math.cbrt(l),mc=Math.cbrt(m),sc=Math.cbrt(s);return [.2104542553*lc+.7936177850*mc-.0040720468*sc,1.9779984951*lc-2.428592205*mc+.4505937099*sc,.0259040371*lc+.7827717662*mc-.808675766*sc]}
+function semitoneParams(garment,intensity){
+ const gp=BIX_GARMENTS[garment]||BIX_GARMENTS.negra,vals=(BIX_INTENSITIES[garment]||BIX_INTENSITIES.negra)[intensity]||BIX_INTENSITIES.negra.balanced,remove=vals[0],spread=vals[1],blackCut=Math.round(remove/100*180),whiteCut=Math.min(255,blackCut+80+Math.round(spread/100*100));
+ const hex=garment==="custom"?$("#halftoneCustomColor").value:gp.hex;
+ return {brightness:1,contrast:1,sharpness:1,separationMode:gp.mode,garmentLab:gp.mode==="color"?bixHexToLab(hex):null,colorTol:remove,colorFeather:Math.round(spread/100*120),colorChroma:1,preserveLuma:false,gamma:1,blackCut,whiteCut,halftoneOn:true,
+   // Ajustes técnicos intencionalmente ocultos en la interfaz simplificada:
+   lpi:35,angleDeg:22.5,minDotMm:.2,softEdges:false,alphaThresholdOn:true,alphaThreshold:128,targetDpi:300};
+}
+function runSemitoneWorker(rgba,width,height,params){return new Promise((resolve,reject)=>{
+ let worker;try{worker=new Worker("processor.worker.js")}catch(e){reject(new Error("No se pudo iniciar el procesador de semitono. Abre BixStudio desde un servidor local."));return}
+ const id="ht_"+Date.now()+Math.random();worker.onmessage=e=>{const m=e.data||{};if(m.id!==id)return;worker.terminate();m.ok?resolve(m):reject(new Error(m.error||"Error creando semitono"))};worker.onerror=e=>{try{worker.terminate()}catch{};reject(new Error(e.message||"Error del procesador de semitono"))};worker.postMessage({id,rgba,width,height,params},[rgba.buffer]);
+})}
+async function createSelectedHalftone(){
+ const o=selectedImageObject();if(!o)return;const asset=assetById(o.assetId);if(!asset)return;const btn=$("#runHalftoneBtn");btn.disabled=true;
+ try{
+   setProcProgress("halftone",5,"Preparando a 300 DPI…");let src=await assetCanvas(asset);const w=Math.max(1,Math.round(o.w/2.54*300)),h=Math.max(1,Math.round(o.h/2.54*300));src=cloneCanvasHQ(src,w,h);await new Promise(r=>requestAnimationFrame(r));
+   const d=src.getContext("2d",{willReadFrequently:true}).getImageData(0,0,w,h);setProcProgress("halftone",30,"Creando trama de semitono…");
+   const garment=$("#halftoneGarment").value,intensity=$("#halftoneIntensity").value,p=semitoneParams(garment,intensity),r=await runSemitoneWorker(d.data,w,h,p);setProcProgress("halftone",82,"Generando PNG…");
+   const blob=await rgbaToBlob(r.colorData,w,h);const na=await createProcessedAsset(asset,blob,w,h,"_semitono",o.w,o.h,{alphaBinary:true});pushHistory();applyProcessedAssetToObject(o,na,"halftone");o.halftoneGarment=garment;o.halftoneIntensity=intensity;setProcProgress("halftone",100,"Semitono aplicado");toast("Semitono aplicado a la imagen seleccionada");setTimeout(()=>modalClose("halftoneModal"),700);
+ }catch(e){console.error(e);setProcProgress("halftone",0,"Error: "+e.message);toast(e.message)}finally{btn.disabled=false}
+}
+async function restoreSelectedOriginal(){
+ const o=selectedImageObject();if(!o||!o.originalAssetId)return;const a=assetById(o.originalAssetId);if(!a){toast("No se encontró la imagen original guardada.");return}pushHistory();o.assetId=a.id;o.naturalW=a.w;o.naturalH=a.h;o.sourceDpiX=a.dpiX;o.sourceDpiY=a.dpiY;o.aiEnhanced=false;o.halftoneApplied=false;delete o.originalAssetId;renderAll();toast("Imagen original restaurada")
+}
+$("#enhanceImageBtn").onclick=enhanceSelectedWithAi;
+$("#halftoneImageBtn").onclick=()=>{
+ if(!selectedImageObject())return;
+ const intensity=$("#halftoneIntensity");if(intensity)intensity.value="light";
+ setProcProgress("halftone",0,"Listo para procesar");
+ modalOpen("halftoneModal");
+};
+$("#restoreOriginalBtn").onclick=restoreSelectedOriginal;
+$("#runHalftoneBtn").onclick=createSelectedHalftone;
+$("#halftoneGarment").onchange=e=>$("#halftoneCustomRow").classList.toggle("hidden",e.target.value!=="custom");
+
+function addText(){
+ pushHistory();const text=$("#textValue").value||"Texto",fs=+$("#textSize").value;
+ const o={id:uid(),type:"text",name:"Texto",text,color:$("#textColor").value,fontSize:fs,x:state.sheet.margin,y:state.sheet.margin,w:Math.min(25,state.sheet.w-state.sheet.margin*2),h:5,rot:0,flipX:false,aspectLocked:false,aspectRatio:5,baseW:Math.min(25,state.sheet.w-state.sheet.margin*2),baseH:5};
+ const placed=placeObjectWithAutoGrowth(o);
+ if(!placed){state.history.pop();return}
+ state.objects.push(o);
+ state.selectedId=o.id;state.selectedIds=[o.id];
+ recalcActiveSheetHeight();
+ renderAll();
+}
+$("#addTextBtn").onclick=addText;
+
+function updateSelectionPanel(){
+ const o=objById(state.selectedId),empty=$("#noSelection"),panel=$("#selectionPanel");
+ if(!o){empty.classList.remove("hidden");panel.classList.add("hidden");return}
+ empty.classList.add("hidden");panel.classList.remove("hidden");$("#selName").textContent=state.selectedIds.length>1?`${state.selectedIds.length} diseños seleccionados`:(o.name||o.text||"Diseño");
+ [["objWidth","w"],["objHeight","h"],["objX","x"],["objY","y"],["objRotation","rot"]].forEach(([id,k])=>$("#"+id).value=+(o[k]||0).toFixed(2));
+ ensureAspect(o);
+ const lockBtn=$("#aspectLockBtn"), lockHint=$("#aspectLockHint");
+ lockBtn.className="aspect-lock-btn "+(o.aspectLocked?"locked":"unlocked");
+ lockBtn.textContent=o.aspectLocked?"🔒 Bloqueada":"🔓 Libre";
+ lockHint.textContent=o.aspectLocked?"Ancho y alto vinculados":"Ancho y alto independientes";
+ const procTools=$("#imageProcessingTools");
+ if(procTools) procTools.classList.toggle("hidden",o.type!=="image");
+ if(o.type==="image"){
+   const restore=$("#restoreOriginalBtn");
+   if(restore) restore.classList.toggle("hidden",!o.originalAssetId);
+   const st=$("#imageProcessingStatus");
+   if(st){
+     const tags=[];
+     if(o.aiEnhanced) tags.push("✨ IA aplicada");
+     if(o.halftoneApplied) tags.push("◉ Semitono aplicado");
+     st.textContent=tags.length?tags.join(" · "):"Trabaja sobre la imagen seleccionada sin cambiar su tamaño físico.";
+   }
+ }
+ const dpi=calcDpi(o),cls=dpiClass(dpi),badge=$("#resolutionBadge");
+ badge.className="resolution-badge "+(cls==="optimal"?"good":cls==="good"?"good":cls==="bad"?"warn":"bad");
+ $("#dpiValue").textContent=dpi>=900?"VECTOR":dpi+" DPI";
+ $("#dpiText").textContent=cls==="optimal"?"Resolución óptima":cls==="good"?"Buena resolución":cls==="bad"?"Mala resolución":"Resolución mínima";
+}
+["objWidth","objHeight","objX","objY","objRotation"].forEach(id=>$("#"+id).addEventListener("change",e=>{
+ const o=objById(state.selectedId);if(!o)return;
+ ensureAspect(o);
+ pushHistory();
+ const v=+e.target.value;
+ if(id==="objWidth"){
+   const cx=o.x+o.w/2,cy=o.y+o.h/2;
+   o.w=Math.max(.1,v);
+   if(o.aspectLocked) o.h=o.w/o.aspectRatio;
+   else o.aspectRatio=o.w/o.h;
+   o.visualW=o.w;o.visualH=o.h;
+   o.baseW=o.w;o.baseH=o.h;
+   o.x=cx-o.w/2;o.y=cy-o.h/2;
+ }else if(id==="objHeight"){
+   const cx=o.x+o.w/2,cy=o.y+o.h/2;
+   o.h=Math.max(.1,v);
+   if(o.aspectLocked) o.w=o.h*o.aspectRatio;
+   else o.aspectRatio=o.w/o.h;
+   o.visualW=o.w;o.visualH=o.h;
+   o.baseW=o.w;o.baseH=o.h;
+   o.x=cx-o.w/2;o.y=cy-o.h/2;
+ }else if(id==="objRotation"){
+   ensureRotationModel(o);
+   o.rot=((v%360)+360)%360;
+ }else{
+   const map={objX:"x",objY:"y"};
+   o[map[id]]=v;
+ }
+ renderAll()
+}));
+$("#duplicateBtn").onclick=()=>{if(copySelection())pasteClipboard()};
+$("#aspectLockBtn").onclick=()=>{
+ const o=objById(state.selectedId); if(!o) return;
+ ensureAspect(o); pushHistory();
+ o.aspectLocked=!o.aspectLocked;
+ if(o.aspectLocked) o.aspectRatio=Math.max(.0001,o.w/o.h);
+ renderAll();
+};
+
+function selectedPrimary(){
+  const o=objById(state.selectedId);
+  if(!o) toast("Selecciona un diseño primero.");
+  return o;
+}
+function moveRotatedAABBTo(o,targetLeft=null,targetTop=null,targetRight=null){
+  ensureRotationModel(o);
+  const box=rotatedAABB(o);
+  if(targetLeft!==null) o.x += targetLeft-box.x;
+  if(targetRight!==null){
+    const currentRight=box.x+box.w;
+    o.x += targetRight-currentRight;
+  }
+  if(targetTop!==null) o.y += targetTop-box.y;
+}
+function finishToolbarTransform(o){
+  recalcActiveSheetHeight();
+  updateDiagnostics();
+  renderAll();
+}
+
+$("#rotateCCWBtn").onclick=()=>{
+  const o=selectedPrimary(); if(!o)return;
+  pushHistory();
+  o.rot=((o.rot||0)-90+360)%360;
+  finishToolbarTransform(o);
+};
+$("#rotateCWBtn").onclick=()=>{
+  const o=selectedPrimary(); if(!o)return;
+  pushHistory();
+  o.rot=((o.rot||0)+90)%360;
+  finishToolbarTransform(o);
+};
+$("#flipHorizontalBtn").onclick=()=>{
+  const o=selectedPrimary(); if(!o)return;
+  pushHistory();
+  o.flipX=!o.flipX;
+  renderAll();
+};
+$("#flipVerticalBtn").onclick=()=>{
+  const o=selectedPrimary(); if(!o)return;
+  pushHistory();
+  o.flipY=!o.flipY;
+  renderAll();
+};
+$("#stretchWidthBtn").onclick=()=>{
+  const o=selectedPrimary(); if(!o)return;
+  ensureAspect(o);
+  pushHistory();
+
+  const usable=state.sheet.w-state.sheet.margin*2;
+  const oldW=Math.max(.0001,o.w);
+  const centerY=o.y+o.h/2;
+
+  if(o.aspectLocked){
+    const scale=usable/oldW;
+    o.w=usable;
+    o.h=Math.max(.1,o.h*scale);
+  }else{
+    o.w=usable;
+  }
+
+  o.baseW=o.w;
+  o.baseH=o.h;
+  o.visualW=o.w;
+  o.visualH=o.h;
+  o.aspectRatio=o.w/o.h;
+
+  // Start at left printable edge for a true "stretch to artboard width".
+  o.x=state.sheet.margin;
+  o.y=centerY-o.h/2;
+
+  finishToolbarTransform(o);
+};
+$("#centerHorizontalBtn").onclick=()=>{
+  const o=selectedPrimary(); if(!o)return;
+  pushHistory();
+  const box=rotatedAABB(o);
+  const targetLeft=(state.sheet.w-box.w)/2;
+  o.x += targetLeft-box.x;
+  renderAll();
+};
+$("#alignLeftBtn").onclick=()=>{
+  const o=selectedPrimary(); if(!o)return;
+  pushHistory();
+  moveRotatedAABBTo(o,state.sheet.margin,null,null);
+  renderAll();
+};
+$("#alignRightBtn").onclick=()=>{
+  const o=selectedPrimary(); if(!o)return;
+  pushHistory();
+  moveRotatedAABBTo(o,null,null,state.sheet.w-state.sheet.margin);
+  renderAll();
+};
+$("#alignTopBtn").onclick=()=>{
+  const o=selectedPrimary(); if(!o)return;
+  pushHistory();
+  moveRotatedAABBTo(o,null,state.sheet.margin,null);
+  renderAll();
+};
+$("#toolbarDeleteBtn").onclick=deleteSelection;
+
+
+
+function packCandidateLayout(sourceItems, orderMode, allowRotate){
+  const gap=Math.max(0,+$("#nestGap").value||0);
+  const m=state.sheet.margin;
+  const maxW=state.sheet.w-2*m;
+  const maxH=MAX_SHEET_HEIGHT-2*m;
+
+  const items=sourceItems.map(o=>{
+    ensureRotationModel(o);
+    return {
+      id:o.id,
+      // Canonical size, completely independent of current manual rotation.
+      w:o.baseW,
+      h:o.baseH,
+      rot:0
+    };
+  });
+  const sorters={
+    area:(a,b)=>(b.w*b.h)-(a.w*a.h),
+    maxSide:(a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h),
+    height:(a,b)=>b.h-a.h,
+    width:(a,b)=>b.w-a.w,
+    perimeter:(a,b)=>(b.w+b.h)-(a.w+a.h)
+  };
+  items.sort(sorters[orderMode]||sorters.area);
+
+  const placed=[];
+
+  function collides(candidate){
+    const c={
+      x:candidate.x-gap/2,
+      y:candidate.y-gap/2,
+      w:candidate.w+gap,
+      h:candidate.h+gap
+    };
+    return placed.some(p=>{
+      const r={x:p.x-gap/2,y:p.y-gap/2,w:p.w+gap,h:p.h+gap};
+      return rectsOverlap(c,r);
+    });
+  }
+
+  function candidatesFor(w,h){
+    const pts=[{x:0,y:0}];
+    for(const p of placed){
+      pts.push({x:p.x+p.w+gap,y:p.y});
+      pts.push({x:p.x,y:p.y+p.h+gap});
+      pts.push({x:p.x+p.w+gap,y:0});
+      pts.push({x:0,y:p.y+p.h+gap});
+    }
+
+    // Cross-combinations let a small item fall into holes bounded by
+    // the right edge of one object and bottom edge of another.
+    const xs=[0,...placed.map(p=>p.x+p.w+gap)];
+    const ys=[0,...placed.map(p=>p.y+p.h+gap)];
+    for(const x of xs) for(const y of ys) pts.push({x,y});
+
+    const seen=new Set();
+    return pts.filter(pt=>{
+      const x=Math.round(pt.x*1000)/1000;
+      const y=Math.round(pt.y*1000)/1000;
+      const k=x+"|"+y;
+      if(seen.has(k)) return false;
+      seen.add(k);
+      return x>=0&&y>=0&&x+w<=maxW+.0001&&y+h<=maxH+.0001;
+    }).map(pt=>({x:pt.x,y:pt.y,w,h}));
+  }
+
+  for(const item of items){
+    const orientations=[{w:item.w,h:item.h,rotated:false}];
+    if(allowRotate && Math.abs(item.w-item.h)>.001){
+      orientations.push({w:item.h,h:item.w,rotated:true});
+    }
+
+    let best=null;
+    for(const or of orientations){
+      for(const c of candidatesFor(or.w,or.h)){
+        if(collides(c)) continue;
+        const usedHeight=Math.max(
+          c.y+c.h,
+          ...placed.map(p=>p.y+p.h),
+          0
+        );
+        const usedWidth=Math.max(
+          c.x+c.w,
+          ...placed.map(p=>p.x+p.w),
+          0
+        );
+
+        // Highest priority: smallest used height.
+        // Then topmost/leftmost placement and compact used width.
+        const score=[
+          usedHeight,
+          c.y,
+          c.x,
+          usedWidth,
+          (maxW-c.w)*(maxH-c.h)
+        ];
+
+        if(!best){
+          best={...c,rotated:or.rotated,score};
+        }else{
+          let better=false;
+          for(let i=0;i<score.length;i++){
+            if(score[i]<best.score[i]-.0001){better=true;break}
+            if(score[i]>best.score[i]+.0001)break;
+          }
+          if(better) best={...c,rotated:or.rotated,score};
+        }
+      }
+    }
+
+    if(!best) return null;
+
+    // FINAL SAFETY CHECK against every placed rectangle.
+    if(collides(best)) return null;
+
+    placed.push({
+      id:item.id,
+      x:best.x,
+      y:best.y,
+      w:best.w,
+      h:best.h,
+      rotated:best.rotated
+    });
+  }
+
+  // Absolute final validation: no pair may overlap.
+  for(let i=0;i<placed.length;i++){
+    for(let j=i+1;j<placed.length;j++){
+      const a={x:placed[i].x-gap/2,y:placed[i].y-gap/2,w:placed[i].w+gap,h:placed[i].h+gap};
+      const b={x:placed[j].x-gap/2,y:placed[j].y-gap/2,w:placed[j].w+gap,h:placed[j].h+gap};
+      if(rectsOverlap(a,b)) return null;
+    }
+  }
+
+  const usedH=placed.reduce((mx,p)=>Math.max(mx,p.y+p.h),0);
+  const usedW=placed.reduce((mx,p)=>Math.max(mx,p.x+p.w),0);
+  const area=placed.reduce((s,p)=>s+p.w*p.h,0);
+  const waste=Math.max(0,usedW*usedH-area);
+  const rotations=placed.reduce((n,p)=>n+(p.rotated?1:0),0);
+  return {placed,usedH,usedW,waste,rotations};
+}
+
+function autoNest(){
+  if(!state.objects.length) return toast("No hay diseños para organizar.");
+
+  const userAllowsRotation=$("#allowRotate").checked;
+  const modes=["area","maxSide","height","width","perimeter"];
+  let bestResult=null;
+
+  // Always test a complete layout with zero rotations. This prevents the
+  // greedy packer from rotating the first item just because it is shorter,
+  // when the global result would actually use more sheet length.
+  const rotationPolicies=userAllowsRotation ? [false,true] : [false];
+
+  const cleanItems=state.objects.map(o=>{
+    ensureRotationModel(o);
+    return {
+      ...o,
+      x:0,
+      y:0,
+      rot:0,
+      w:o.baseW,
+      h:o.baseH,
+      visualW:o.baseW,
+      visualH:o.baseH
+    };
+  });
+
+  function betterLayout(r,best){
+    if(!best) return true;
+    if(r.usedH < best.usedH-.001) return true;
+    if(r.usedH > best.usedH+.001) return false;
+
+    // Same length: use less wasted rectangle area.
+    if(r.waste < best.waste-.001) return true;
+    if(r.waste > best.waste+.001) return false;
+
+    // Same practical packing quality: prefer fewer rotations.
+    if((r.rotations||0) < (best.rotations||0)) return true;
+    if((r.rotations||0) > (best.rotations||0)) return false;
+
+    return r.usedW < best.usedW-.001;
+  }
+
+  for(const rotationPolicy of rotationPolicies){
+    for(const mode of modes){
+      const r=packCandidateLayout(cleanItems,mode,rotationPolicy);
+      if(!r) continue;
+      if(betterLayout(r,bestResult)) bestResult=r;
+    }
+  }
+
+  if(!bestResult){
+    toast("No se pudo acomodar todo. Prueba reducir la separación o dividir el trabajo en otra hoja.");
+    return;
+  }
+
+  const gap=Math.max(0,+$("#nestGap").value||0);
+  for(let i=0;i<bestResult.placed.length;i++){
+    for(let j=i+1;j<bestResult.placed.length;j++){
+      const a=bestResult.placed[i],b=bestResult.placed[j];
+      if(rectsOverlap(
+        {x:a.x-gap/2,y:a.y-gap/2,w:a.w+gap,h:a.h+gap},
+        {x:b.x-gap/2,y:b.y-gap/2,w:b.w+gap,h:b.h+gap}
+      )){
+        toast("Auto Organizar cancelado: se detectó una colisión interna.");
+        return;
+      }
+    }
+  }
+
+  pushHistory();
+  const byId=new Map(bestResult.placed.map(p=>[p.id,p]));
+
+  for(const o of state.objects){
+    ensureRotationModel(o);
+    const p=byId.get(o.id);
+    if(!p) continue;
+
+    // Full reset to canonical size and zero manual rotation.
+    o.w=o.baseW;
+    o.h=o.baseH;
+    o.visualW=o.baseW;
+    o.visualH=o.baseH;
+    o.aspectRatio=o.baseW/o.baseH;
+    o.rot=0;
+
+    if(p.rotated){
+      o.rot=90;
+      const cx=state.sheet.margin+p.x+p.w/2;
+      const cy=state.sheet.margin+p.y+p.h/2;
+      o.x=cx-o.w/2;
+      o.y=cy-o.h/2;
+    }else{
+      o.x=state.sheet.margin+p.x;
+      o.y=state.sheet.margin+p.y;
+    }
+  }
+
+  recalcActiveSheetHeight();
+  updateDiagnostics();
+
+  if(state.objects.some(o=>o.overlap)){
+    undo();
+    toast("Auto Organizar cancelado porque el resultado tenía imágenes superpuestas.");
+    return;
+  }
+
+  renderAll();
+  setTimeout(fitViewport,20);
+  const rotText=(bestResult.rotations||0) ? ` · ${bestResult.rotations} rotada${bestResult.rotations===1?"":"s"}` : " · sin rotaciones";
+  toast(`Auto Organizar listo · ${bestResult.usedH.toFixed(1)} cm${rotText}`);
+}
+$("#autoNestTopBtn").onclick=autoNest;
+$("#fillSelectedBtn").onclick=()=>{
+  const src=objById(state.selectedId);
+  if(!src) return toast("Selecciona un diseño primero.");
+
+  ensureRotationModel(src);
+  pushHistory();
+
+  const maxSafety=500;
+  let added=0;
+
+  for(let i=0;i<maxSafety;i++){
+    const n=JSON.parse(JSON.stringify(src));
+    delete n.src;
+    n.id=uid();
+    n.name=nextCopyName(src.name||"Diseño");
+
+    // STRICT: only use already-existing empty space. Never grow the sheet.
+    const pos=findFreePlacementForObject(n,state.sheet.h,null);
+    if(!pos) break;
+
+    n.x=pos.x;
+    n.y=pos.y;
+
+    if(!objectInsidePrintableArea(n,state.sheet.h)) break;
+    if(objectPlacementCollides(n,null)) break;
+
+    state.objects.push(n);
+    added++;
+  }
+
+  if(!added){
+    state.history.pop();
+    toast("No hay espacio vacío suficiente para otra copia.");
+    return;
+  }
+
+  state.selectedId=state.objects.at(-1).id;
+  state.selectedIds=[state.selectedId];
+  renderAll();
+  toast(`Se añadieron ${added} copia${added===1?"":"s"} solo en espacios vacíos`);
+};
+
+
+async function loadImageFromSrc(src){return new Promise((resolve,reject)=>{const img=new Image;img.onload=()=>resolve(img);img.onerror=reject;img.src=src})}
+
+async function inspectSourceAlpha(asset){
+  try{
+    const img=await loadImageFromSrc(asset.src);
+    const c=document.createElement("canvas");
+    c.width=img.naturalWidth;
+    c.height=img.naturalHeight;
+    const ctx=c.getContext("2d",{willReadFrequently:true});
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.drawImage(img,0,0);
+
+    const d=ctx.getImageData(0,0,c.width,c.height).data;
+    let semi=0;
+    for(let i=3;i<d.length;i+=4){
+      const a=d[i];
+      if(a>0 && a<255) semi++;
+    }
+    return {binary:semi===0,semi};
+  }catch(e){
+    console.warn("No se pudo inspeccionar el alpha original",e);
+    return {binary:false,semi:null,error:true};
+  }
+}
+
+async function analyzeSemiTransparentAsset(asset){
+ try{
+  const img=await loadImageFromSrc(asset.src),maxSide=1800,factor=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
+  const w=Math.max(1,Math.round(img.naturalWidth*factor)),h=Math.max(1,Math.round(img.naturalHeight*factor)),c=document.createElement("canvas");
+  c.width=w;c.height=h;const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0,w,h);
+  const d=ctx.getImageData(0,0,w,h).data;let count=0;for(let i=3;i<d.length;i+=4){const a=d[i];if(a>0&&a<255)count++}
+  return {count:Math.round(count/(factor*factor)),has:count>0}
+ }catch{return {count:0,has:false,error:true}}
+}
+
+function objectExportBoundsPx(o,s){
+  ensureRotationModel(o);
+  const box=rotatedAABB(o);
+  return {
+    x:Math.floor(box.x*s)-4,
+    y:Math.floor(box.y*s)-4,
+    w:Math.ceil(box.w*s)+8,
+    h:Math.ceil(box.h*s)+8
+  };
+}
+function pxRectsOverlap(a,b){
+  return a.x < b.x+b.w &&
+         a.x+a.w > b.x &&
+         a.y < b.y+b.h &&
+         a.y+a.h > b.y;
+}
+async function renderQualityTile(tileX,tileY,tileW,tileH,s){
+  const c=document.createElement("canvas");
+  c.width=tileW;
+  c.height=tileH;
+
+  const ctx=c.getContext("2d",{willReadFrequently:true});
+  ctx.clearRect(0,0,tileW,tileH);
+
+  // Shift global 300-DPI coordinates into this tile.
+  ctx.save();
+  ctx.translate(-tileX,-tileY);
+
+  const tileRect={x:tileX,y:tileY,w:tileW,h:tileH};
+
+  for(const o of state.objects){
+    const bounds=objectExportBoundsPx(o,s);
+    if(!pxRectsOverlap(bounds,tileRect)) continue;
+
+    if(o.type==="image"){
+      // IMPORTANT: use the SAME rasterization route as Export PNG.
+      await drawExportImageExact(ctx,o,s,300);
+      continue;
+    }
+
+    ctx.save();
+    const cx=(o.x+o.w/2)*s;
+    const cy=(o.y+o.h/2)*s;
+    ctx.translate(cx,cy);
+    ctx.rotate((o.rot||0)*Math.PI/180);
+    ctx.scale(o.flipX?-1:1,o.flipY?-1:1);
+    ctx.fillStyle=o.color||"#111";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.font=`900 ${Math.max(10,o.fontSize*s/10)}px sans-serif`;
+    ctx.fillText(o.text,0,0,o.w*s);
+    ctx.restore();
+  }
+
+  ctx.restore();
+  return c;
+}
+async function scanSemiTransparentPixels(){
+  if(!state.objects.length){
+    return {
+      total:0,
+      transparent:0,
+      opaque:0,
+      affected:[],
+      analyzed:"active-sheet"
+    };
+  }
+
+  const dpi=300;
+  const s=dpi/2.54;
+  const totalW=Math.max(1,Math.round(state.sheet.w*s));
+  const totalH=Math.max(1,Math.round(state.sheet.h*s));
+
+  // Tile analysis avoids creating a huge full-sheet canvas.
+  const TILE=768;
+  let semi=0;
+  let transparent=0;
+  let opaque=0;
+
+  for(let ty=0;ty<totalH;ty+=TILE){
+    const h=Math.min(TILE,totalH-ty);
+
+    for(let tx=0;tx<totalW;tx+=TILE){
+      const w=Math.min(TILE,totalW-tx);
+      const tile=await renderQualityTile(tx,ty,w,h,s);
+      const d=tile.getContext("2d",{willReadFrequently:true})
+                  .getImageData(0,0,w,h).data;
+
+      for(let i=3;i<d.length;i+=4){
+        const a=d[i];
+
+        // EXACT definition requested:
+        // 0   = completely transparent  -> DO NOT count as semi
+        // 255 = completely opaque       -> DO NOT count as semi
+        // 1..254                         -> semi-transparent
+        if(a===0){
+          transparent++;
+        }else if(a===255){
+          opaque++;
+        }else{
+          semi++;
+        }
+      }
+
+      // Give the browser a chance to paint UI during long sheets.
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+  }
+
+  return {
+    total:semi,
+    semi,
+    transparent,
+    opaque,
+    affected:state.objects
+      .filter(o=>o.type==="image"&&o.assetId)
+      .map(o=>assetById(o.assetId))
+      .filter((a,i,arr)=>a&&arr.findIndex(x=>x.id===a.id)===i)
+      .map(asset=>({asset})),
+    analyzed:"active-sheet",
+    widthPx:totalW,
+    heightPx:totalH,
+    dpi
+  };
+}
+
+async function cleanAssetAlpha(asset,threshold){
+ const img=await loadImageFromSrc(asset.src),c=document.createElement("canvas");c.width=img.naturalWidth;c.height=img.naturalHeight;
+ const ctx=c.getContext("2d",{willReadFrequently:true});ctx.drawImage(img,0,0);const im=ctx.getImageData(0,0,c.width,c.height),d=im.data;let changed=0;
+ for(let i=3;i<d.length;i+=4){const a=d[i];if(a>0&&a<255){d[i]=a<threshold?0:255;changed++}}
+ ctx.putImageData(im,0,0);const blob=await new Promise(resolve=>c.toBlob(resolve,"image/png"));if(!blob)throw new Error("PNG");
+ if(asset.src&&asset.src.startsWith("blob:"))URL.revokeObjectURL(asset.src);
+ asset.file=blob;
+ asset.src=URL.createObjectURL(blob);
+ asset.alphaCleaned=true;
+ asset.alphaThreshold=threshold;
+ asset.alphaBinary=true;
+ await persistAsset(asset);
+ return changed
+}
+async function cleanCurrentCanvasSemiTransparency(){
+ const btn=$("#cleanAlphaBtn");
+ const threshold=+$("#alphaThreshold").value||128;
+
+ btn.disabled=true;
+ btn.textContent="Comprobando mesa…";
+
+ try{
+   // The only truth for the button is the rendered ACTIVE SHEET.
+   const before=await scanSemiTransparentPixels();
+
+   if(!before.total){
+     toast("La mesa de trabajo activa ya está libre de semitransparencias");
+     return;
+   }
+
+   // Work only with unique raster assets actually used on the active sheet.
+   const seen=new Set();
+   const assets=[];
+
+   for(const o of state.objects){
+     if(o.type!=="image" || !o.assetId || seen.has(o.assetId)) continue;
+     seen.add(o.assetId);
+     const asset=assetById(o.assetId);
+     if(asset) assets.push(asset);
+   }
+
+   let sourcePixelsChanged=0;
+   let binaryFlagsFixed=0;
+
+   for(let i=0;i<assets.length;i++){
+     const asset=assets[i];
+     btn.textContent=`Limpiando ${i+1}/${assets.length}…`;
+
+     // Inspect the source at native resolution.
+     const info=await inspectSourceAlpha(asset);
+
+     if(info.binary){
+       // The source is already 0/255. If the sheet nevertheless had
+       // semi-alpha, it was being created during resize/rotation.
+       // Marking it binary forces drawExportImageExact() to threshold the
+       // transformed temporary layer before it reaches the sheet.
+       if(!asset.alphaBinary){
+         asset.alphaBinary=true;
+         asset.alphaThreshold=threshold;
+         binaryFlagsFixed++;
+         await persistAsset(asset);
+       }else if(!Number.isFinite(asset.alphaThreshold)){
+         asset.alphaThreshold=threshold;
+         await persistAsset(asset);
+       }
+     }else if(info.semi>0){
+       // The source itself really contains semi-transparent pixels.
+       sourcePixelsChanged+=await cleanAssetAlpha(asset,threshold);
+     }
+
+     // Allow UI to repaint between large assets.
+     await new Promise(resolve=>setTimeout(resolve,0));
+   }
+
+   renderAssets();
+   renderAll();
+
+   btn.textContent="Verificando resultado…";
+
+   // Re-scan the actual rendered active sheet. This result controls the UI
+   // and the final message, never the source-file inspection above.
+   const after=await runQualityCheck();
+
+   if(after && after.total===0){
+     const detail=sourcePixelsChanged
+       ? `${sourcePixelsChanged.toLocaleString()} píxeles de origen corregidos`
+       : binaryFlagsFixed
+         ? `${binaryFlagsFixed} archivo${binaryFlagsFixed===1?"":"s"} configurado${binaryFlagsFixed===1?"":"s"} como alpha sólido`
+         : "la mesa fue normalizada";
+
+     toast(`✓ Semitransparencias eliminadas: ${detail}`);
+   }else{
+     const remaining=after?.total??0;
+     toast(`Quedan ${remaining.toLocaleString()} píxeles semitransparentes en la mesa activa`);
+   }
+ }catch(e){
+   console.error(e);
+   toast("No se pudieron limpiar las semitransparencias");
+ }finally{
+   btn.disabled=false;
+   btn.textContent="Limpiar píxeles semitransparentes";
+ }
+}
+async function runQualityCheck(){
+ updateDiagnostics();
+ const lows=state.objects.filter(o=>calcDpi(o)<200).length,warns=state.objects.filter(o=>calcDpi(o)>=200&&calcDpi(o)<300).length;
+ const overlaps=state.objects.filter(o=>o.overlap).length,off=state.objects.filter(o=>o.offboard).length,alpha=await scanSemiTransparentPixels();
+ const checks=[
+  ["Resolución",lows?`${lows} diseño(s) por debajo de 200 DPI`:warns?`${warns} diseño(s) entre 200 y 299 DPI`:"Todas las imágenes tienen resolución óptima",lows?"bad":warns?"warn":"ok"],
+  ["Superposición",overlaps?`${overlaps} objetos se superponen`:"No hay imágenes superpuestas",overlaps?"bad":"ok"],
+  ["Fuera del área",off?`${off} objetos salen del área segura`:"Todos los objetos están dentro de la hoja",off?"bad":"ok"],
+  ["Semitransparencias",alpha.total?`${alpha.total.toLocaleString()} píxeles semitransparentes en la Gang Sheet activa`:"No se detectaron píxeles semitransparentes en la Gang Sheet activa",alpha.total?"warn":"ok"],
+  ["Archivos",`${state.objects.length} objetos listos para exportar`,"ok"]
+ ];
+ const issues=checks.filter(c=>c[2]!=="ok").length,score=Math.max(0,100-issues*18-lows*8);
+ $("#qualityScore").style.setProperty("--score",score+"%");$("#qualityScore strong").textContent=score;
+ const list=$("#qualityList");list.innerHTML="";checks.forEach(c=>{const row=document.createElement("div");row.className="check-row";row.innerHTML=`<div class="check-icon ${c[2]==="ok"?"ok":"warn"}">${c[2]==="ok"?"✓":"!"}</div><div><b>${c[0]}</b><p>${c[1]}</p></div><span class="check-status">${c[2]==="ok"?"PASS":"REVISAR"}</span>`;list.appendChild(row)});
+ $("#alphaTools").classList.toggle("hidden",!alpha.total);$("#alphaCountBadge").textContent=alpha.total?`${alpha.total.toLocaleString()} px`:"0 px";renderQualityCanvas();
+ return alpha
+}
+async function quality(){
+ openModal("qualityModal");$("#qualityList").innerHTML='<div class="check-row"><div class="check-icon warn">…</div><div><b>Analizando lienzo</b><p>Renderizando la Gang Sheet activa a 300 DPI y revisando su canal alfa.</p></div><span class="check-status">ESCANEANDO</span></div>';$("#alphaTools").classList.add("hidden");await runQualityCheck()
+}
+
+function renderQualityCanvas(){
+ const c=$("#qualityCanvas"),ctx=c.getContext("2d"),scale=Math.min(260/(state.sheet.w*PX_PER_CM),300/(state.sheet.h*PX_PER_CM));
+ c.width=Math.max(1,state.sheet.w*PX_PER_CM*scale);c.height=Math.max(1,state.sheet.h*PX_PER_CM*scale);ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);
+ state.objects.forEach(o=>{if(o.type==="image"){const im=new Image;im.onload=()=>ctx.drawImage(im,o.x*PX_PER_CM*scale,o.y*PX_PER_CM*scale,o.w*PX_PER_CM*scale,o.h*PX_PER_CM*scale);im.src=objectSrc(o)}else{ctx.fillStyle=o.color||"#111";ctx.font=`bold ${Math.max(8,o.fontSize*.25*scale)}px sans-serif`;ctx.fillText(o.text,o.x*PX_PER_CM*scale,(o.y+o.h*.7)*PX_PER_CM*scale)}})
+}
+$("#qualityBtn").onclick=quality;
+$("#alphaThreshold").addEventListener("input",e=>$("#alphaThresholdValue").textContent=e.target.value);
+$("#cleanAlphaBtn").onclick=cleanCurrentCanvasSemiTransparency;
+
+function showRightPanel(which){
+  const props=which==="properties";
+  $("#propertiesView").classList.toggle("hidden",!props);
+  $("#sheetsView").classList.toggle("hidden",props);
+  $("#propertiesTabBtn").classList.toggle("active",props);
+  $("#sheetsTabBtn").classList.toggle("active",!props);
+}
+$("#propertiesTabBtn").onclick=()=>showRightPanel("properties");
+$("#sheetsTabBtn").onclick=()=>showRightPanel("sheets");
+$("#createSheetBtn").onclick=createBlankSheetFromUI;
+
+
+$("#colorHelpBtn").onclick=e=>{
+  e.stopPropagation();
+  $("#colorHelpPopover").classList.toggle("hidden");
+};
+document.addEventListener("click",e=>{
+  const wrap=document.querySelector(".color-help-wrap");
+  if(wrap && !wrap.contains(e.target)) $("#colorHelpPopover").classList.add("hidden");
+});
+
+
+function openModal(id){$("#"+id).classList.remove("hidden")}
+$$("[data-close]").forEach(b=>b.onclick=()=>$("#"+b.dataset.close).classList.add("hidden"));
+
+
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function setPanel(name){
+ const map={uploads:["Añadir imagen","Sube tus diseños y colócalos en la hoja."],text:["Añadir texto","Crea textos directamente en la hoja."],settings:["Ajustes","Configura la hoja y la asistencia visual."]};
+ $$(".tool-nav").forEach(x=>x.classList.toggle("active",x.dataset.panel===name));$$(".panel-view").forEach(x=>x.classList.remove("active"));$("#"+name+"Panel").classList.add("active");$("#panelTitle").textContent=map[name][0];$("#panelSubtitle").textContent=map[name][1]
+}
+$$(".tool-nav[data-panel]").forEach(b=>b.onclick=()=>setPanel(b.dataset.panel));
+
+
+$("#restartAllBtn").onclick=()=>{
+  const sheet=activeSheetRecord();
+
+  if(!state.objects.length && state.sheet.h===MIN_SHEET_HEIGHT){
+    toast(`${sheet.name} ya está vacía`);
+    return;
+  }
+
+  if(!confirm(`¿Iniciar de nuevo en ${sheet.name}? Solo se borrarán los diseños de esta hoja. Las demás Gang Sheets no se modificarán.`)) return;
+
+  pushHistory();
+
+  state.objects=[];
+  state.selectedId=null;
+  state.selectedIds=[];
+  state.sheet.h=MIN_SHEET_HEIGHT;
+
+  syncSheetInputs();
+  renderAll();
+  showRightPanel("properties");
+  setTimeout(fitViewport,20);
+  toast(`${sheet.name} iniciada de nuevo`);
+};
+
+$("#resetProjectBtn").onclick=()=>{
+  if(!state.objects.length){toast("La hoja activa ya está vacía");return}
+  if(!confirm(`¿Vaciar ${activeSheetRecord().name}? Se borrarán todos los diseños de esta hoja.`)) return;
+  pushHistory();
+  state.objects=[];
+  state.selectedId=null;state.selectedIds=[];
+  state.sheet.h=MIN_SHEET_HEIGHT;
+  renderAll();
+  setTimeout(fitViewport,20);
+  toast("Hoja activa vacía");
+};
+$("#applySettingsBtn").onclick=()=>{
+ pushHistory();
+ state.sheet.w=Math.max(5,+$("#sheetWidth").value||62);
+ state.sheet.h=Math.min(MAX_SHEET_HEIGHT,Math.max(MIN_SHEET_HEIGHT,+$("#sheetHeight").value||MIN_SHEET_HEIGHT));
+ state.sheet.margin=Math.max(0,+$("#sheetMargin").value||0);
+ state.snap=$("#snapToggle").checked;state.showResolution=$("#showResolution").checked;
+ renderAll();setTimeout(fitViewport,20);toast("Ajustes aplicados")
+};
+$("#showResolution").onchange=e=>{state.showResolution=e.target.checked;renderAll()};
+$("#snapToggle").onchange=e=>state.snap=e.target.checked;
+
+
+
+
+
+function bindPreviewScrollbar(axis){
+  const track=$(axis==="x"?"#scrollTrackX":"#scrollTrackY");
+  const thumb=$(axis==="x"?"#scrollThumbX":"#scrollThumbY");
+  if(!track||!thumb)return;
+
+  let dragOffset=0;
+
+  const applyThumbPosition=(clientPos,centerOnPointer=false)=>{
+    const tr=track.getBoundingClientRect();
+    const th=thumb.getBoundingClientRect();
+    const r=viewportPanRange();
+
+    if(axis==="x"){
+      const usable=Math.max(1,tr.width-th.width);
+      let px=clientPos-tr.left-(centerOnPointer?th.width/2:dragOffset);
+      px=Math.max(0,Math.min(usable,px));
+      const n=px/usable;
+      state.viewport.x=r.minX+n*(r.maxX-r.minX);
+    }else{
+      const usable=Math.max(1,tr.height-th.height);
+      let py=clientPos-tr.top-(centerOnPointer?th.height/2:dragOffset);
+      py=Math.max(0,Math.min(usable,py));
+      const n=py/usable;
+      state.viewport.y=r.maxY-n*(r.maxY-r.minY);
+    }
+    applyViewport();
+  };
+
+  thumb.addEventListener("pointerdown",e=>{
+    e.preventDefault();e.stopPropagation();
+    const th=thumb.getBoundingClientRect();
+    dragOffset=axis==="x"?e.clientX-th.left:e.clientY-th.top;
+    thumb.classList.add("dragging");
+
+    const move=ev=>applyThumbPosition(axis==="x"?ev.clientX:ev.clientY,false);
+    const up=()=>{
+      thumb.classList.remove("dragging");
+      window.removeEventListener("pointermove",move);
+      window.removeEventListener("pointerup",up);
+    };
+    window.addEventListener("pointermove",move);
+    window.addEventListener("pointerup",up);
+  });
+
+  // Clicking the empty track pages the viewport instead of jumping wildly.
+  track.addEventListener("pointerdown",e=>{
+    if(e.target===thumb)return;
+    e.preventDefault();e.stopPropagation();
+    const delta=axis==="x"?$("#stageScroller").clientWidth*.28:$("#stageScroller").clientHeight*.28;
+    const th=thumb.getBoundingClientRect();
+    if(axis==="x"){
+      state.viewport.x += e.clientX<th.left ? delta : -delta;
+    }else{
+      // Browser convention: click above thumb reveals content above; below reveals content below.
+      state.viewport.y += e.clientY<th.top ? -delta : delta;
+    }
+    const r=viewportPanRange();
+    state.viewport.x=Math.max(r.minX,Math.min(r.maxX,state.viewport.x));
+    state.viewport.y=Math.max(r.minY,Math.min(r.maxY,state.viewport.y));
+    applyViewport();
+  });
+}
+bindPreviewScrollbar("x");
+bindPreviewScrollbar("y");
+
+$("#zoomIn").onclick=()=>{const sc=$("#stageScroller").getBoundingClientRect();zoomAt(sc.left+sc.width/2,sc.top+sc.height/2,state.zoom*1.15)};
+$("#zoomOut").onclick=()=>{const sc=$("#stageScroller").getBoundingClientRect();zoomAt(sc.left+sc.width/2,sc.top+sc.height/2,state.zoom/1.15)};
+$("#fitBtn").onclick=fitViewport;
+$("#undoBtn").onclick=undo;$("#redoBtn").onclick=redo;
+
+async function save(){
+  const assets=[];
+  for(const a of state.assets){
+    let dataUrl=null;
+    if(a.file){
+      dataUrl=await new Promise(resolve=>{
+        const r=new FileReader();
+        r.onload=()=>resolve(r.result);r.onerror=()=>resolve(null);r.readAsDataURL(a.file);
+      });
+    }
+    assets.push({
+      id:a.id,name:a.name,w:a.w,h:a.h,dataUrl,
+      dpiX:a.dpiX,dpiY:a.dpiY,dpiSource:a.dpiSource,
+      physicalWcm:a.physicalWcm,physicalHcm:a.physicalHcm,
+      alphaCleaned:!!a.alphaCleaned,
+      alphaThreshold:Number.isFinite(a.alphaThreshold)?a.alphaThreshold:null,
+      alphaBinary:!!a.alphaBinary
+    });
+  }
+  const project={
+    version:220,
+    activeSheetIndex:state.activeSheetIndex,
+    sheets:state.sheets.map(s=>({
+      id:s.id,name:s.name,sheet:{...s.sheet},objects:s.objects.map(serializableObject)
+    })),
+    assets
+  };
+  const blob=new Blob([JSON.stringify(project)],{type:"application/json"});
+  const a=document.createElement("a"),url=URL.createObjectURL(blob);
+  a.href=url;a.download="bixstudio-project.json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Proyecto guardado");
+}
+$("#saveBtn").onclick=save;
+
+function hardThresholdCanvasAlpha(canvas,threshold){
+  const ctx=canvas.getContext("2d",{willReadFrequently:true});
+  const im=ctx.getImageData(0,0,canvas.width,canvas.height);
+  const d=im.data;
+  for(let i=3;i<d.length;i+=4){
+    const a=d[i];
+    if(a>0 && a<255) d[i]=a<threshold?0:255;
+  }
+  ctx.putImageData(im,0,0);
+}
+
+function nearlyEqual(a,b,tolerance=.01){
+  return Math.abs(a-b)<=tolerance;
+}
+
+function expectedPixelsForCm(cm,dpi=300){
+  return Math.round(cm*dpi/2.54);
+}
+
+function canExportAssetPixelPerfect(o,asset,dpi=300){
+  if(!asset || !asset.w || !asset.h) return false;
+
+  const rot=((o.rot||0)%360+360)%360;
+  if(rot!==0 || o.flipX || o.flipY) return false;
+
+  // Compare the physical object size against the source pixel dimensions at 300 DPI.
+  const expectedW=expectedPixelsForCm(o.w,dpi);
+  const expectedH=expectedPixelsForCm(o.h,dpi);
+
+  // Exact or one-pixel rounding tolerance.
+  return Math.abs(expectedW-asset.w)<=1 && Math.abs(expectedH-asset.h)<=1;
+}
+
+async function drawExportImageExact(ctx,o,s,dpi=300){
+  const asset=assetById(o.assetId);
+  const src=objectSrc(o);
+  if(!src) return;
+
+  const im=await loadImageFromSrc(src);
+
+  // ----------------------------------------------------------
+  // PATH A: true 1:1 pixel copy.
+  // No scaling, no interpolation, no alpha changes.
+  // ----------------------------------------------------------
+  if(canExportAssetPixelPerfect(o,asset,dpi)){
+    const x=Math.round(o.x*s);
+    const y=Math.round(o.y*s);
+
+    const oldSmooth=ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(im,x,y);
+    ctx.imageSmoothingEnabled=oldSmooth;
+    return;
+  }
+
+  // ----------------------------------------------------------
+  // PATH B: transformed/resized image.
+  // Preserve the original alpha policy.
+  // ----------------------------------------------------------
+  const keepBinary=!!(asset?.alphaBinary || asset?.alphaCleaned);
+
+  if(!keepBinary){
+    ctx.save();
+    const cx=(o.x+o.w/2)*s;
+    const cy=(o.y+o.h/2)*s;
+    ctx.translate(cx,cy);
+    ctx.rotate((o.rot||0)*Math.PI/180);
+    ctx.scale(o.flipX?-1:1,o.flipY?-1:1);
+
+    // Highest quality browser interpolation for non-binary alpha assets.
+    ctx.imageSmoothingEnabled=true;
+    ctx.imageSmoothingQuality="high";
+    ctx.drawImage(im,-o.w*s/2,-o.h*s/2,o.w*s,o.h*s);
+    ctx.restore();
+    return;
+  }
+
+  // Binary alpha source: perform transform in temporary layer,
+  // then restore alpha to 0/255 only after interpolation.
+  const angle=(o.rot||0)*Math.PI/180;
+  const targetW=Math.max(1,Math.round(o.w*s));
+  const targetH=Math.max(1,Math.round(o.h*s));
+
+  const absC=Math.abs(Math.cos(angle));
+  const absS=Math.abs(Math.sin(angle));
+  const pad=4;
+
+  const layerW=Math.max(1,Math.ceil(targetW*absC+targetH*absS)+pad*2);
+  const layerH=Math.max(1,Math.ceil(targetW*absS+targetH*absC)+pad*2);
+
+  const tmp=document.createElement("canvas");
+  tmp.width=layerW;
+  tmp.height=layerH;
+
+  const tctx=tmp.getContext("2d",{willReadFrequently:true});
+  tctx.clearRect(0,0,layerW,layerH);
+  tctx.imageSmoothingEnabled=true;
+  tctx.imageSmoothingQuality="high";
+
+  tctx.save();
+  tctx.translate(layerW/2,layerH/2);
+  tctx.rotate(angle);
+  tctx.scale(o.flipX?-1:1,o.flipY?-1:1);
+  tctx.drawImage(im,-targetW/2,-targetH/2,targetW,targetH);
+  tctx.restore();
+
+  hardThresholdCanvasAlpha(
+    tmp,
+    Number.isFinite(asset?.alphaThreshold)?asset.alphaThreshold:128
+  );
+
+  const centerX=(o.x+o.w/2)*s;
+  const centerY=(o.y+o.h/2)*s;
+  const destX=Math.round(centerX-layerW/2);
+  const destY=Math.round(centerY-layerH/2);
+
+  const oldSmooth=ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(tmp,destX,destY);
+  ctx.imageSmoothingEnabled=oldSmooth;
+}
+
+async function exportPng(){
+  if(!state.objects.length) return toast("No hay diseños para exportar.");
+
+  const dpi=300;
+  const pxPerCm=dpi/2.54;
+
+  // IMPORTANT:
+  // Do NOT globally shrink the sheet. 62 cm at 300 DPI = ~7323 px,
+  // so the old 7000 px cap altered every normal export.
+  const exportW=Math.max(1,Math.round(state.sheet.w*pxPerCm));
+  const exportH=Math.max(1,Math.round(state.sheet.h*pxPerCm));
+
+  // Browser canvas limits vary. We keep true 300 DPI and fail clearly
+  // instead of silently reducing the artwork.
+  const MAX_CANVAS_DIM=32767;
+  const MAX_CANVAS_PIXELS=268_000_000; // conservative Chromium-class limit
+
+  if(exportW>MAX_CANVAS_DIM || exportH>MAX_CANVAS_DIM || exportW*exportH>MAX_CANVAS_PIXELS){
+    toast("Esta Gang Sheet es demasiado grande para exportarla en un solo PNG a 300 DPI en el navegador. Divide el trabajo en otra hoja.");
+    return;
+  }
+
+  const c=document.createElement("canvas");
+  c.width=exportW;
+  c.height=exportH;
+
+  const ctx=c.getContext("2d",{willReadFrequently:true});
+  ctx.clearRect(0,0,c.width,c.height);
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality="high";
+
+  for(const o of state.objects){
+    if(o.type==="image"){
+      try{
+        await drawExportImageExact(ctx,o,pxPerCm,dpi);
+      }catch(e){
+        console.warn("No se pudo renderizar una imagen al exportar",e);
+      }
+      continue;
+    }
+
+    // Text remains vector-like until rasterized onto the 300-DPI canvas.
+    ctx.save();
+    const cx=(o.x+o.w/2)*pxPerCm;
+    const cy=(o.y+o.h/2)*pxPerCm;
+    ctx.translate(cx,cy);
+    ctx.rotate((o.rot||0)*Math.PI/180);
+    ctx.scale(o.flipX?-1:1,o.flipY?-1:1);
+    ctx.fillStyle=o.color||"#111";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.font=`900 ${Math.max(10,o.fontSize*pxPerCm/10)}px sans-serif`;
+    ctx.fillText(o.text,0,0,o.w*pxPerCm);
+    ctx.restore();
+  }
+
+  // Final alpha safety only when all raster images are known binary.
+  // This does NOT change RGB values, only alpha.
+  const rasterAssets=state.objects
+    .filter(o=>o.type==="image")
+    .map(o=>assetById(o.assetId))
+    .filter(Boolean);
+
+  const allRasterAlphaBinary=rasterAssets.length>0 &&
+    rasterAssets.every(a=>a.alphaBinary || a.alphaCleaned);
+
+  if(allRasterAlphaBinary){
+    hardThresholdCanvasAlpha(c,128);
+  }
+
+  c.toBlob(blob=>{
+    if(!blob){
+      toast("No se pudo generar el PNG.");
+      return;
+    }
+
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=`${activeSheetRecord().name.replace(/\s+/g,"_")}_${state.sheet.w}x${state.sheet.h}cm_300dpi.png`;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    toast("PNG exportado a 300 DPI sin reducción global");
+  },"image/png");
+}
+$("#exportBtn").onclick=exportPng;
+
+
+// ----- Viewport dinámico: zoom + pan tipo editor -----
+const stageScroller=$("#stageScroller");
+let spaceHeld=false;
+let panSession=null;
+
+// El marco global se activa aquí, cuando stageScroller ya está inicializado.
+installStageMarqueeSelection();
+
+function beginViewportPan(e){
+  e.preventDefault();
+  e.stopPropagation();
+  panSession={
+    startX:e.clientX,
+    startY:e.clientY,
+    x:state.viewport.x,
+    y:state.viewport.y,
+    pointerId:e.pointerId
+  };
+  stageScroller.classList.add("panning");
+  try{stageScroller.setPointerCapture(e.pointerId)}catch{}
+}
+
+
+stageScroller.addEventListener("wheel",e=>{
+  // Ctrl/Cmd + wheel is handled by the capture listener below.
+  if(e.ctrlKey||e.metaKey) return;
+
+  // Wheel/trackpad without Ctrl pans the work area.
+  e.preventDefault();
+  state.viewport.x-=e.deltaX;
+  state.viewport.y-=e.deltaY;
+  applyViewport();
+},{passive:false});
+
+
+function pointerInsideStage(clientX,clientY){
+  const r=stageScroller.getBoundingClientRect();
+  return clientX>=r.left && clientX<=r.right && clientY>=r.top && clientY<=r.bottom;
+}
+
+// Capture Ctrl/Cmd + wheel before the browser can use it for page zoom.
+// It only takes over while the cursor is physically over the gang-sheet preview.
+document.addEventListener("wheel",e=>{
+  if(!(e.ctrlKey||e.metaKey)) return;
+  if(!pointerInsideStage(e.clientX,e.clientY)) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const factor=Math.exp(-e.deltaY*0.0018);
+  zoomAt(e.clientX,e.clientY,state.zoom*factor);
+},{passive:false,capture:true});
+
+stageScroller.addEventListener("pointerdown",e=>{
+  const middle=e.button===1;
+  if(!(spaceHeld||middle)) return;
+  beginViewportPan(e);
+});
+
+stageScroller.addEventListener("pointermove",e=>{
+  if(!panSession) return;
+  state.viewport.x=panSession.x+(e.clientX-panSession.startX);
+  state.viewport.y=panSession.y+(e.clientY-panSession.startY);
+  applyViewport();
+});
+
+function endPan(e){
+  if(!panSession) return;
+  try{stageScroller.releasePointerCapture(panSession.pointerId)}catch{}
+  panSession=null;
+  stageScroller.classList.remove("panning");
+}
+stageScroller.addEventListener("pointerup",endPan);
+stageScroller.addEventListener("pointercancel",endPan);
+stageScroller.addEventListener("contextmenu",e=>{ if(spaceHeld) e.preventDefault(); });
+
+function cloneForPaste(o,offsetCm=.8){
+  const n=JSON.parse(JSON.stringify(o));
+  delete n.src;
+  n.id=uid();
+  n.name=nextCopyName(n.name||"Diseño");
+  // La posición final se decide al pegar buscando el primer hueco disponible.
+  n.x=state.sheet.margin;
+  n.y=state.sheet.margin;
+  return n;
+}
+function copySelection(){
+  const ids=state.selectedIds.length?state.selectedIds:(state.selectedId?[state.selectedId]:[]);
+  if(!ids.length) return false;
+  state.clipboard=ids.map(id=>objById(id)).filter(Boolean).map(o=>{
+    const n=JSON.parse(JSON.stringify(o));
+    delete n.src;
+    return n;
+  });
+  toast(state.clipboard.length===1?"Copiado":"Objetos copiados");
+  return true;
+}
+function pasteClipboard(){
+  if(!state.clipboard.length) return false;
+  pushHistory();
+
+  const pasted=[];
+  let failed=0;
+
+  for(const src of state.clipboard){
+    const n=cloneForPaste(src);
+    const placed=placeObjectWithAutoGrowth(n);
+    if(!placed){
+      failed++;
+      continue;
+    }
+    // Important: add only AFTER a valid in-sheet position was found.
+    state.objects.push(n);
+    pasted.push(n);
+  }
+
+  if(!pasted.length){
+    state.history.pop();
+    toast("No se pudo colocar la copia dentro de una gang sheet.");
+    return false;
+  }
+
+  state.selectedIds=pasted.map(o=>o.id);
+  state.selectedId=pasted.at(-1).id;
+  renderAll();
+
+  if(failed) toast(`${pasted.length} copia(s) colocadas; ${failed} no pudieron acomodarse.`);
+  else toast(pasted.length===1?"Pegado y acomodado":"Objetos pegados y acomodados");
+  return true;
+}
+// Exponer el pegado interno únicamente para el menú contextual.
+window.BixStudioPasteClipboard=()=>pasteClipboard();
+window.BixStudioCanPaste=()=>state.clipboard.length>0;
+
+// Puente seguro para el menú contextual externo.
+// El segundo <script> no puede acceder directamente a `state` ni `renderAll()`.
+window.BixStudioContextState=()=>({
+  selectedId:state.selectedId,
+  selectedIds:[...state.selectedIds],
+  selectionCount:state.selectedIds.length || (state.selectedId?1:0),
+  canPaste:state.clipboard.length>0
+});
+
+window.BixStudioContextSelectObject=(id)=>{
+  if(!id || !state.objects.some(o=>o.id===id)) return false;
+  if(!state.selectedIds.includes(id)){
+    state.selectedId=id;
+    state.selectedIds=[id];
+    renderAll();
+  }else{
+    state.selectedId=id;
+  }
+  return true;
+};
+
+function cutSelection(){
+  if(!copySelection()) return false;
+  pushHistory();
+  const ids=new Set(state.selectedIds.length?state.selectedIds:[state.selectedId]);
+  state.objects=state.objects.filter(o=>!ids.has(o.id));
+  state.selectedId=null;state.selectedIds=[];
+  recalcActiveSheetHeight();
+  renderAll();
+  toast("Cortado");
+  return true;
+}
+function selectAllObjects(){
+  if(!state.objects.length) return;
+  state.selectedIds=state.objects.map(o=>o.id);
+  state.selectedId=state.selectedIds.at(-1);
+  // Visualmente mantenemos el último como selección primaria.
+  renderAll();
+  toast(`${state.selectedIds.length} objetos seleccionados`);
+}
+function nudgeSelection(dx,dy){
+  const ids=state.selectedIds.length?state.selectedIds:(state.selectedId?[state.selectedId]:[]);
+  if(!ids.length) return;
+  ids.forEach(id=>{const o=objById(id);if(o){o.x+=dx;o.y+=dy}});
+  renderAll();
+}
+
+function recalcActiveSheetHeight(){
+  const m=state.sheet.margin;
+  let used=MIN_SHEET_HEIGHT;
+
+  if(state.objects.length){
+    let bottom=m;
+    for(const o of state.objects){
+      ensureRotationModel(o);
+      const box=rotatedAABB(o);
+      bottom=Math.max(bottom,box.y+box.h);
+    }
+    used=Math.max(MIN_SHEET_HEIGHT,Math.ceil((bottom+m)*10)/10);
+  }
+
+  const next=Math.min(MAX_SHEET_HEIGHT,used);
+  if(Math.abs(next-state.sheet.h)>.001){
+    state.sheet.h=next;
+    syncSheetInputs();
+    updateBoard();
+  }
+}
+
+function deleteSelection(){
+  const ids=state.selectedIds.length?state.selectedIds:(state.selectedId?[state.selectedId]:[]);
+  if(!ids.length) return;
+  pushHistory();
+  const set=new Set(ids);
+  state.objects=state.objects.filter(o=>!set.has(o.id));
+  state.selectedId=null;state.selectedIds=[];
+  recalcActiveSheetHeight();
+  renderAll();
+}
+function isTypingTarget(el){
+  return el && (["INPUT","TEXTAREA","SELECT"].includes(el.tagName)||el.isContentEditable);
+}
+
+document.addEventListener("keydown",e=>{
+ const typing=isTypingTarget(document.activeElement);
+ const mod=e.ctrlKey||e.metaKey;
+ const key=e.key.toLowerCase();
+
+ if(e.code==="Space"&&!typing){
+   e.preventDefault();
+   spaceHeld=true;
+   stageScroller.classList.add("space-held");
+   return;
+ }
+
+ if(mod && key==="z" && !typing){
+   e.preventDefault();
+   e.shiftKey?redo():undo();
+   return;
+ }
+ if(mod && key==="y" && !typing){
+   e.preventDefault();redo();return;
+ }
+ if(mod && key==="c" && !typing){
+   e.preventDefault();copySelection();return;
+ }
+ if(mod && key==="v" && !typing){
+   e.preventDefault();pasteClipboard();return;
+ }
+ if(mod && key==="x" && !typing){
+   e.preventDefault();cutSelection();return;
+ }
+ if(mod && key==="a" && !typing){
+   e.preventDefault();selectAllObjects();return;
+ }
+ if(mod && key==="d" && !typing){
+   e.preventDefault();
+   if(copySelection()) pasteClipboard();
+   return;
+ }
+ if((e.key==="Delete"||e.key==="Backspace")&&!typing){
+   e.preventDefault();deleteSelection();return;
+ }
+ if(e.key==="Escape"&&!typing){
+   state.selectedId=null;state.selectedIds=[];renderAll();return;
+ }
+ if(!typing && ["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){
+   e.preventDefault();
+   if(!e.repeat) pushHistory();
+   const step=e.shiftKey?1:.1;
+   const map={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]};
+   nudgeSelection(...map[e.key]);
+   return;
+ }
+ if(!typing && (key==="0" || key==="f")){
+   e.preventDefault();fitViewport();return;
+ }
+ if(!typing && (key==="+" || key==="=")){
+   e.preventDefault();
+   const sc=stageScroller.getBoundingClientRect();
+   zoomAt(sc.left+sc.width/2,sc.top+sc.height/2,state.zoom*1.15);
+   return;
+ }
+ if(!typing && key==="-"){
+   e.preventDefault();
+   const sc=stageScroller.getBoundingClientRect();
+   zoomAt(sc.left+sc.width/2,sc.top+sc.height/2,state.zoom/1.15);
+   return;
+ }
+});
+
+document.addEventListener("keyup",e=>{
+ if(e.code==="Space"){
+   spaceHeld=false;
+   stageScroller.classList.remove("space-held");
+   endPan(e);
+ }
+});
+window.addEventListener("blur",()=>{
+ spaceHeld=false;
+ stageScroller.classList.remove("space-held");
+ endPan({});
+});
+let resizeFitTimer=null;
+window.addEventListener("resize",()=>{
+  clearTimeout(resizeFitTimer);
+  resizeFitTimer=setTimeout(()=>fitViewport(),80);
+});
+window.addEventListener("beforeunload",()=>{
+  state.assets.forEach(a=>{
+    if(a.src && a.src.startsWith("blob:")) URL.revokeObjectURL(a.src);
+  });
+});
+
+syncSheetInputs();
+renderAll();
+showRightPanel("properties");
+loadPersistedAssets();
+requestAnimationFrame(()=>{
+  requestAnimationFrame(()=>{
+    fitViewport();
+    setTimeout(fitViewport,120);
+  });
+});
+})();
+</script>
+
+<div id="objectContextMenu" class="context-menu">
+<button data-cmd="duplicate">📑 Duplicar</button>
+<button data-cmd="quantity">➕ Agregar cantidad</button>
+<hr>
+<button data-cmd="rotateCW">↺ Girar 90° horario</button>
+<button data-cmd="rotateCCW">↻ Girar 90° antihorario</button>
+<button data-cmd="flipH">⇋ Voltear horizontalmente</button>
+<button data-cmd="flipV">⇅ Voltear verticalmente</button>
+<hr>
+<button data-cmd="lock">☑ Bloquear proporciones</button>
+<hr>
+<button data-cmd="delete">🗑 Borrar <span>Supr</span></button>
+</div>
+<script>
+(()=>{const m=document.getElementById('objectContextMenu');
+document.addEventListener('contextmenu',e=>{
+ const stage=e.target.closest('#stageScroller');
+ const objectEl=e.target.closest('.design-object');
+
+ // Fuera de la preview dejamos funcionar el menú normal del navegador.
+ if(!stage){
+   m.classList.remove('show');
+   return;
+ }
+
+ // Dentro de la mesa/preview usamos siempre el menú de BixStudio.
+ e.preventDefault();
+ e.stopPropagation();
+
+ // Si el clic fue sobre una imagen, convertirla en selección activa mediante
+ // el puente expuesto por el núcleo de la aplicación.
+ if(objectEl){
+   const id=objectEl.dataset.id;
+   if(window.BixStudioContextSelectObject && id){
+     window.BixStudioContextSelectObject(id);
+   }
+ }
+
+ const ctx=window.BixStudioContextState
+   ? window.BixStudioContextState()
+   : {selectionCount:0,canPaste:false};
+
+ const hasSelection=ctx.selectionCount>0;
+ const canPaste=!!ctx.canPaste;
+
+ // Pegar funciona aunque el clic derecho sea sobre un área vacía.
+ m.querySelectorAll('button[data-cmd]').forEach(btn=>{
+   btn.disabled=!hasSelection;
+ });
+
+ // Bloquear proporciones solo con una imagen.
+ const lockBtn=m.querySelector('[data-cmd="lock"]');
+ if(lockBtn) lockBtn.disabled=!hasSelection || ctx.selectionCount!==1;
+
+ // Mostrar primero para conocer su tamaño real.
+ m.classList.add('show');
+
+ // Mantener el menú completamente dentro de la ventana.
+ const pad=8;
+ const rect=m.getBoundingClientRect();
+ let x=e.clientX;
+ let y=e.clientY;
+
+ if(x+rect.width>window.innerWidth-pad){
+   x=window.innerWidth-rect.width-pad;
+ }
+ if(y+rect.height>window.innerHeight-pad){
+   y=window.innerHeight-rect.height-pad;
+ }
+
+ m.style.left=Math.max(pad,x)+'px';
+ m.style.top=Math.max(pad,y)+'px';
+});
+document.addEventListener('click',()=>m.classList.remove('show'));
+m.addEventListener('click',e=>{
+ const b=e.target.closest('button'); if(!b||b.disabled)return;
+ const cmd=b.dataset.cmd;
+ const map={copy:'copyBtn',duplicate:'duplicateBtn',delete:'toolbarDeleteBtn',
+ rotateCW:'rotateCWBtn',rotateCCW:'rotateCCWBtn',
+ flipH:'flipHorizontalBtn',flipV:'flipVerticalBtn',
+ lock:'aspectLockBtn'};
+ if(cmd==='quantity'){alert('Agregar cantidad (pendiente de integrar).');return;} const id=map[cmd]; if(id){const el=document.getElementById(id); if(el)el.click();}
+ m.classList.remove('show');
+});
+})();
+</script>
+</body>
+</html>
