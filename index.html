@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bebas+Neue&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
   <style>
 :root{
   --bg:#f5f6f8; --panel:#fff; --line:#dfe3e8; --text:#171a1f; --muted:#6b7280;
@@ -63,21 +66,64 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
   box-shadow:0 0 0 2px #2563eb,0 0 0 4px rgba(37,99,235,.15);
 }
 .design-object.overlap{box-shadow:0 0 0 2px #ef4444,0 0 0 4px rgba(239,68,68,.12)}
-.design-object.offboard{box-shadow:0 0 0 2px #ef4444,0 0 0 4px rgba(239,68,68,.12)}.design-object img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;image-rendering:auto;backface-visibility:hidden;transform:translateZ(0)}.design-object .text-obj{width:100%;height:100%;display:flex;align-items:center;justify-content:center;white-space:pre-wrap;text-align:center;overflow:hidden;line-height:1}.dpi-chip{display:none!important}
+.design-object.offboard{box-shadow:0 0 0 2px #ef4444,0 0 0 4px rgba(239,68,68,.12)}.design-object img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;image-rendering:auto;backface-visibility:hidden;transform:translateZ(0)}.design-object .text-obj{width:100%;height:100%;display:flex;align-items:center;justify-content:center;white-space:pre;text-align:center;overflow:visible;line-height:1;word-break:normal;overflow-wrap:normal;pointer-events:none;box-sizing:border-box}.dpi-chip{display:none!important}
 .rightbar{background:#fff;border-left:1px solid var(--line);display:flex;flex-direction:column;overflow:auto}.right-tabs{display:flex;height:44px;border-bottom:1px solid #e5e8ec}.right-tab{flex:1;border:0;background:#fff;font-size:11px;color:#6b7280;border-bottom:2px solid transparent}.right-tab.active{color:#111827;font-weight:800;border-color:#111827}.pill{background:#e5e7eb;border-radius:999px;padding:1px 5px;margin-left:3px}
 .empty-state{padding:55px 28px;text-align:center;color:#7b8490}.empty-state b{display:block;color:#424b55;font-size:13px}.empty-state p{font-size:11px;line-height:1.5}.empty-icon{font-size:32px;margin-bottom:10px}
 
 
 .duplicate-primary-btn{
   min-height:36px;
-  border:1px solid #2563eb;
+  border:1px solid #111827;
   border-radius:7px;
-  background:#eff6ff;
-  color:#1d4ed8;
+  background:#111827;
+  color:#fff;
   font-weight:800;
   padding:7px 10px;
+  width:100%;
 }
-.duplicate-primary-btn:hover{background:#dbeafe;border-color:#60a5fa}
+.duplicate-primary-btn:hover{background:#000;border-color:#000}
+.duplicate-card{
+  border:1px solid #dbe3ea;border-radius:9px;padding:10px;background:#f8fafc;margin-bottom:8px
+}
+.duplicate-card-title{font-size:10px;font-weight:800;color:#475569;margin-bottom:8px}
+.dup-qty-field{display:block;font-size:10px;color:#64748b;margin-bottom:9px}
+.dup-qty-field>span{display:block;margin-bottom:5px;font-weight:700}
+.num-stepper{
+  display:flex;align-items:stretch;border:1px solid #d6dce3;border-radius:7px;overflow:hidden;background:#fff;height:36px
+}
+.num-stepper input{
+  min-width:0;flex:1;border:0;padding:0 10px;outline:0;font-weight:700;color:#111827;
+  -moz-appearance:textfield
+}
+.num-stepper input::-webkit-outer-spin-button,
+.num-stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.num-stepper-btns{display:flex;flex-direction:column;border-left:1px solid #e5e9ef;width:28px}
+.num-stepper-btns button{
+  flex:1;border:0;background:#f8fafc;color:#475569;font-size:9px;line-height:1;padding:0
+}
+.num-stepper-btns button:hover{background:#eef2f7;color:#111827}
+.num-stepper-btns button+button{border-top:1px solid #e5e9ef}
+.text-style-card{border:1px solid #dbe3ea;border-radius:9px;padding:10px;margin:0 0 13px;background:#f8fafc}
+.text-style-card>b{display:block;font-size:11px;margin-bottom:8px}
+.text-style-row{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+.text-style-btn{
+  width:34px;height:32px;border:1px solid #d7dce2;border-radius:6px;background:#fff;color:#334155;font-weight:800;font-size:12px;padding:0
+}
+.text-style-btn.active{background:#111827;color:#fff;border-color:#111827}
+.text-style-btn.align-ico{font-size:14px}
+.text-color-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.text-color-grid label{font-size:10px;color:#66707b}
+.text-color-grid input[type=color]{display:block;width:100%;height:34px;margin-top:4px;border:1px solid #d6dce3;border-radius:7px;padding:3px;background:#fff}
+.stroke-color-row{display:flex;align-items:center;gap:6px;margin-top:4px}
+.stroke-color-row input[type=checkbox]{accent-color:#111827}
+.text-obj.text-editing{
+  outline:2px solid #2563eb;outline-offset:2px;cursor:text;user-select:text;
+  -webkit-user-select:text;background:rgba(255,255,255,.12);pointer-events:auto!important
+}
+.design-object.editing-text{z-index:8}
+.design-object.editing-text .resize-point,
+.design-object.editing-text .rotation-stem,
+.design-object.editing-text .rotation-point{display:none!important}
 
 .aspect-lock-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 13px}
 .aspect-lock-label{display:block;font-size:10px;font-weight:700;color:#5f6975}
@@ -136,12 +182,42 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .color-help-item:first-of-type{border-top:0}
 .color-help-item b{display:block;font-size:10px}
 .color-help-item small{display:block;font-size:9px;color:#77818d;margin-top:1px;line-height:1.35}
+.color-help-toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 0 10px;padding:8px 9px;border:1px solid #e5e9ef;border-radius:7px;background:#f8fafc;
+  font-size:10px;font-weight:700;color:#334155;cursor:pointer;user-select:none
+}
+.color-help-toggle span{line-height:1.3}
+.color-help-toggle input{
+  appearance:none;-webkit-appearance:none;position:relative;width:34px;height:18px;flex:0 0 auto;
+  border-radius:999px;background:#cbd5e1;border:0;cursor:pointer;transition:background .15s
+}
+.color-help-toggle input::after{
+  content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.18);transition:transform .15s
+}
+.color-help-toggle input:checked{background:#2563eb}
+.color-help-toggle input:checked::after{transform:translateX(16px)}
 .legend-stroke{width:22px;height:14px;border:3px solid;border-radius:4px;display:block}
 .legend-stroke.optimal{border-color:#16a34a}
 .legend-stroke.good{border-color:#2563eb}
 .legend-stroke.bad{border-color:#d97706}
 .legend-stroke.minimum{border-color:#dc2626}
 .legend-stroke.overlap{border-color:#a855f7}
+/* Contornos de calidad / solape / fuera de margen solo con show-dpi */
+.objects-layer:not(.show-dpi) .design-object:not(.ai-processing){
+  outline-color:transparent!important;
+}
+.objects-layer:not(.show-dpi) .design-object.overlap:not(.selected):not(.ai-processing),
+.objects-layer:not(.show-dpi) .design-object.offboard:not(.selected):not(.ai-processing){
+  box-shadow:none!important;
+}
+.objects-layer:not(.show-dpi) .design-object.selected{
+  box-shadow:0 0 0 2px #2563eb,0 0 0 4px rgba(37,99,235,.15)!important;
+}
+.objects-layer:not(.show-dpi) .design-object.multi-selected:not(.selected){
+  box-shadow:0 0 0 2px #93c5fd,0 0 0 4px rgba(147,197,253,.18)!important;
+}
 
 
 kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:19px;padding:0 5px;border:1px solid #cbd1d8;border-bottom-width:2px;border-radius:4px;background:#fff;color:#39424e;font:600 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
@@ -620,7 +696,10 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .image-processing-actions{display:grid;grid-template-columns:1fr;gap:7px}
 .process-image-btn{min-height:36px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-weight:800;font-size:10px;padding:7px 9px;text-align:left}
 .process-image-btn:hover{border-color:#60a5fa;background:#eff6ff;color:#1d4ed8}.process-image-btn.ai{border-color:#bfdbfe;background:#eff6ff;color:#1d4ed8}.process-image-btn.halftone{border-color:#c4b5fd;background:#f5f3ff;color:#6d28d9}
-.process-image-btn.restore{border-style:dashed;color:#64748b;background:#fff}.process-image-status{margin-top:7px;font-size:9px;color:#64748b;line-height:1.35}
+.process-image-btn.bgremove{border-color:#86efac;background:#f0fdf4;color:#15803d}
+.process-image-btn.bgremove:hover{border-color:#4ade80;background:#dcfce7;color:#166534}
+.process-image-btn.restore{border-style:dashed;color:#64748b;background:#fff}
+.process-image-status,.image-processing-status{margin-top:6px;font-size:8px;color:#94a3b8;line-height:1.3}
 .processing-modal{width:min(480px,94vw)}.processing-body{padding:18px}.processing-body h3{margin:0 0 5px;font-size:15px}.processing-body p{font-size:10px;line-height:1.5;color:#64748b;margin:0 0 14px}.simple-option{display:block;font-size:10px;font-weight:700;color:#4b5563;margin:12px 0}.simple-option select,.simple-option input[type=color]{display:block;width:100%;margin-top:6px;height:38px;border:1px solid #d7dce2;border-radius:7px;background:#fff;padding:5px 8px}.processing-progress{height:7px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:13px}.processing-progress span{display:block;height:100%;width:0;background:#2563eb;border-radius:inherit;transition:width .15s}.processing-progress-label{display:block;margin-top:5px;font-size:9px;color:#64748b}.processing-note{padding:9px 10px;border:1px solid #e2e8f0;background:#f8fafc;border-radius:7px;font-size:9px;color:#64748b;line-height:1.4}.modal-action-row{display:flex;gap:7px;justify-content:flex-end;margin-top:15px}.modal-action-row button{min-height:36px}.garment-custom-row.hidden{display:none!important}
 
 .object-processing-overlay{
@@ -682,6 +761,62 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   transition:width .16s ease;
 }
 .design-object.ai-processing{outline-color:#2563eb!important;box-shadow:0 0 0 2px #2563eb,0 0 0 5px rgba(37,99,235,.18)!important}
+
+.inspect-modal-backdrop{z-index:160;padding:12px;background:#0b1220e8}
+.inspect-modal{
+  width:min(1280px,100%);
+  height:min(900px,100%);
+  max-height:calc(100vh - 24px);
+  display:flex;flex-direction:column;
+  background:#111827;color:#e5e7eb;border-radius:12px;
+  box-shadow:0 28px 80px #00000066;overflow:hidden;
+}
+.inspect-modal .modal-head{
+  height:52px;border-bottom:1px solid #243041;background:#111827;color:#f8fafc;
+  padding:0 14px;
+}
+.inspect-modal .modal-head h2{font-size:15px;font-weight:800}
+.inspect-modal .close-btn{color:#cbd5e1}
+.inspect-modal .close-btn:hover{color:#fff}
+.inspect-meta{font-size:10px;color:#94a3b8;font-weight:600;margin-left:10px}
+.inspect-toolbar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:8px 12px;border-bottom:1px solid #243041;background:#0f172a;
+}
+.inspect-toolbar .left,.inspect-toolbar .right{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.inspect-tool-btn{
+  min-height:30px;padding:5px 10px;border:1px solid #334155;border-radius:7px;
+  background:#1e293b;color:#e2e8f0;font-size:11px;font-weight:700;
+}
+.inspect-tool-btn:hover{background:#334155;border-color:#475569}
+.inspect-zoom-label{
+  min-width:64px;text-align:center;font-size:12px;font-weight:800;color:#38bdf8;
+  font-variant-numeric:tabular-nums;
+}
+.inspect-hint{font-size:10px;color:#64748b}
+.inspect-stage{
+  position:relative;flex:1;min-height:0;overflow:hidden;cursor:grab;touch-action:none;
+  background-color:#1a2332;
+  background-image:
+    linear-gradient(45deg,#243044 25%,transparent 25%),
+    linear-gradient(-45deg,#243044 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#243044 75%),
+    linear-gradient(-45deg,transparent 75%,#243044 75%);
+  background-size:24px 24px;
+  background-position:0 0,0 12px,12px -12px,-12px 0;
+}
+.inspect-stage.panning{cursor:grabbing}
+.inspect-world{
+  position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;
+}
+.inspect-world img{
+  display:block;max-width:none;user-select:none;-webkit-user-drag:none;
+  image-rendering:auto;
+}
+.inspect-world.pixelated img{
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+}
 @keyframes bixAiSpin{to{transform:rotate(360deg)}}
 @keyframes bixAiSweep{from{transform:translateX(-65%)}to{transform:translateX(65%)}}
 
@@ -754,16 +889,42 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       </div>
 
       <div id="textPanel" class="panel-view">
-        <label class="field">Texto
-          <textarea id="textValue" class="text-input textarea">BIXPRINT</textarea>
+        <p style="margin:0 0 12px;font-size:11px;line-height:1.45;color:#64748b">Al elegir <b>Texto</b> se añade automáticamente <b>bixprint</b> en la hoja. Doble clic sobre el texto para editarlo.</p>
+        <label class="field">Fuente
+          <select id="textFont" class="text-input" style="margin-top:5px;height:36px;padding:0 8px"></select>
         </label>
-        <label class="field">Tamaño
-          <input id="textSize" type="range" min="12" max="160" value="52">
+        <div class="text-style-row" style="margin-top:0">
+          <button type="button" id="textBoldBtn" class="text-style-btn active" title="Negrita">B</button>
+          <button type="button" id="textItalicBtn" class="text-style-btn" title="Cursiva" style="font-style:italic">I</button>
+          <button type="button" id="textAlignLeftBtn" class="text-style-btn align-ico" title="Izquierda">L</button>
+          <button type="button" id="textAlignCenterBtn" class="text-style-btn align-ico active" title="Centro">C</button>
+          <button type="button" id="textAlignRightBtn" class="text-style-btn align-ico" title="Derecha">R</button>
+        </div>
+        <div class="prop-grid" style="margin-bottom:12px">
+          <label>Ancho<div class="unit-input"><input id="textWidthCm" type="number" step="0.1" min="0.2" value="12"><span>cm</span></div></label>
+          <label>Alto<div class="unit-input"><input id="textHeightCm" type="number" step="0.1" min="0.2" value="2.4"><span>cm</span></div></label>
+        </div>
+        <div class="aspect-lock-row" style="padding-top:0">
+          <div>
+            <span class="aspect-lock-label">Proporción</span>
+            <small>Ancho y alto vinculados al texto</small>
+          </div>
+          <button class="aspect-lock-btn locked" type="button" disabled>🔒 Bloqueada</button>
+        </div>
+        <label class="field">Ancho del trazo
+          <input id="textStrokeWidth" type="range" min="0" max="12" step="0.5" value="0">
         </label>
-        <label class="field">Color
-          <input id="textColor" type="color" value="#111111">
-        </label>
-        <button id="addTextBtn" class="primary-btn wide">Añadir texto</button>
+        <div class="text-color-grid">
+          <label>Color del texto
+            <input id="textColor" type="color" value="#111111">
+          </label>
+          <label>Trazo
+            <div class="stroke-color-row">
+              <input id="textStrokeEnabled" type="checkbox">
+              <input id="textStrokeColor" type="color" value="#ffffff" style="flex:1;height:34px;border:1px solid #d6dce3;border-radius:7px;padding:3px;background:#fff">
+            </div>
+          </label>
+        </div>
       </div>
 <div id="settingsPanel" class="panel-view">
         <label class="field">Ancho
@@ -808,7 +969,12 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 <div class="color-help-wrap">
           <button id="colorHelpBtn" class="color-help-btn" type="button">ⓘ ¿Qué significan los colores?</button>
           <div id="colorHelpPopover" class="color-help-popover hidden">
-            <div class="color-help-title">Indicadores del contorno</div><div style="font-size:9px;color:#7b8490;margin-bottom:6px">El contorno representa el espacio físico real que ocupa el diseño.</div>
+            <div class="color-help-title">Indicadores del contorno</div>
+            <label class="color-help-toggle">
+              <span>Mostrar contornos</span>
+              <input id="showOutlinesToggle" type="checkbox" checked>
+            </label>
+            <div style="font-size:9px;color:#7b8490;margin-bottom:6px">El contorno representa el espacio físico real que ocupa el diseño.</div>
             <div class="color-help-item"><span class="legend-stroke optimal"></span><div><b>Resolución óptima</b><small>300 DPI o más. Ideal para impresión.</small></div></div>
             <div class="color-help-item"><span class="legend-stroke good"></span><div><b>Buena resolución</b><small>250–299 DPI. Buena calidad de impresión.</small></div></div>
             <div class="color-help-item"><span class="legend-stroke bad"></span><div><b>Mala resolución</b><small>200–249 DPI. Puede perder definición.</small></div></div>
@@ -880,20 +1046,53 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div class="image-processing-title"><b>Procesamiento de imagen</b><small>DTF</small></div>
           <div class="image-processing-actions">
             <button id="enhanceImageBtn" class="process-image-btn ai" type="button">✨ Mejorar calidad con IA</button>
+            <button id="removeBgBtn" class="process-image-btn bgremove" type="button">✂ Quitar fondo con IA</button>
             <button id="halftoneImageBtn" class="process-image-btn halftone" type="button">◉ Crear semitono</button>
             <button id="restoreOriginalBtn" class="process-image-btn restore hidden" type="button">↶ Restaurar imagen original</button>
           </div>
           <div id="imageProcessingStatus" class="image-processing-status">Trabaja sobre la imagen seleccionada sin cambiar su tamaño físico.</div>
         </div>
 
+        <div id="textStyleTools" class="text-style-card hidden">
+          <b>Estilo de texto</b>
+          <label class="field" style="margin-bottom:8px">Fuente
+            <select id="selTextFont" class="text-input" style="margin-top:5px;height:36px;padding:0 8px"></select>
+          </label>
+          <div class="text-style-row">
+            <button type="button" id="selTextBoldBtn" class="text-style-btn" title="Negrita">B</button>
+            <button type="button" id="selTextItalicBtn" class="text-style-btn" title="Cursiva" style="font-style:italic">I</button>
+            <button type="button" id="selTextAlignLeftBtn" class="text-style-btn align-ico" title="Izquierda">L</button>
+            <button type="button" id="selTextAlignCenterBtn" class="text-style-btn align-ico" title="Centro">C</button>
+            <button type="button" id="selTextAlignRightBtn" class="text-style-btn align-ico" title="Derecha">R</button>
+          </div>
+          <label class="field">Ancho del trazo
+            <input id="selTextStrokeWidth" type="range" min="0" max="12" step="0.5" value="0">
+          </label>
+          <div class="text-color-grid">
+            <label>Color del texto
+              <input id="selTextColor" type="color" value="#111111">
+            </label>
+            <label>Trazo
+              <div class="stroke-color-row">
+                <input id="selTextStrokeEnabled" type="checkbox">
+                <input id="selTextStrokeColor" type="color" value="#ffffff" style="flex:1;height:34px;border:1px solid #d6dce3;border-radius:7px;padding:3px;background:#fff">
+              </div>
+            </label>
+          </div>
+          <small style="display:block;margin-top:8px;font-size:9px;color:#94a3b8;line-height:1.35">Doble clic sobre el texto en la hoja para editarlo.</small>
+        </div>
+
         <div class="prop-grid">
           <label>Ancho<div class="unit-input"><input id="objWidth" type="number" step="0.1"><span>cm</span></div></label>
           <label>Alto<div class="unit-input"><input id="objHeight" type="number" step="0.1"><span>cm</span></div></label>
+        </div>
+
+        <div id="imagePosProps" class="prop-grid" style="margin-top:9px">
           <label>X<div class="unit-input"><input id="objX" type="number" step="0.1"><span>cm</span></div></label>
           <label>Y<div class="unit-input"><input id="objY" type="number" step="0.1"><span>cm</span></div></label>
         </div>
 
-        <div class="aspect-lock-row">
+        <div id="aspectLockRow" class="aspect-lock-row">
           <div>
             <span class="aspect-lock-label">Proporción</span>
             <small id="aspectLockHint">Ancho y alto vinculados</small>
@@ -901,16 +1100,27 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <button id="aspectLockBtn" class="aspect-lock-btn locked" type="button">🔒 Bloqueada</button>
         </div>
 
-        <label class="field">Rotación
+        <label id="rotationField" class="field">Rotación
           <div class="rotation-row">
             <input id="objRotation" type="number" step="1" value="0"><span>°</span>
           </div>
         </label>
 
-        <div class="button-row">
-          <button id="duplicateBtn" class="duplicate-primary-btn">⧉ Duplicar</button>
-          <button id="fillSelectedBtn" class="fill-selection-btn">▦ Auto rellenar</button>
+        <div class="duplicate-card">
+          <div class="duplicate-card-title">Duplicar</div>
+          <label class="dup-qty-field">
+            <span>Cantidad de imágenes</span>
+            <div class="num-stepper">
+              <input id="duplicateQty" type="number" min="1" max="999" step="1" value="1">
+              <div class="num-stepper-btns">
+                <button type="button" id="dupQtyUp" title="Subir" aria-label="Subir cantidad">▲</button>
+                <button type="button" id="dupQtyDown" title="Bajar" aria-label="Bajar cantidad">▼</button>
+              </div>
+            </div>
+          </label>
+          <button id="duplicateBtn" class="duplicate-primary-btn" type="button">⧉ Duplicar imagen</button>
         </div>
+        <button id="fillSelectedBtn" class="fill-selection-btn" type="button" style="width:100%;margin-bottom:4px">▦ Auto rellenar</button>
 
         <div class="section-divider"></div>
 
@@ -1000,6 +1210,35 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
     </div>
   </div>
 
+  <div id="inspectModal" class="modal-backdrop inspect-modal-backdrop hidden">
+    <div class="modal inspect-modal" role="dialog" aria-modal="true" aria-labelledby="inspectTitle">
+      <div class="modal-head">
+        <div style="display:flex;align-items:baseline;min-width:0">
+          <h2 id="inspectTitle">Inspeccionar imagen</h2>
+          <span id="inspectMeta" class="inspect-meta"></span>
+        </div>
+        <button class="close-btn" data-close="inspectModal" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="inspect-toolbar">
+        <div class="left">
+          <button id="inspectZoomOutBtn" class="inspect-tool-btn" type="button">−</button>
+          <span id="inspectZoomLabel" class="inspect-zoom-label">100%</span>
+          <button id="inspectZoomInBtn" class="inspect-tool-btn" type="button">+</button>
+          <button id="inspectFitBtn" class="inspect-tool-btn" type="button">Ajustar</button>
+          <button id="inspect100Btn" class="inspect-tool-btn" type="button">100%</button>
+        </div>
+        <div class="right">
+          <span class="inspect-hint">Rueda = zoom · Arrastrar = mover · Esc = cerrar</span>
+        </div>
+      </div>
+      <div id="inspectStage" class="inspect-stage">
+        <div id="inspectWorld" class="inspect-world">
+          <img id="inspectImage" alt="Vista de inspección">
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast hidden"></div>
 </div>
 <script>
@@ -1043,6 +1282,7 @@ async function persistAsset(asset){
         alphaCleaned:!!asset.alphaCleaned,
         alphaThreshold:Number.isFinite(asset.alphaThreshold)?asset.alphaThreshold:null,
         alphaBinary:!!asset.alphaBinary,
+        autoTrimmed:!!asset.autoTrimmed,
         updatedAt:Date.now()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}catch(e){console.warn("No se pudo guardar localmente",e)}
 }
 async function loadPersistedAssets(){
@@ -1056,6 +1296,7 @@ async function loadPersistedAssets(){
         alphaCleaned:!!row.alphaCleaned,
         alphaThreshold:Number.isFinite(row.alphaThreshold)?row.alphaThreshold:null,
         alphaBinary:row.alphaBinary===true,
+        autoTrimmed:!!row.autoTrimmed,
         updatedAt:row.updatedAt||0})
   }
   state.assets.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
@@ -1470,7 +1711,241 @@ function updateDiagnostics(){
    }
  }
 }
+const TEXT_FONTS=[
+  {id:"Abril Fatface",label:"Abril Fatface"},
+  {id:"Bebas Neue",label:"Bebas Neue"},
+  {id:"Oswald",label:"Oswald"},
+  {id:"Montserrat",label:"Montserrat"},
+  {id:"Playfair Display",label:"Playfair Display"},
+  {id:"Roboto",label:"Roboto"},
+  {id:"Impact",label:"Impact"},
+  {id:"Arial Black",label:"Arial Black"},
+  {id:"Georgia",label:"Georgia"},
+  {id:"Times New Roman",label:"Times New Roman"},
+  {id:"Arial",label:"Arial"},
+  {id:"Courier New",label:"Courier New"}
+];
+function fillFontSelect(sel,current){
+  if(!sel) return;
+  const cur=current||"Abril Fatface";
+  sel.innerHTML=TEXT_FONTS.map(f=>`<option value="${f.id}" style="font-family:'${f.id}',sans-serif">${f.label}</option>`).join("");
+  if(!TEXT_FONTS.some(f=>f.id===cur)){
+    sel.insertAdjacentHTML("afterbegin",`<option value="${cur}">${cur}</option>`);
+  }
+  sel.value=cur;
+}
+function normalizeTextObject(o){
+  if(!o||o.type!=="text") return o;
+  if(!o.fontFamily) o.fontFamily="Abril Fatface";
+  if(o.fontBold==null) o.fontBold=true;
+  if(o.fontItalic==null) o.fontItalic=false;
+  if(!o.textAlign) o.textAlign="center";
+  if(o.strokeEnabled==null) o.strokeEnabled=false;
+  if(!o.strokeColor) o.strokeColor="#ffffff";
+  if(!Number.isFinite(o.strokeWidth)) o.strokeWidth=0;
+  if(!Number.isFinite(o.fontSize)) o.fontSize=72;
+  if(!o.color) o.color="#111111";
+  return o;
+}
+function textDisplayFontPx(o){
+  normalizeTextObject(o);
+  // Board CSS px — same coordinate space as cmToPx (zoom applied on the stage wrapper).
+  return Math.max(10,(o.fontSize||72)*0.72);
+}
+function applyTextDomStyles(d,o){
+  normalizeTextObject(o);
+  const align=o.textAlign||"center";
+  const editing=d.classList.contains("text-editing");
+  d.className="text-obj"+(editing?" text-editing":"");
+  const fontPx=textDisplayFontPx(o);
+  d.style.fontFamily=`"${o.fontFamily}", sans-serif`;
+  d.style.fontSize=fontPx+"px";
+  d.style.fontWeight=o.fontBold?"700":"400";
+  d.style.fontStyle=o.fontItalic?"italic":"normal";
+  d.style.color=o.color||"#111";
+  d.style.textAlign=align;
+  d.style.justifyContent=align==="left"?"flex-start":align==="right"?"flex-end":"center";
+  d.style.alignItems="center";
+  d.style.whiteSpace="pre";
+  d.style.lineHeight="1";
+  d.style.wordBreak="normal";
+  d.style.overflow="visible";
+  if(o.strokeEnabled && o.strokeWidth>0){
+    d.style.webkitTextStroke=`${o.strokeWidth}px ${o.strokeColor||"#fff"}`;
+    d.style.paintOrder="stroke fill";
+  }else{
+    d.style.webkitTextStroke="";
+    d.style.paintOrder="";
+  }
+}
+function canvasTextFont(o,pxSize){
+  normalizeTextObject(o);
+  const italic=o.fontItalic?"italic ":"";
+  const weight=o.fontBold?"700":"400";
+  return `${italic}${weight} ${Math.max(8,pxSize)}px "${o.fontFamily}", sans-serif`;
+}
+function drawCanvasTextObject(ctx,o,scale){
+  normalizeTextObject(o);
+  const cx=(o.x+o.w/2)*scale;
+  const cy=(o.y+o.h/2)*scale;
+  const maxW=Math.max(4,o.w*scale);
+  // Match on-canvas CSS: fontPx ≈ fontSize*0.72 in board px → *scale for export.
+  const pxSize=Math.max(10,textDisplayFontPx(o)*(scale/PX_PER_CM));
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate((o.rot||0)*Math.PI/180);
+  ctx.scale(o.flipX?-1:1,o.flipY?-1:1);
+  ctx.font=canvasTextFont(o,pxSize);
+  ctx.textAlign=o.textAlign==="left"?"left":o.textAlign==="right"?"right":"center";
+  ctx.textBaseline="middle";
+  const lines=String(o.text||"").split(/\r?\n/);
+  const lineH=pxSize*1.05;
+  const startY=-((lines.length-1)*lineH)/2;
+  const x=o.textAlign==="left"?-maxW/2:o.textAlign==="right"?maxW/2:0;
+  for(let i=0;i<lines.length;i++){
+    const y=startY+i*lineH;
+    const line=lines[i];
+    if(o.strokeEnabled && o.strokeWidth>0){
+      ctx.lineWidth=Math.max(1,o.strokeWidth*(scale/PX_PER_CM));
+      ctx.strokeStyle=o.strokeColor||"#fff";
+      ctx.lineJoin="round";
+      ctx.miterLimit=2;
+      ctx.strokeText(line,x,y,maxW);
+    }
+    ctx.fillStyle=o.color||"#111";
+    ctx.fillText(line,x,y,maxW);
+  }
+  ctx.restore();
+}
+let textEditSession=null;
+async function ensureTextFontLoaded(o){
+  normalizeTextObject(o);
+  if(!document.fonts?.load) return;
+  const fontPx=textDisplayFontPx(o);
+  const spec=`${o.fontItalic?"italic ":""}${o.fontBold?"700":"400"} ${fontPx}px "${o.fontFamily}"`;
+  try{ await document.fonts.load(spec); }catch{}
+  if(document.fonts.ready){ try{ await document.fonts.ready; }catch{} }
+}
+/** Resize text box tightly around the written word (DOM-measured). */
+function fitTextObjectToContent(o){
+  if(!o||o.type!=="text") return;
+  normalizeTextObject(o);
+  const probe=document.createElement("div");
+  probe.style.cssText="position:fixed;left:-10000px;top:0;visibility:hidden;pointer-events:none;display:inline-block;width:auto;height:auto;margin:0;padding:0;border:0;max-width:none;";
+  applyTextDomStyles(probe,o);
+  probe.style.width="auto";
+  probe.style.height="auto";
+  probe.style.display="inline-block";
+  probe.style.whiteSpace="pre";
+  probe.textContent=String(o.text||"bixprint");
+  document.body.appendChild(probe);
+  const rect=probe.getBoundingClientRect();
+  document.body.removeChild(probe);
+  const strokeExtra=(o.strokeEnabled && o.strokeWidth>0)?(o.strokeWidth*2)/PX_PER_CM:0;
+  const pad=0.1;
+  const wCm=Math.max(0.5,rect.width/PX_PER_CM+pad+strokeExtra);
+  const hCm=Math.max(0.35,rect.height/PX_PER_CM+pad+strokeExtra);
+  const cx=(Number.isFinite(o.x)&&Number.isFinite(o.w))?(o.x+o.w/2):(state.sheet.margin+wCm/2);
+  const cy=(Number.isFinite(o.y)&&Number.isFinite(o.h))?(o.y+o.h/2):(state.sheet.margin+hCm/2);
+  o.w=wCm;
+  o.h=hCm;
+  o.x=cx-o.w/2;
+  o.y=cy-o.h/2;
+  o.aspectLocked=true;
+  o.aspectRatio=o.w/Math.max(0.0001,o.h);
+  o.baseW=o.w;o.baseH=o.h;o.visualW=o.w;o.visualH=o.h;
+}
+/** Scale physical size (locked) and fontSize together. */
+function scaleTextObjectToWidth(o,newW){
+  if(!o||o.type!=="text") return;
+  normalizeTextObject(o);
+  const w=Math.max(0.2,newW);
+  const scale=w/Math.max(0.0001,o.w);
+  const cx=o.x+o.w/2, cy=o.y+o.h/2;
+  o.w=w;
+  o.h=Math.max(0.2,o.h*scale);
+  o.fontSize=Math.max(8,Math.min(400,(o.fontSize||72)*scale));
+  o.x=cx-o.w/2;o.y=cy-o.h/2;
+  o.aspectLocked=true;
+  o.aspectRatio=o.w/o.h;
+  o.baseW=o.w;o.baseH=o.h;o.visualW=o.w;o.visualH=o.h;
+}
+function scaleTextObjectToHeight(o,newH){
+  if(!o||o.type!=="text") return;
+  normalizeTextObject(o);
+  const h=Math.max(0.2,newH);
+  const scale=h/Math.max(0.0001,o.h);
+  scaleTextObjectToWidth(o,o.w*scale);
+}
+function endTextEdit(save=true){
+  if(!textEditSession) return;
+  const {id,el}=textEditSession;
+  textEditSession=null;
+  const o=objById(id);
+  if(save && o && el){
+    const raw=(el.innerText||"").replace(/\u00a0/g," ");
+    o.text=raw.replace(/\n+$/,"")||"bixprint";
+    o.name=(o.text.split(/\n/)[0]||"bixprint").slice(0,32);
+    fitTextObjectToContent(o);
+  }
+  renderAll();
+}
+function beginTextEdit(o){
+  if(!o||o.type!=="text") return;
+  if(textEditSession && textEditSession.id===o.id) return;
+  if(textEditSession) endTextEdit(true);
+  normalizeTextObject(o);
+  state.selectedId=o.id;
+  state.selectedIds=[o.id];
+  // Ensure the node exists with current styles.
+  renderAll();
+  const wrap=layer.querySelector(`.design-object[data-id="${o.id}"]`);
+  const el=wrap&&wrap.querySelector(".text-obj");
+  if(!el) return;
+  pushHistory();
+  wrap.classList.add("editing-text");
+  el.contentEditable="true";
+  el.spellcheck=false;
+  el.classList.add("text-editing");
+  el.style.pointerEvents="auto";
+  textEditSession={id:o.id,el};
+  el.focus();
+  try{
+    const range=document.createRange();
+    range.selectNodeContents(el);
+    const sel=window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }catch{}
+  const onKey=e=>{
+    e.stopPropagation();
+    if(e.key==="Escape"){e.preventDefault();endTextEdit(false);return}
+    if(e.key==="Enter" && !e.shiftKey){e.preventDefault();endTextEdit(true)}
+  };
+  const onInput=()=>{
+    const raw=(el.innerText||"").replace(/\u00a0/g," ");
+    o.text=raw.replace(/\n+$/,"")||"bixprint";
+    fitTextObjectToContent(o);
+    wrap.style.left=cmToPx(o.x)+"px";
+    wrap.style.top=cmToPx(o.y)+"px";
+    wrap.style.width=cmToPx(o.w)+"px";
+    wrap.style.height=cmToPx(o.h)+"px";
+    applyTextDomStyles(el,o);
+    syncTextPanelSizeInputs(o);
+    const ww=$("#objWidth"), hh=$("#objHeight");
+    if(ww) ww.value=(+o.w).toFixed(2);
+    if(hh) hh.value=(+o.h).toFixed(2);
+  };
+  const onBlur=()=>{ setTimeout(()=>{ if(textEditSession&&textEditSession.id===o.id) endTextEdit(true); },0); };
+  el.addEventListener("keydown",onKey);
+  el.addEventListener("input",onInput);
+  el.addEventListener("pointerdown",e=>e.stopPropagation());
+  el.addEventListener("blur",onBlur,{once:true});
+  textEditSession.onKey=onKey;
+}
+
 function renderAll(){
+ if(textEditSession) endTextEdit(true);
  updateBoard(); updateDiagnostics(); layer.innerHTML="";
  layer.classList.toggle("show-dpi",state.showResolution);
  state.objects.forEach(o=>{ensureAspect(o);ensureRotationModel(o);renderObject(o)}); updateSelectionPanel(); renderSheetsPanel(); syncSheetInputs();
@@ -1488,7 +1963,6 @@ function renderObject(o){
  const visual=document.createElement("div");
  visual.className="object-visual";
  ensureRotationModel(o);
- const rotation=((o.rot||0)%360+360)%360;
  visual.style.width="100%";
  visual.style.height="100%";
  visual.style.transform=`translate(-50%,-50%) scale(${o.flipX?-1:1},${o.flipY?-1:1})`;
@@ -1509,12 +1983,10 @@ function renderObject(o){
    },{once:true});
    visual.appendChild(img);
  } else {
+   normalizeTextObject(o);
    const d=document.createElement("div");
-   d.className="text-obj";
    d.textContent=o.text;
-   d.style.fontSize=(o.fontSize||52)*.65+"px";
-   d.style.color=o.color||"#111";
-   d.style.fontWeight=800;
+   applyTextDomStyles(d,o);
    visual.appendChild(d);
  }
  el.appendChild(visual);
@@ -1539,6 +2011,7 @@ function renderObject(o){
 
  el.addEventListener("pointerdown",e=>{
    if(e.target.closest && (e.target.closest(".resize-point")||e.target.closest(".rotation-point"))) return;
+   if(e.target.closest && e.target.closest(".text-editing")) return;
    startDrag(e,o,false);
  });
  layer.appendChild(el);
@@ -1560,10 +2033,12 @@ function startResize(e,o,corner){
 
   pushHistory();
 
+  if(o.type==="text") o.aspectLocked=true;
   const start={
     x:o.x,y:o.y,w:o.w,h:o.h,
     ratio:o.aspectRatio||o.w/o.h,
-    rot:o.rot||0
+    rot:o.rot||0,
+    fontSize:o.fontSize||72
   };
   const center={x:start.x+start.w/2,y:start.y+start.h/2};
 
@@ -1618,6 +2093,10 @@ function startResize(e,o,corner){
     o.aspectRatio=newW/newH;
     o.x=newCenter.x-newW/2;
     o.y=newCenter.y-newH/2;
+    if(o.type==="text"){
+      o.fontSize=Math.max(8,Math.min(400,start.fontSize*(newW/Math.max(0.0001,start.w))));
+      o.aspectLocked=true;
+    }
 
     recalcActiveSheetHeight();
     renderAll();
@@ -1674,6 +2153,9 @@ function startRotate(e,o){
   window.addEventListener("pointerup",up);
 }
 
+// Native dblclick dies because pointerup → renderAll() recreates the node
+// between the two clicks. We detect a double press by id + time instead.
+const inspectClick={id:null,t:0};
 function startDrag(e,o,resizing){
  if(spaceHeld){
    beginViewportPan(e);
@@ -1699,6 +2181,7 @@ function startDrag(e,o,resizing){
 
  if(state.selectedId!==o.id){state.selectedId=o.id;state.selectedIds=[o.id];renderAll()}
  ensureRotationModel(o);
+ const dragObjectId=o.id;
  const start={
    x:e.clientX,y:e.clientY,
    ox:o.x,oy:o.y,
@@ -1707,9 +2190,14 @@ function startDrag(e,o,resizing){
    visualH:o.visualH,
    ratio:o.aspectRatio||o.visualW/o.visualH
  };
+ let moved=false;
  const move=ev=>{
-  const dx=(ev.clientX-start.x)/(PX_PER_CM*state.zoom);
-  const dy=(ev.clientY-start.y)/(PX_PER_CM*state.zoom);
+  const pxDx=ev.clientX-start.x;
+  const pxDy=ev.clientY-start.y;
+  if(!moved && (pxDx*pxDx+pxDy*pxDy) < 16) return; // 4px threshold
+  moved=true;
+  const dx=pxDx/(PX_PER_CM*state.zoom);
+  const dy=pxDy/(PX_PER_CM*state.zoom);
 
   o.x=start.ox+dx;
   o.y=start.oy+dy;
@@ -1728,10 +2216,27 @@ function startDrag(e,o,resizing){
  const up=()=>{
    window.removeEventListener("pointermove",move);
    window.removeEventListener("pointerup",up);
-   recalcActiveSheetHeight();
-   updateDiagnostics();
-   renderAll();
-   pushHistory();
+   if(moved){
+     recalcActiveSheetHeight();
+     updateDiagnostics();
+     renderAll();
+     pushHistory();
+     inspectClick.id=null;
+     return;
+   }
+   // Click without drag: select already done. Detect double-click.
+   const now=performance.now();
+   if(inspectClick.id===dragObjectId && (now-inspectClick.t) < 400){
+     inspectClick.id=null;
+     inspectClick.t=0;
+     const target=objById(dragObjectId)||o;
+     if(target.type==="image") openInspectPreview(target);
+     else if(target.type==="text") beginTextEdit(target);
+     return;
+   }
+   inspectClick.id=dragObjectId;
+   inspectClick.t=now;
+   updateSelectionPanel();
  };
  window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);
 }
@@ -1876,36 +2381,97 @@ function installStageMarqueeSelection(){
   });
 }
 
+function assetCanHaveTransparency(fileOrAsset){
+  const type=(fileOrAsset.type||fileOrAsset.file?.type||"").toLowerCase();
+  const name=(fileOrAsset.name||"").toLowerCase();
+  if(/png|webp|svg|gif/.test(type)) return true;
+  return /\.(png|webp|svg|gif)$/.test(name);
+}
+function rgbaIsBinaryAlpha(rgba){
+  for(let i=3;i<rgba.length;i+=4){
+    const a=rgba[i];
+    if(a>0 && a<255) return false;
+  }
+  return true;
+}
+/** Trim transparent margins on an asset in-place. Safe to call multiple times. */
+async function ensureAssetAutoTrimmed(asset){
+  if(!asset || asset.autoTrimmed) return {trimmed:false};
+  if(!assetCanHaveTransparency(asset)){
+    asset.autoTrimmed=true;
+    asset.alphaBinary=true;
+    await persistAsset(asset);
+    return {trimmed:false};
+  }
+  try{
+    const c=await assetCanvas(asset);
+    const rgba=c.getContext("2d",{willReadFrequently:true}).getImageData(0,0,c.width,c.height).data;
+    asset.alphaBinary=rgbaIsBinaryAlpha(rgba);
+    const trimmed=trimTransparentRgba(rgba,c.width,c.height,{alphaMin:1,pad:1});
+    if(!trimmed){
+      asset.autoTrimmed=true;
+      await persistAsset(asset);
+      return {trimmed:false,empty:true};
+    }
+    if(!trimmed.trimmed){
+      asset.autoTrimmed=true;
+      await persistAsset(asset);
+      return {trimmed:false};
+    }
+    const blob=await rgbaToBlob(trimmed.rgba,trimmed.width,trimmed.height);
+    try{URL.revokeObjectURL(asset.src)}catch{}
+    asset.src=URL.createObjectURL(blob);
+    asset.file=blob;
+    if(Number.isFinite(asset.physicalWcm)) asset.physicalWcm*=trimmed.width/trimmed.srcW;
+    if(Number.isFinite(asset.physicalHcm)) asset.physicalHcm*=trimmed.height/trimmed.srcH;
+    asset.w=trimmed.width;
+    asset.h=trimmed.height;
+    asset.alphaBinary=rgbaIsBinaryAlpha(trimmed.rgba);
+    asset.autoTrimmed=true;
+    asset.updatedAt=Date.now();
+    await persistAsset(asset);
+    return {trimmed:true,width:trimmed.width,height:trimmed.height};
+  }catch(e){
+    console.warn("Auto-trim falló",e);
+    asset.autoTrimmed=true;
+    return {trimmed:false,error:true};
+  }
+}
 async function addAsset(file){
   const dpi=await readEmbeddedDpi(file);
   const url=URL.createObjectURL(file);
-  const img=new Image();
-  img.onload=async()=>{
+  try{
+    const img=await loadImageFromSrc(url);
     const dpiX=dpi?.x||null, dpiY=dpi?.y||dpiX;
-    const physicalWcm=dpiX?img.naturalWidth/dpiX*2.54:null;
-    const physicalHcm=dpiY?img.naturalHeight/dpiY*2.54:null;
     const asset={
       id:"a"+Date.now()+Math.random().toString(36).slice(2),
       name:file.name,src:url,w:img.naturalWidth,h:img.naturalHeight,file,
       dpiX,dpiY,dpiSource:dpi?.source||null,
-      physicalWcm,physicalHcm,
+      physicalWcm:dpiX?img.naturalWidth/dpiX*2.54:null,
+      physicalHcm:dpiY?img.naturalHeight/dpiY*2.54:null,
       alphaCleaned:false,
       alphaThreshold:null,
-      alphaBinary:false
+      alphaBinary:false,
+      autoTrimmed:false,
+      updatedAt:Date.now()
     };
-    const alphaInfo=await inspectSourceAlpha(asset);
-    asset.alphaBinary=!!alphaInfo.binary;
+    const trimInfo=await ensureAssetAutoTrimmed(asset);
     state.assets.unshift(asset);
-    persistAsset(asset);
     renderAssets();
-    if(dpiX){
-      toast(`${file.name}: ${Math.round(dpiX)} DPI · ${physicalWcm.toFixed(2)} × ${physicalHcm.toFixed(2)} cm`);
+    const wcm=asset.physicalWcm, hcm=asset.physicalHcm;
+    const trimTxt=trimInfo.trimmed?" · márgenes recortados":"";
+    if(dpiX && Number.isFinite(wcm) && Number.isFinite(hcm)){
+      toast(`${file.name}: ${Math.round(dpiX)} DPI · ${wcm.toFixed(2)} × ${hcm.toFixed(2)} cm${trimTxt}`);
+    }else if(trimInfo.trimmed){
+      toast(`${file.name}: márgenes transparentes recortados`);
     }else{
       toast(`${file.name}: el archivo no trae DPI incrustado`);
     }
-  };
-  img.onerror=()=>URL.revokeObjectURL(url);
-  img.src=url;
+  }catch(e){
+    console.error(e);
+    try{URL.revokeObjectURL(url)}catch{}
+    toast(`No se pudo cargar ${file.name}`);
+  }
 }
 fileInput.addEventListener("change",()=>[...fileInput.files].forEach(addAsset));
 $(".upload-zone").addEventListener("dragover",e=>e.preventDefault());
@@ -2101,45 +2667,143 @@ function objectPlacementCollides(o,excludeId=null,gap=null){
     return g>0 ? true : rotatedObjectsOverlap(o,other);
   });
 }
-function findFreePlacementForObject(template,limitH=state.sheet.h,excludeId=null,gap=null){
+function nestGapValue(){return Math.max(0,+$("#nestGap").value||0)}
+
+// Packer core shared with Auto Organizar (local coords: 0,0 = printable top-left).
+function nestLocalCollides(candidate,placed,gap){
+  const c={x:candidate.x-gap/2,y:candidate.y-gap/2,w:candidate.w+gap,h:candidate.h+gap};
+  return placed.some(p=>{
+    const r={x:p.x-gap/2,y:p.y-gap/2,w:p.w+gap,h:p.h+gap};
+    return rectsOverlap(c,r);
+  });
+}
+function nestUniqueCoords(values,cap){
+  const seen=new Set();
+  const out=[];
+  for(const v of values){
+    const k=Math.round(v*1000)/1000;
+    if(seen.has(k)) continue;
+    seen.add(k);
+    out.push(k);
+  }
+  out.sort((a,b)=>a-b);
+  if(!cap || out.length<=cap) return out;
+  // Keep sheet edges + densest recent skyline coords.
+  const head=Math.ceil(cap*0.25);
+  const tail=cap-head;
+  return [...out.slice(0,head),...out.slice(-tail)];
+}
+function nestCandidatePoints(w,h,placed,maxW,maxH,gap){
+  const pts=[{x:0,y:0},{x:Math.max(0,maxW-w),y:0},{x:0,y:Math.max(0,maxH-h)},{x:Math.max(0,maxW-w),y:Math.max(0,maxH-h)}];
+  const n=placed.length;
+  // Large packs: only classic BL/skyline anchors (O(n)), skip O(n²) grid.
+  const richAnchors=n<=80;
+  for(const p of placed){
+    pts.push({x:p.x+p.w+gap,y:p.y});
+    pts.push({x:p.x,y:p.y+p.h+gap});
+    pts.push({x:p.x+p.w+gap,y:0});
+    pts.push({x:0,y:p.y+p.h+gap});
+    if(richAnchors){
+      pts.push({x:p.x-w-gap,y:p.y});
+      pts.push({x:p.x,y:p.y-h-gap});
+      pts.push({x:p.x-w-gap,y:p.y+p.h+gap});
+      pts.push({x:p.x+p.w+gap,y:p.y-h-gap});
+      pts.push({x:Math.max(0,maxW-w),y:p.y});
+      pts.push({x:p.x,y:Math.max(0,maxH-h)});
+    }
+  }
+  // Cartesian extrema: excellent quality, but quadratic. Cap hard for big sheets.
+  if(n>0 && n<=45){
+    const xs=nestUniqueCoords([0,Math.max(0,maxW-w),...placed.flatMap(p=>[p.x+p.w+gap,p.x-w-gap,p.x])],n<=20?80:36);
+    const ys=nestUniqueCoords([0,Math.max(0,maxH-h),...placed.flatMap(p=>[p.y+p.h+gap,p.y-h-gap,p.y])],n<=20?80:36);
+    for(const x of xs) for(const y of ys) pts.push({x,y});
+  }
+
+  const seen=new Set();
+  return pts.filter(pt=>{
+    const x=Math.round(pt.x*1000)/1000;
+    const y=Math.round(pt.y*1000)/1000;
+    const k=x+"|"+y;
+    if(seen.has(k)) return false;
+    seen.add(k);
+    return x>=-0.0001&&y>=-0.0001&&x+w<=maxW+.0001&&y+h<=maxH+.0001;
+  }).map(pt=>({x:Math.max(0,pt.x),y:Math.max(0,pt.y),w,h}));
+}
+function rankNestSlots(orientations,placed,maxW,maxH,gap,limit=40){
+  const ranked=[];
+  for(const or of orientations){
+    if(or.w>maxW+.0001 || or.h>maxH+.0001) continue;
+    for(const c of nestCandidatePoints(or.w,or.h,placed,maxW,maxH,gap)){
+      if(nestLocalCollides(c,placed,gap)) continue;
+      const usedHeight=Math.max(c.y+c.h,...placed.map(p=>p.y+p.h),0);
+      const usedWidth=Math.max(c.x+c.w,...placed.map(p=>p.x+p.w),0);
+      ranked.push({
+        ...c,...or,
+        score:[usedHeight,c.y,c.x,usedWidth,(maxW-c.w)*(maxH-c.h)]
+      });
+    }
+  }
+  ranked.sort((a,b)=>compareNestScores(a.score,b.score));
+  return ranked.slice(0,limit);
+}
+function bestNestSlot(orientations,placed,maxW,maxH,gap){
+  const ranked=rankNestSlots(orientations,placed,maxW,maxH,gap,1);
+  return ranked[0]||null;
+}
+function compareNestScores(a,b){
+  for(let i=0;i<a.length;i++){
+    if(a[i]<b[i]-.0001) return -1;
+    if(a[i]>b[i]+.0001) return 1;
+  }
+  return 0;
+}
+function localOccupiedRects(excludeId=null){
+  const m=state.sheet.margin;
+  return state.objects.filter(o=>o.id!==excludeId).map(o=>{
+    ensureRotationModel(o);
+    const r=rotatedAABB(o);
+    return {x:r.x-m,y:r.y-m,w:r.w,h:r.h};
+  });
+}
+
+// Sheet-space placement scored like Auto Organizar.
+// Only validates the best non-colliding nest candidates (fast + fills side pockets).
+function findFreePlacementForObject(template,limitH=state.sheet.h,excludeId=null,gap=null,allowRotate=null){
   ensureRotationModel(template);
   const m=state.sheet.margin;
-  const g=gap==null?Math.max(0,+$("#nestGap").value||0):gap;
-  const box=rotatedAABB(template);
+  const g=gap==null?nestGapValue():gap;
   const safe=m+.05;
-
-  if(box.w>state.sheet.w-2*m+.001 || box.h>limitH-2*m+.001) return null;
+  const maxW=state.sheet.w-2*m;
+  const maxH=limitH-2*m;
+  if(maxW<=.001 || maxH<=.001) return null;
 
   const others=state.objects.filter(o=>o.id!==excludeId);
-  const xs=new Set([safe]);
-  const ys=new Set([safe]);
+  const placedLocal=localOccupiedRects(excludeId);
 
-  for(const other of others){
-    const r=rotatedAABB(other);
-    xs.add(r.x+r.w+g);
-    ys.add(r.y+r.h+g);
+  const allow=allowRotate==null?!!$("#allowRotate")?.checked:!!allowRotate;
+  const rot0=((template.rot||0)%360+360)%360;
+  const orientations=[];
+  for(const rot of (allow?[rot0,(rot0+90)%360]:[rot0])){
+    const box=rotatedAABB({...template,rot});
+    orientations.push({w:box.w,h:box.h,rot,rotated:Math.abs(rot-rot0)>1});
   }
 
-  // Cross products find holes bounded by different objects.
-  const xList=[...xs].filter(x=>x>=m-.001 && x+box.w<=state.sheet.w-m+.001).sort((a,b)=>a-b);
-  const yList=[...ys].filter(y=>y>=m-.001 && y+box.h<=limitH-m+.001).sort((a,b)=>a-b);
-
-  const candidates=[];
-  for(const y of yList) for(const x of xList) candidates.push({x,y});
-  candidates.sort((a,b)=>a.y-b.y || a.x-b.x);
-
-  for(const c of candidates){
-    const probe=objectAtAABBTopLeft(template,c.x,c.y);
+  const ranked=rankNestSlots(orientations,placedLocal,maxW,maxH,g,60);
+  for(const c of ranked){
+    const probe=objectAtAABBTopLeft({...template,rot:c.rot},m+c.x,m+c.y);
     if(!objectInsidePrintableArea(probe,limitH)) continue;
     if(objectPlacementCollides(probe,excludeId,g)) continue;
-    return {x:probe.x,y:probe.y};
+    return {x:probe.x,y:probe.y,rot:c.rot};
   }
 
-  // Last safe fallback: directly below all existing rotated bounds.
+  // Fallback: directly below existing content.
   const bottom=others.length?Math.max(...others.map(o=>{const r=rotatedAABB(o);return r.y+r.h}))+g:safe;
-  const probe=objectAtAABBTopLeft(template,safe,bottom);
-  if(objectInsidePrintableArea(probe,limitH) && !objectPlacementCollides(probe,excludeId,g)){
-    return {x:probe.x,y:probe.y};
+  for(const or of orientations){
+    if(or.w>maxW+.001 || bottom-m+or.h>maxH+.001) continue;
+    const probe=objectAtAABBTopLeft({...template,rot:or.rot},safe,bottom);
+    if(objectInsidePrintableArea(probe,limitH) && !objectPlacementCollides(probe,excludeId,g)){
+      return {x:probe.x,y:probe.y,rot:or.rot};
+    }
   }
   return null;
 }
@@ -2159,11 +2823,10 @@ function occupiedBottom(excludeId=null){
 function leftmostSafePlacementAtY(template,aabbTop,limitH,excludeId=null){
   ensureRotationModel(template);
   const m=state.sheet.margin;
-  const gap=Math.max(0,+$("#nestGap").value||0);
+  const gap=nestGapValue();
   const box=rotatedAABB(template);
   const safe=m+.05;
 
-  // Candidate X positions: left margin + immediately after every object.
   const xs=new Set([safe]);
   for(const other of state.objects){
     if(other.id===excludeId) continue;
@@ -2187,79 +2850,58 @@ function leftmostSafePlacementAtY(template,aabbTop,limitH,excludeId=null){
 function placeOnExpandableSheet(o,excludeId=null){
   ensureRotationModel(o);
   const m=state.sheet.margin;
-  const gap=Math.max(0,+$("#nestGap").value||0);
+  const gap=nestGapValue();
+  const originalRot=o.rot||0;
 
-  // 1. First, use any hole that already exists in the CURRENT sheet height.
+  // 1) Prefer holes in the CURRENT sheet height (nest-scored).
   let pos=findFreePlacementForObject(o,state.sheet.h,excludeId,gap);
   if(pos){
-    o.x=pos.x;
-    o.y=pos.y;
-    return {placed:true,grew:false};
+    o.x=pos.x;o.y=pos.y;
+    if(pos.rot!=null) o.rot=pos.rot;
+    return {placed:true,grew:false,rotated:Math.abs((((o.rot-originalRot)%360)+360)%360)>1};
   }
 
-  // 2. No current hole: start a new band directly below existing content.
-  // This is NOT "sheet full"; the sheet is allowed to grow up to 310 cm.
-  const top=state.objects.length
-    ? occupiedBottom(excludeId)+gap
-    : m+.05;
+  // 2) Grow: new band below content, up to 310 cm (old reliable path).
+  const top=state.objects.length ? occupiedBottom(excludeId)+gap : m+.05;
 
-  // Search at the new band's top using the full 310 cm as the only vertical limit.
-  pos=leftmostSafePlacementAtY(o,top,MAX_SHEET_HEIGHT,excludeId);
+  // Try current orientation, then +90° if allowed.
+  const rots=[originalRot];
+  if($("#allowRotate")?.checked) rots.push((originalRot+90)%360);
 
-  // Fallback at the left printable edge.
-  if(!pos){
-    const probe=objectAtAABBTopLeft(o,m+.05,top);
-    if(objectInsidePrintableArea(probe,MAX_SHEET_HEIGHT) &&
-       !objectPlacementCollides(probe,excludeId,gap)){
-      pos={x:probe.x,y:probe.y};
+  for(const rot of rots){
+    o.rot=rot;
+    pos=leftmostSafePlacementAtY(o,top,MAX_SHEET_HEIGHT,excludeId);
+    if(!pos){
+      const probe=objectAtAABBTopLeft(o,m+.05,top);
+      if(objectInsidePrintableArea(probe,MAX_SHEET_HEIGHT) &&
+         !objectPlacementCollides(probe,excludeId,gap)){
+        pos={x:probe.x,y:probe.y};
+      }
     }
+    if(!pos) continue;
+
+    o.x=pos.x;o.y=pos.y;
+    const needed=requiredSheetHeightFor(o);
+    if(needed>MAX_SHEET_HEIGHT+.001) continue;
+    const beforeH=state.sheet.h;
+    growSheetTo(needed);
+    return {
+      placed:true,
+      grew:needed>beforeH+.001,
+      rotated:Math.abs((((rot-originalRot)%360)+360)%360)>1
+    };
   }
 
-  if(!pos) return {placed:false,grew:false};
-
-  o.x=pos.x;
-  o.y=pos.y;
-
-  const needed=requiredSheetHeightFor(o);
-  if(needed>MAX_SHEET_HEIGHT+.001) return {placed:false,grew:false};
-
-  growSheetTo(needed);
-  return {placed:true,grew:needed>state.sheet.h+.001};
+  o.rot=originalRot;
+  return {placed:false,grew:false,rotated:false};
 }
 
 function placementAttemptWithRotation(o,excludeId=null){
   ensureRotationModel(o);
-
-  const original={
-    rot:o.rot||0,
-    x:o.x,
-    y:o.y
-  };
-
-  // First: preserve the orientation the user/file already has.
-  let result=placeOnExpandableSheet(o,excludeId);
-  if(result.placed){
-    return {placed:true,rotated:false};
-  }
-
-  // Second: if rotation is allowed, try exactly +90°.
-  // This is especially important for wide designs that do not fit in 62 cm
-  // but do fit after rotation.
-  if($("#allowRotate")?.checked){
-    o.rot=((original.rot+90)%360+360)%360;
-    o.x=original.x;
-    o.y=original.y;
-
-    result=placeOnExpandableSheet(o,excludeId);
-    if(result.placed){
-      return {placed:true,rotated:true};
-    }
-  }
-
-  // Restore if neither orientation worked.
-  o.rot=original.rot;
-  o.x=original.x;
-  o.y=original.y;
+  const original={rot:o.rot||0,x:o.x,y:o.y};
+  const result=placeOnExpandableSheet(o,excludeId);
+  if(result.placed) return {placed:true,rotated:!!result.rotated};
+  o.rot=original.rot;o.x=original.x;o.y=original.y;
   return {placed:false,rotated:false};
 }
 
@@ -2317,19 +2959,51 @@ function placeObjectWithAutoGrowth(o,excludeId=null){
   return true;
 }
 
-function insertAsset(a){
+async function cloneAssetForTrim(source){
+  const file=source.file;
+  const src=URL.createObjectURL(file);
+  const clone={
+    id:"a"+Date.now()+Math.random().toString(36).slice(2),
+    name:source.name,
+    src,w:source.w,h:source.h,file,
+    dpiX:source.dpiX,dpiY:source.dpiY,dpiSource:source.dpiSource,
+    physicalWcm:Number.isFinite(source.physicalWcm)?source.physicalWcm:null,
+    physicalHcm:Number.isFinite(source.physicalHcm)?source.physicalHcm:null,
+    alphaCleaned:!!source.alphaCleaned,
+    alphaThreshold:source.alphaThreshold??null,
+    alphaBinary:!!source.alphaBinary,
+    autoTrimmed:false,
+    updatedAt:Date.now()
+  };
+  await ensureAssetAutoTrimmed(clone);
+  return clone;
+}
+async function insertAsset(a){
+ let asset=a;
+ // Trim transparent margins before placing (covers older library assets too).
+ if(!asset.autoTrimmed){
+   toast("Recortando márgenes…");
+   if(assetInstanceCount(asset.id)>0){
+     // Don't mutate a bitmap already used on the sheet.
+     asset=await cloneAssetForTrim(asset);
+     state.assets.unshift(asset);
+   }else{
+     await ensureAssetAutoTrimmed(asset);
+   }
+   renderAssets();
+ }
  pushHistory();
  // Preserve the physical dimensions encoded in the file.
  // When a file has no DPI metadata, there is no original physical size in the file;
  // use 300 DPI only as a provisional working size and mark it as such.
- const dpiX=a.dpiX||300,dpiY=a.dpiY||dpiX;
- const printW=a.physicalWcm || a.w/dpiX*2.54;
- const printH=a.physicalHcm || a.h/dpiY*2.54;
+ const dpiX=asset.dpiX||300,dpiY=asset.dpiY||dpiX;
+ const printW=asset.physicalWcm || asset.w/dpiX*2.54;
+ const printH=asset.physicalHcm || asset.h/dpiY*2.54;
  const o={
-   id:uid(),type:"image",name:a.name,assetId:a.id,
-   naturalW:a.w,naturalH:a.h,
-   sourceDpiX:a.dpiX,sourceDpiY:a.dpiY,dpiDefined:!!a.dpiX,
-   sourceWidthCm:a.physicalWcm,sourceHeightCm:a.physicalHcm,
+   id:uid(),type:"image",name:asset.name,assetId:asset.id,
+   naturalW:asset.w,naturalH:asset.h,
+   sourceDpiX:asset.dpiX,sourceDpiY:asset.dpiY,dpiDefined:!!asset.dpiX,
+   sourceWidthCm:asset.physicalWcm,sourceHeightCm:asset.physicalHcm,
    x:state.sheet.margin+0.05,y:state.sheet.margin+0.05,
    w:printW,h:printH,rot:0,flipX:false,
    aspectLocked:true,aspectRatio:printW/printH,
@@ -2344,7 +3018,7 @@ function insertAsset(a){
 }
 
 // =====================================================================
-// PROCESAMIENTO DE IMAGEN: IA + SEMITONO (interfaz simplificada)
+// PROCESAMIENTO DE IMAGEN: IA + QUITAR FONDO + SEMITONO
 // =====================================================================
 function selectedImageObject(){
  const o=objById(state.selectedId);
@@ -2353,6 +3027,170 @@ function selectedImageObject(){
 }
 function modalOpen(id){const el=$("#"+id);if(el)el.classList.remove("hidden")}
 function modalClose(id){const el=$("#"+id);if(el)el.classList.add("hidden")}
+
+// =====================================================================
+// INSPECCIÓN: preview con zoom extremo (doble clic en imagen)
+// scale = 1 → 1 píxel de imagen = 1 píxel de pantalla
+// =====================================================================
+const inspect = {
+  open:false, scale:1, x:0, y:0, nw:0, nh:0, minScale:0.05, maxScale:64,
+  panning:false, panX:0, panY:0, originX:0, originY:0, objectId:null
+};
+function isInspectOpen(){
+  const el=$("#inspectModal");
+  return !!(inspect.open && el && !el.classList.contains("hidden"));
+}
+function applyInspectTransform(){
+  const world=$("#inspectWorld"), label=$("#inspectZoomLabel");
+  if(!world) return;
+  world.style.transform=`translate(${inspect.x}px,${inspect.y}px) scale(${inspect.scale})`;
+  world.classList.toggle("pixelated", inspect.scale >= 2.5);
+  if(label) label.textContent=`${Math.round(inspect.scale*100)}%`;
+}
+function inspectFitScale(){
+  const stage=$("#inspectStage");
+  if(!stage || !inspect.nw || !inspect.nh) return 1;
+  const pad=36;
+  const sw=Math.max(40, stage.clientWidth - pad);
+  const sh=Math.max(40, stage.clientHeight - pad);
+  return Math.min(sw/inspect.nw, sh/inspect.nh);
+}
+function inspectCenterAt(scale){
+  const stage=$("#inspectStage");
+  if(!stage) return;
+  const sw=stage.clientWidth, sh=stage.clientHeight;
+  inspect.scale=Math.max(inspect.minScale, Math.min(inspect.maxScale, scale));
+  inspect.x=(sw - inspect.nw * inspect.scale)/2;
+  inspect.y=(sh - inspect.nh * inspect.scale)/2;
+  applyInspectTransform();
+}
+function inspectZoomAt(clientX, clientY, nextScale){
+  const stage=$("#inspectStage");
+  if(!stage) return;
+  const rect=stage.getBoundingClientRect();
+  const px=clientX - rect.left;
+  const py=clientY - rect.top;
+  const imgX=(px - inspect.x)/inspect.scale;
+  const imgY=(py - inspect.y)/inspect.scale;
+  inspect.scale=Math.max(inspect.minScale, Math.min(inspect.maxScale, nextScale));
+  inspect.x=px - imgX * inspect.scale;
+  inspect.y=py - imgY * inspect.scale;
+  applyInspectTransform();
+}
+function closeInspectPreview(){
+  inspect.open=false;
+  inspect.objectId=null;
+  inspect.panning=false;
+  const stage=$("#inspectStage");
+  if(stage) stage.classList.remove("panning");
+  modalClose("inspectModal");
+  const img=$("#inspectImage");
+  if(img) img.removeAttribute("src");
+}
+async function openInspectPreview(o){
+  if(!o || o.type!=="image") return;
+  const src=objectSrc(o);
+  if(!src){toast("No se encontró la imagen para inspeccionar.");return}
+  const asset=assetById(o.assetId);
+  const title=$("#inspectTitle"), meta=$("#inspectMeta"), img=$("#inspectImage");
+  if(title) title.textContent=o.name || (asset && asset.name) || "Inspeccionar imagen";
+  if(!img){toast("No se pudo abrir la inspección");return}
+  inspect.open=true;
+  inspect.objectId=o.id;
+  modalOpen("inspectModal");
+  if(meta) meta.textContent="Cargando…";
+  try{
+    await new Promise((resolve,reject)=>{
+      img.onload=()=>resolve();
+      img.onerror=()=>reject(new Error("No se pudo cargar la imagen"));
+      img.src=src;
+      if(img.complete && img.naturalWidth) resolve();
+    });
+    inspect.nw=img.naturalWidth || (asset && asset.w) || 1;
+    inspect.nh=img.naturalHeight || (asset && asset.h) || 1;
+    img.width=inspect.nw;
+    img.height=inspect.nh;
+    const dpi=Math.round(calcDpi(o));
+    if(meta){
+      meta.textContent=`${inspect.nw} × ${inspect.nh} px`+(dpi?` · ${dpi} DPI`:"")+` · ${(+o.w).toFixed(1)} × ${(+o.h).toFixed(1)} cm`;
+    }
+    const fit=inspectFitScale();
+    inspect.minScale=Math.max(0.02, Math.min(fit*0.2, 0.08));
+    inspect.maxScale=80;
+    inspectCenterAt(fit);
+  }catch(e){
+    console.error(e);
+    closeInspectPreview();
+    toast(e.message||"No se pudo abrir la inspección");
+  }
+}
+function wireInspectPreview(){
+  const stage=$("#inspectStage");
+  const modal=$("#inspectModal");
+  if(!stage || !modal || modal.dataset.inspectWired) return;
+  modal.dataset.inspectWired="1";
+
+  stage.addEventListener("wheel",e=>{
+    if(!isInspectOpen()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const factor=e.deltaY < 0 ? 1.18 : 1/1.18;
+    inspectZoomAt(e.clientX, e.clientY, inspect.scale * factor);
+  },{passive:false});
+
+  stage.addEventListener("pointerdown",e=>{
+    if(!isInspectOpen()) return;
+    if(e.button!==0 && e.pointerType==="mouse") return;
+    e.preventDefault();
+    stage.setPointerCapture(e.pointerId);
+    inspect.panning=true;
+    inspect.panX=e.clientX;
+    inspect.panY=e.clientY;
+    inspect.originX=inspect.x;
+    inspect.originY=inspect.y;
+    stage.classList.add("panning");
+  });
+  stage.addEventListener("pointermove",e=>{
+    if(!inspect.panning) return;
+    inspect.x=inspect.originX + (e.clientX - inspect.panX);
+    inspect.y=inspect.originY + (e.clientY - inspect.panY);
+    applyInspectTransform();
+  });
+  const endPan=e=>{
+    if(!inspect.panning) return;
+    inspect.panning=false;
+    stage.classList.remove("panning");
+    try{stage.releasePointerCapture(e.pointerId)}catch{}
+  };
+  stage.addEventListener("pointerup",endPan);
+  stage.addEventListener("pointercancel",endPan);
+
+  $("#inspectZoomInBtn").onclick=()=>{
+    const r=stage.getBoundingClientRect();
+    inspectZoomAt(r.left+r.width/2, r.top+r.height/2, inspect.scale*1.35);
+  };
+  $("#inspectZoomOutBtn").onclick=()=>{
+    const r=stage.getBoundingClientRect();
+    inspectZoomAt(r.left+r.width/2, r.top+r.height/2, inspect.scale/1.35);
+  };
+  $("#inspectFitBtn").onclick=()=>inspectCenterAt(inspectFitScale());
+  $("#inspect100Btn").onclick=()=>inspectCenterAt(1);
+
+  modal.addEventListener("click",e=>{
+    if(e.target===modal) closeInspectPreview();
+  });
+  // Keep wheel/zoom inside the dialog from zooming the page.
+  modal.addEventListener("wheel",e=>{
+    if(isInspectOpen()){ e.preventDefault(); }
+  },{passive:false});
+
+  window.addEventListener("resize",()=>{
+    if(!isInspectOpen()) return;
+    // Keep image roughly centered on resize without forcing fit.
+    applyInspectTransform();
+  });
+}
+
 function setProcProgress(prefix,pct,label){
  const bar=$("#"+prefix+"ProgressBar"),txt=$("#"+prefix+"ProgressLabel");
  if(bar)bar.style.width=Math.max(0,Math.min(100,pct))+"%";
@@ -2406,16 +3244,212 @@ async function assetCanvas(asset){
 }
 function canvasBlob(c){return new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("No se pudo generar PNG")),"image/png"))}
 async function rgbaToBlob(rgba,w,h){const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.putImageData(new ImageData(new Uint8ClampedArray(rgba),w,h),0,0);return canvasBlob(c)}
+/** Crop fully-transparent margins. Returns null if every pixel is empty. */
+function trimTransparentRgba(rgba,width,height,{alphaMin=1,pad=1}={}){
+  let minX=width,minY=height,maxX=-1,maxY=-1;
+  for(let y=0;y<height;y++){
+    const row=y*width;
+    for(let x=0;x<width;x++){
+      if(rgba[(row+x)*4+3]<alphaMin) continue;
+      if(x<minX) minX=x;
+      if(y<minY) minY=y;
+      if(x>maxX) maxX=x;
+      if(y>maxY) maxY=y;
+    }
+  }
+  if(maxX<0) return null;
+  minX=Math.max(0,minX-pad);
+  minY=Math.max(0,minY-pad);
+  maxX=Math.min(width-1,maxX+pad);
+  maxY=Math.min(height-1,maxY+pad);
+  const tw=maxX-minX+1,th=maxY-minY+1;
+  if(tw===width && th===height && minX===0 && minY===0){
+    return {rgba,width,height,offsetX:0,offsetY:0,srcW:width,srcH:height,trimmed:false};
+  }
+  const out=new Uint8ClampedArray(tw*th*4);
+  for(let y=0;y<th;y++){
+    const src=((minY+y)*width+minX)*4;
+    out.set(rgba.subarray(src,src+tw*4),y*tw*4);
+  }
+  return {rgba:out,width:tw,height:th,offsetX:minX,offsetY:minY,srcW:width,srcH:height,trimmed:true};
+}
 async function createProcessedAsset(base,blob,w,h,nameSuffix,physicalWcm,physicalHcm,flags={}){
  const dpiX=physicalWcm?w/(physicalWcm/2.54):null,dpiY=physicalHcm?h/(physicalHcm/2.54):dpiX;
- const a={id:"a"+Date.now()+Math.random().toString(36).slice(2),name:base.name.replace(/\.[^.]+$/,"")+nameSuffix+".png",src:URL.createObjectURL(blob),w,h,file:blob,dpiX,dpiY,dpiSource:"BixStudio",physicalWcm,physicalHcm,alphaCleaned:!!flags.alphaBinary,alphaThreshold:flags.alphaBinary?128:null,alphaBinary:!!flags.alphaBinary,updatedAt:Date.now()};
+ const a={id:"a"+Date.now()+Math.random().toString(36).slice(2),name:base.name.replace(/\.[^.]+$/,"")+nameSuffix+".png",src:URL.createObjectURL(blob),w,h,file:blob,dpiX,dpiY,dpiSource:"BixStudio",physicalWcm,physicalHcm,alphaCleaned:!!flags.alphaBinary,alphaThreshold:flags.alphaBinary?128:null,alphaBinary:!!flags.alphaBinary,autoTrimmed:!!flags.autoTrimmed,updatedAt:Date.now()};
  state.assets.unshift(a);await persistAsset(a);renderAssets();return a;
 }
-function applyProcessedAssetToObject(o,newAsset,kind){
+function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
  if(!o.originalAssetId)o.originalAssetId=o.assetId;
- o.assetId=newAsset.id;o.naturalW=newAsset.w;o.naturalH=newAsset.h;o.sourceDpiX=newAsset.dpiX;o.sourceDpiY=newAsset.dpiY;o.dpiDefined=true;o.sourceWidthCm=o.w;o.sourceHeightCm=o.h;
- if(kind==="ai")o.aiEnhanced=true;if(kind==="halftone")o.halftoneApplied=true;
+ // Remember the pre-process box so "Restaurar original" can undo trims/resizes.
+ if(!Number.isFinite(o.sourceWidthCm)) o.sourceWidthCm=o.w;
+ if(!Number.isFinite(o.sourceHeightCm)) o.sourceHeightCm=o.h;
+ if(!Number.isFinite(o.sourceXCm)) o.sourceXCm=o.x;
+ if(!Number.isFinite(o.sourceYCm)) o.sourceYCm=o.y;
+ o.assetId=newAsset.id;o.naturalW=newAsset.w;o.naturalH=newAsset.h;o.sourceDpiX=newAsset.dpiX;o.sourceDpiY=newAsset.dpiY;o.dpiDefined=true;
+ if(sizeOverride){
+   if(Number.isFinite(sizeOverride.x)) o.x=sizeOverride.x;
+   if(Number.isFinite(sizeOverride.y)) o.y=sizeOverride.y;
+   if(Number.isFinite(sizeOverride.w)) o.w=sizeOverride.w;
+   if(Number.isFinite(sizeOverride.h)) o.h=sizeOverride.h;
+   o.visualW=o.w;o.visualH=o.h;
+   o.baseW=o.w;o.baseH=o.h;
+   o.aspectRatio=o.w/Math.max(.0001,o.h);
+ }
+ if(kind==="ai")o.aiEnhanced=true;
+ if(kind==="halftone")o.halftoneApplied=true;
+ if(kind==="bgremove")o.bgRemoved=true;
  renderAll();
+}
+// Persistent BiRefNet_lite 512 worker (WebGPU → WASM). Kept alive so the
+// ~94 MB ONNX is loaded once and reused across clicks.
+const bgRemoveState={worker:null,ready:null,backend:null,failed:null,pending:new Map()};
+const BG_MODEL_URL="./models/bg-remove.onnx";
+function resetBgRemoveWorker(){
+ try{bgRemoveState.worker?.terminate()}catch{}
+ bgRemoveState.worker=null;
+ bgRemoveState.ready=null;
+ bgRemoveState.backend=null;
+ bgRemoveState.failed=null;
+ bgRemoveState.pending.clear();
+}
+function ensureBgRemoveWorker(){
+ if(bgRemoveState.failed){
+   // Allow a fresh retry after a previous init/inference failure.
+   resetBgRemoveWorker();
+ }
+ if(bgRemoveState.worker) return bgRemoveState.ready;
+ let worker;
+ try{worker=new Worker("bgremove.worker.js")}
+ catch(e){
+   bgRemoveState.failed=true;
+   bgRemoveState.ready=Promise.reject(new Error("No se pudo iniciar el removedor de fondo. Abre BixStudio desde un servidor local."));
+   return bgRemoveState.ready;
+ }
+ bgRemoveState.worker=worker;
+ bgRemoveState.ready=new Promise((resolve,reject)=>{
+   const onReady=e=>{
+     const m=e.data||{};
+     if(m.type==="ready"){
+       bgRemoveState.backend=m.backend||"wasm";
+       worker.removeEventListener("message",onReady);
+       resolve();
+       return;
+     }
+     if(m.type==="done"&&m.ok===false&&!m.id){
+       worker.removeEventListener("message",onReady);
+       bgRemoveState.failed=true;
+       reject(new Error(m.error||"No se pudo cargar el removedor de fondo"));
+     }
+   };
+   worker.addEventListener("message",onReady);
+   worker.addEventListener("error",()=>{
+     bgRemoveState.failed=true;
+     reject(new Error("Error cargando el removedor de fondo"));
+   });
+   worker.postMessage({type:"init",modelUrl:BG_MODEL_URL,preferGpu:true,ortBase:"./ort/"});
+ });
+ worker.addEventListener("message",e=>{
+   const m=e.data||{};
+   if(m.type==="progress"){
+     const job=bgRemoveState.pending.get(m.id);
+     if(job?.onProgress) job.onProgress(m);
+     return;
+   }
+   if(m.type==="done"&&m.id!=null){
+     const job=bgRemoveState.pending.get(m.id);
+     if(!job) return;
+     bgRemoveState.pending.delete(m.id);
+     if(m.ok) job.resolve(m);
+     else {
+       bgRemoveState.failed=true;
+       job.reject(new Error(m.error||"Error al quitar el fondo"));
+     }
+   }
+ });
+ bgRemoveState.ready.catch(()=>{ bgRemoveState.failed=true; });
+ return bgRemoveState.ready;
+}
+function preloadBgRemoveModel(){
+ ensureBgRemoveWorker().catch(()=>{/* silent warm-up; errors surface on first use */});
+}
+function runBgRemoveWorker(rgba,width,height,onProgress){
+ return ensureBgRemoveWorker().then(()=>new Promise((resolve,reject)=>{
+   const id="bg_"+Date.now()+"_"+Math.random().toString(36).slice(2);
+   bgRemoveState.pending.set(id,{resolve,reject,onProgress});
+   bgRemoveState.worker.postMessage({
+     id,type:"run",rgba,width,height,
+     modelUrl:BG_MODEL_URL,preferGpu:true,
+     alphaMode:"binary",ortBase:"./ort/"
+   },[rgba.buffer]);
+ }));
+}
+function bgRemoveStageLabel(stage){
+ if(stage==="init") return "Cargando IA…";
+ if(stage==="preprocess") return "Preparando imagen…";
+ if(stage==="inference") return "Detectando sujeto…";
+ if(stage==="postprocess") return "Refinando máscara…";
+ if(stage==="compose") return "Generando PNG…";
+ return "Quitando fondo…";
+}
+async function removeBackgroundSelected(){
+ const o=selectedImageObject();if(!o)return;
+ const asset=assetById(o.assetId);if(!asset)return;
+ const btn=$("#removeBgBtn");
+ if(btn.disabled)return;
+ btn.disabled=true;
+ showObjectProcessing(o.id,"Quitando fondo…",4);
+ try{
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   updateObjectProcessing(o.id,6,"Cargando IA…");
+   await ensureBgRemoveWorker();
+   let c=await assetCanvas(asset);
+   // Cap extreme resolutions for memory safety; mask is inferred at model size.
+   const maxLong=3600,long=Math.max(c.width,c.height);
+   if(long>maxLong){
+     updateObjectProcessing(o.id,10,"Preparando imagen…");
+     const k=maxLong/long;
+     c=cloneCanvasHQ(c,Math.round(c.width*k),Math.round(c.height*k));
+   }
+   const d=c.getContext("2d",{willReadFrequently:true}).getImageData(0,0,c.width,c.height);
+   const r=await runBgRemoveWorker(d.data,c.width,c.height,m=>{
+     let pct=12;
+     if(m.stage==="init") pct=6+m.pct*0.08;
+     else if(m.stage==="preprocess") pct=14+m.pct*0.10;
+     else if(m.stage==="inference") pct=24+m.pct*0.50;
+     else if(m.stage==="postprocess") pct=74+m.pct*0.12;
+     else if(m.stage==="compose") pct=86+m.pct*0.10;
+     updateObjectProcessing(o.id,pct,bgRemoveStageLabel(m.stage));
+   });
+   updateObjectProcessing(o.id,94,"Recortando márgenes…");
+   const trimmed=trimTransparentRgba(r.rgba,r.width,r.height,{alphaMin:1,pad:1});
+   if(!trimmed) throw new Error("No se detectó contenido opaco tras quitar el fondo.");
+   const physW=o.w*(trimmed.width/trimmed.srcW);
+   const physH=o.h*(trimmed.height/trimmed.srcH);
+   const sizeOverride={
+     x:o.x+o.w*(trimmed.offsetX/trimmed.srcW),
+     y:o.y+o.h*(trimmed.offsetY/trimmed.srcH),
+     w:Math.max(0.2,physW),
+     h:Math.max(0.2,physH)
+   };
+   updateObjectProcessing(o.id,97,"Generando PNG…");
+   const blob=await rgbaToBlob(trimmed.rgba,trimmed.width,trimmed.height);
+   const na=await createProcessedAsset(asset,blob,trimmed.width,trimmed.height,"_sin_fondo",sizeOverride.w,sizeOverride.h,{alphaBinary:true,autoTrimmed:true});
+   pushHistory();
+   applyProcessedAssetToObject(o,na,"bgremove",sizeOverride);
+   showObjectProcessing(o.id,"Fondo eliminado",100);
+   toast(trimmed.trimmed
+     ?"Fondo eliminado · márgenes recortados · alpha sólido"
+     :"Fondo eliminado · alpha sólido para DTF");
+   await new Promise(r=>setTimeout(r,650));
+ }catch(e){
+   console.error(e);
+   updateObjectProcessing(o.id,100,"No se pudo quitar el fondo");
+   toast(e.message||"No se pudo quitar el fondo de la imagen");
+   await new Promise(r=>setTimeout(r,850));
+ }finally{
+   hideObjectProcessing(o.id);
+   btn.disabled=false;
+ }
 }
 function runUpscaleWorkerSimple(rgba,width,height,onProgress){return new Promise((resolve,reject)=>{
  let worker;try{worker=new Worker("upscaler.worker.js")}catch(e){reject(new Error("No se pudo iniciar el módulo de IA. Abre BixStudio desde un servidor local."));return}
@@ -2490,9 +3524,24 @@ async function createSelectedHalftone(){
  }catch(e){console.error(e);setProcProgress("halftone",0,"Error: "+e.message);toast(e.message)}finally{btn.disabled=false}
 }
 async function restoreSelectedOriginal(){
- const o=selectedImageObject();if(!o||!o.originalAssetId)return;const a=assetById(o.originalAssetId);if(!a){toast("No se encontró la imagen original guardada.");return}pushHistory();o.assetId=a.id;o.naturalW=a.w;o.naturalH=a.h;o.sourceDpiX=a.dpiX;o.sourceDpiY=a.dpiY;o.aiEnhanced=false;o.halftoneApplied=false;delete o.originalAssetId;renderAll();toast("Imagen original restaurada")
+ const o=selectedImageObject();if(!o||!o.originalAssetId)return;
+ const a=assetById(o.originalAssetId);if(!a){toast("No se encontró la imagen original guardada.");return}
+ pushHistory();
+ o.assetId=a.id;o.naturalW=a.w;o.naturalH=a.h;o.sourceDpiX=a.dpiX;o.sourceDpiY=a.dpiY;
+ if(Number.isFinite(o.sourceWidthCm)&&o.sourceWidthCm>0) o.w=o.sourceWidthCm;
+ if(Number.isFinite(o.sourceHeightCm)&&o.sourceHeightCm>0) o.h=o.sourceHeightCm;
+ if(Number.isFinite(o.sourceXCm)) o.x=o.sourceXCm;
+ if(Number.isFinite(o.sourceYCm)) o.y=o.sourceYCm;
+ o.visualW=o.w;o.visualH=o.h;o.baseW=o.w;o.baseH=o.h;
+ o.aspectRatio=o.w/Math.max(.0001,o.h);
+ o.aiEnhanced=false;o.halftoneApplied=false;o.bgRemoved=false;
+ delete o.originalAssetId;delete o.sourceWidthCm;delete o.sourceHeightCm;delete o.sourceXCm;delete o.sourceYCm;
+ renderAll();
+ toast("Imagen original restaurada");
 }
 $("#enhanceImageBtn").onclick=enhanceSelectedWithAi;
+$("#removeBgBtn").onclick=removeBackgroundSelected;
+preloadBgRemoveModel();
 $("#halftoneImageBtn").onclick=()=>{
  if(!selectedImageObject())return;
  const intensity=$("#halftoneIntensity");if(intensity)intensity.value="light";
@@ -2503,67 +3552,284 @@ $("#restoreOriginalBtn").onclick=restoreSelectedOriginal;
 $("#runHalftoneBtn").onclick=createSelectedHalftone;
 $("#halftoneGarment").onchange=e=>$("#halftoneCustomRow").classList.toggle("hidden",e.target.value!=="custom");
 
-function addText(){
- pushHistory();const text=$("#textValue").value||"Texto",fs=+$("#textSize").value;
- const o={id:uid(),type:"text",name:"Texto",text,color:$("#textColor").value,fontSize:fs,x:state.sheet.margin,y:state.sheet.margin,w:Math.min(25,state.sheet.w-state.sheet.margin*2),h:5,rot:0,flipX:false,aspectLocked:false,aspectRatio:5,baseW:Math.min(25,state.sheet.w-state.sheet.margin*2),baseH:5};
+const textCreateState={bold:true,italic:false,align:"center",fontSize:72};
+function syncTextStyleButtons(prefix,stateObj){
+  const bold=$(`#${prefix}BoldBtn`);
+  const italic=$(`#${prefix}ItalicBtn`);
+  const left=$(`#${prefix}AlignLeftBtn`);
+  const center=$(`#${prefix}AlignCenterBtn`);
+  const right=$(`#${prefix}AlignRightBtn`);
+  if(bold) bold.classList.toggle("active",!!stateObj.bold);
+  if(italic) italic.classList.toggle("active",!!stateObj.italic);
+  if(left) left.classList.toggle("active",stateObj.align==="left");
+  if(center) center.classList.toggle("active",stateObj.align==="center");
+  if(right) right.classList.toggle("active",stateObj.align==="right");
+}
+function syncTextPanelSizeInputs(o){
+  const wEl=$("#textWidthCm"), hEl=$("#textHeightCm");
+  if(!wEl||!hEl) return;
+  if(document.activeElement===wEl||document.activeElement===hEl) return;
+  if(o&&o.type==="text"){
+    wEl.value=(+o.w).toFixed(2);
+    hEl.value=(+o.h).toFixed(2);
+  }
+}
+function wireTextCreateControls(){
+  fillFontSelect($("#textFont"),"Abril Fatface");
+  syncTextStyleButtons("text",textCreateState);
+  $("#textBoldBtn")?.addEventListener("click",()=>{
+    textCreateState.bold=!textCreateState.bold;
+    syncTextStyleButtons("text",textCreateState);
+    const o=objById(state.selectedId);
+    if(o&&o.type==="text") applySelectedTextPatch({fontBold:textCreateState.bold});
+  });
+  $("#textItalicBtn")?.addEventListener("click",()=>{
+    textCreateState.italic=!textCreateState.italic;
+    syncTextStyleButtons("text",textCreateState);
+    const o=objById(state.selectedId);
+    if(o&&o.type==="text") applySelectedTextPatch({fontItalic:textCreateState.italic});
+  });
+  const setAlign=a=>{
+    textCreateState.align=a;
+    syncTextStyleButtons("text",textCreateState);
+    const o=objById(state.selectedId);
+    if(o&&o.type==="text") applySelectedTextPatch({textAlign:a});
+  };
+  $("#textAlignLeftBtn")?.addEventListener("click",()=>setAlign("left"));
+  $("#textAlignCenterBtn")?.addEventListener("click",()=>setAlign("center"));
+  $("#textAlignRightBtn")?.addEventListener("click",()=>setAlign("right"));
+  $("#textFont")?.addEventListener("change",e=>{
+    const o=objById(state.selectedId);
+    if(o&&o.type==="text") applySelectedTextPatch({fontFamily:e.target.value});
+  });
+  $("#textColor")?.addEventListener("input",e=>{
+    const o=objById(state.selectedId);
+    if(o&&o.type==="text") applySelectedTextPatch({color:e.target.value},{live:true});
+  });
+  $("#textColor")?.addEventListener("change",e=>{
+    const o=objById(state.selectedId);
+    if(o&&o.type==="text") applySelectedTextPatch({color:e.target.value});
+  });
+  const strokeEn=$("#textStrokeEnabled"), strokeW=$("#textStrokeWidth");
+  const applyStroke=(live=false)=>{
+    const o=objById(state.selectedId); if(!o||o.type!=="text") return;
+    const w=+(strokeW?.value)||0;
+    if(strokeEn && w>0) strokeEn.checked=true;
+    applySelectedTextPatch({
+      strokeWidth:w,
+      strokeEnabled:!!(strokeEn?.checked)||w>0,
+      strokeColor:$("#textStrokeColor")?.value||"#ffffff"
+    }, live?{live:true}:{});
+  };
+  strokeW?.addEventListener("input",()=>applyStroke(true));
+  strokeW?.addEventListener("change",()=>applyStroke(false));
+  strokeEn?.addEventListener("change",()=>applyStroke(false));
+  $("#textStrokeColor")?.addEventListener("input",()=>{ if(strokeEn) strokeEn.checked=true; applyStroke(true); });
+  $("#textStrokeColor")?.addEventListener("change",()=>{ if(strokeEn) strokeEn.checked=true; applyStroke(false); });
+  $("#textWidthCm")?.addEventListener("change",e=>{
+    const o=objById(state.selectedId); if(!o||o.type!=="text") return;
+    pushHistory();
+    scaleTextObjectToWidth(o,+e.target.value||o.w);
+    syncTextPanelSizeInputs(o);
+    renderAll();
+  });
+  $("#textHeightCm")?.addEventListener("change",e=>{
+    const o=objById(state.selectedId); if(!o||o.type!=="text") return;
+    pushHistory();
+    scaleTextObjectToHeight(o,+e.target.value||o.h);
+    syncTextPanelSizeInputs(o);
+    renderAll();
+  });
+}
+async function addText(text="bixprint"){
+ pushHistory();
+ const strokeW=+$("#textStrokeWidth")?.value||0;
+ const strokeOn=!!$("#textStrokeEnabled")?.checked || strokeW>0;
+ const o={
+   id:uid(),type:"text",name:String(text).slice(0,32)||"bixprint",text:text||"bixprint",
+   color:$("#textColor")?.value||"#111111",
+   fontSize:textCreateState.fontSize||72,
+   fontFamily:$("#textFont")?.value||"Abril Fatface",
+   fontBold:!!textCreateState.bold,
+   fontItalic:!!textCreateState.italic,
+   textAlign:textCreateState.align||"center",
+   strokeEnabled:strokeOn,
+   strokeColor:$("#textStrokeColor")?.value||"#ffffff",
+   strokeWidth:strokeW,
+   x:state.sheet.margin,y:state.sheet.margin,
+   w:10,h:2,rot:0,flipX:false,flipY:false,
+   aspectLocked:true,aspectRatio:5,baseW:10,baseH:2
+ };
+ await ensureTextFontLoaded(o);
+ fitTextObjectToContent(o);
  const placed=placeObjectWithAutoGrowth(o);
- if(!placed){state.history.pop();return}
+ if(!placed){state.history.pop();return null}
  state.objects.push(o);
  state.selectedId=o.id;state.selectedIds=[o.id];
  recalcActiveSheetHeight();
  renderAll();
+ showRightPanel("properties");
+ return o;
 }
-$("#addTextBtn").onclick=addText;
+wireTextCreateControls();
+
+function syncSelectedTextControls(o){
+  normalizeTextObject(o);
+  fillFontSelect($("#selTextFont"),o.fontFamily);
+  fillFontSelect($("#textFont"),o.fontFamily);
+  const col=$("#selTextColor"); if(col) col.value=o.color||"#111111";
+  const col2=$("#textColor"); if(col2 && document.activeElement!==col2) col2.value=o.color||"#111111";
+  const sw=$("#selTextStrokeWidth"); if(sw) sw.value=o.strokeWidth||0;
+  const sw2=$("#textStrokeWidth"); if(sw2 && document.activeElement!==sw2) sw2.value=o.strokeWidth||0;
+  const se=$("#selTextStrokeEnabled"); if(se) se.checked=!!o.strokeEnabled;
+  const se2=$("#textStrokeEnabled"); if(se2) se2.checked=!!o.strokeEnabled;
+  const sc=$("#selTextStrokeColor"); if(sc) sc.value=o.strokeColor||"#ffffff";
+  const sc2=$("#textStrokeColor"); if(sc2) sc2.value=o.strokeColor||"#ffffff";
+  syncTextStyleButtons("selText",{bold:!!o.fontBold,italic:!!o.fontItalic,align:o.textAlign||"center"});
+  syncTextStyleButtons("text",{bold:!!o.fontBold,italic:!!o.fontItalic,align:o.textAlign||"center"});
+  textCreateState.bold=!!o.fontBold;textCreateState.italic=!!o.fontItalic;textCreateState.align=o.textAlign||"center";
+  syncTextPanelSizeInputs(o);
+}
+function refreshTextObjectVisual(o){
+  const wrap=layer.querySelector(`.design-object[data-id="${o.id}"]`);
+  const d=wrap&&wrap.querySelector(".text-obj");
+  if(!d || d.isContentEditable) return;
+  d.textContent=o.text;
+  applyTextDomStyles(d,o);
+}
+function applySelectedTextPatch(patch,{skipHistory=false,live=false}={}){
+  const o=objById(state.selectedId);
+  if(!o||o.type!=="text") return;
+  if(!skipHistory && !live) pushHistory();
+  Object.assign(o,patch);
+  if(patch.text!=null) o.name=(String(patch.text).split(/\n/)[0]||"bixprint").slice(0,32);
+  normalizeTextObject(o);
+  // Live stroke/color: paint only. Refit box when typography/text changes, or on stroke commit.
+  const typographyChange=("fontFamily" in patch)||("fontBold" in patch)||("fontItalic" in patch)||("text" in patch);
+  const strokeCommit=!live && (("strokeWidth" in patch)||("strokeEnabled" in patch));
+  if(typographyChange || strokeCommit) fitTextObjectToContent(o);
+  if(live){
+    if("strokeWidth" in patch && +patch.strokeWidth>0) o.strokeEnabled=true;
+    refreshTextObjectVisual(o);
+    syncTextPanelSizeInputs(o);
+    return;
+  }
+  renderAll();
+}
+function wireSelectedTextControls(){
+  fillFontSelect($("#selTextFont"),"Abril Fatface");
+  $("#selTextFont")?.addEventListener("change",e=>applySelectedTextPatch({fontFamily:e.target.value}));
+  $("#selTextColor")?.addEventListener("input",e=>applySelectedTextPatch({color:e.target.value},{live:true}));
+  $("#selTextColor")?.addEventListener("change",e=>applySelectedTextPatch({color:e.target.value}));
+  $("#selTextStrokeWidth")?.addEventListener("input",e=>{
+    const w=+e.target.value||0;
+    const en=$("#selTextStrokeEnabled"); if(en && w>0) en.checked=true;
+    applySelectedTextPatch({strokeWidth:w,strokeEnabled:w>0||!!en?.checked},{live:true});
+  });
+  $("#selTextStrokeWidth")?.addEventListener("change",e=>{
+    const w=+e.target.value||0;
+    applySelectedTextPatch({strokeWidth:w,strokeEnabled:w>0||!!$("#selTextStrokeEnabled")?.checked});
+  });
+  $("#selTextStrokeEnabled")?.addEventListener("change",e=>applySelectedTextPatch({strokeEnabled:!!e.target.checked}));
+  $("#selTextStrokeColor")?.addEventListener("input",e=>applySelectedTextPatch({strokeColor:e.target.value,strokeEnabled:true},{live:true}));
+  $("#selTextStrokeColor")?.addEventListener("change",e=>applySelectedTextPatch({strokeColor:e.target.value,strokeEnabled:true}));
+  $("#selTextBoldBtn")?.addEventListener("click",()=>{
+    const o=objById(state.selectedId); if(!o||o.type!=="text") return;
+    applySelectedTextPatch({fontBold:!o.fontBold});
+  });
+  $("#selTextItalicBtn")?.addEventListener("click",()=>{
+    const o=objById(state.selectedId); if(!o||o.type!=="text") return;
+    applySelectedTextPatch({fontItalic:!o.fontItalic});
+  });
+  $("#selTextAlignLeftBtn")?.addEventListener("click",()=>applySelectedTextPatch({textAlign:"left"}));
+  $("#selTextAlignCenterBtn")?.addEventListener("click",()=>applySelectedTextPatch({textAlign:"center"}));
+  $("#selTextAlignRightBtn")?.addEventListener("click",()=>applySelectedTextPatch({textAlign:"right"}));
+}
+wireSelectedTextControls();
 
 function updateSelectionPanel(){
  const o=objById(state.selectedId),empty=$("#noSelection"),panel=$("#selectionPanel");
  if(!o){empty.classList.remove("hidden");panel.classList.add("hidden");return}
  empty.classList.add("hidden");panel.classList.remove("hidden");$("#selName").textContent=state.selectedIds.length>1?`${state.selectedIds.length} diseños seleccionados`:(o.name||o.text||"Diseño");
- [["objWidth","w"],["objHeight","h"],["objX","x"],["objY","y"],["objRotation","rot"]].forEach(([id,k])=>$("#"+id).value=+(o[k]||0).toFixed(2));
+ [["objWidth","w"],["objHeight","h"],["objX","x"],["objY","y"],["objRotation","rot"]].forEach(([id,k])=>{
+   const el=$("#"+id); if(el) el.value=+(o[k]||0).toFixed(2);
+ });
  ensureAspect(o);
- const lockBtn=$("#aspectLockBtn"), lockHint=$("#aspectLockHint");
- lockBtn.className="aspect-lock-btn "+(o.aspectLocked?"locked":"unlocked");
- lockBtn.textContent=o.aspectLocked?"🔒 Bloqueada":"🔓 Libre";
- lockHint.textContent=o.aspectLocked?"Ancho y alto vinculados":"Ancho y alto independientes";
+ const isImage=o.type==="image";
+ const isText=o.type==="text";
+ // Remove X/Y, proportion and rotation from image properties (toolbar/drag cover those).
+ $("#imagePosProps")?.classList.toggle("hidden",true);
+ $("#rotationField")?.classList.toggle("hidden",true);
+ $("#aspectLockRow")?.classList.toggle("hidden",isImage);
+ if(isText){
+   o.aspectLocked=true;
+   const lockBtn=$("#aspectLockBtn"), lockHint=$("#aspectLockHint");
+   if(lockBtn){
+     lockBtn.className="aspect-lock-btn locked";
+     lockBtn.textContent="🔒 Bloqueada";
+     lockBtn.disabled=true;
+   }
+   if(lockHint) lockHint.textContent="Ancho y alto vinculados al texto";
+   syncTextPanelSizeInputs(o);
+ }else{
+   const lockBtn=$("#aspectLockBtn");
+   if(lockBtn) lockBtn.disabled=false;
+ }
  const procTools=$("#imageProcessingTools");
- if(procTools) procTools.classList.toggle("hidden",o.type!=="image");
- if(o.type==="image"){
+ if(procTools) procTools.classList.toggle("hidden",!isImage);
+ const textTools=$("#textStyleTools");
+ if(textTools) textTools.classList.toggle("hidden",!isText || state.selectedIds.length>1);
+ if(isText && state.selectedIds.length<=1) syncSelectedTextControls(o);
+ if(isImage){
    const restore=$("#restoreOriginalBtn");
    if(restore) restore.classList.toggle("hidden",!o.originalAssetId);
    const st=$("#imageProcessingStatus");
    if(st){
      const tags=[];
      if(o.aiEnhanced) tags.push("✨ IA aplicada");
+     if(o.bgRemoved) tags.push("✂ Fondo eliminado");
      if(o.halftoneApplied) tags.push("◉ Semitono aplicado");
      st.textContent=tags.length?tags.join(" · "):"Trabaja sobre la imagen seleccionada sin cambiar su tamaño físico.";
    }
  }
+ const fillBtn=$("#fillSelectedBtn");
+ if(fillBtn) fillBtn.classList.toggle("hidden",!isImage);
+ const dupBtn=$("#duplicateBtn");
+ if(dupBtn) dupBtn.textContent=isText?"⧉ Duplicar texto":"⧉ Duplicar imagen";
+ const dupLabel=document.querySelector(".dup-qty-field>span");
+ if(dupLabel) dupLabel.textContent=isText?"Cantidad de textos":"Cantidad de imágenes";
  const dpi=calcDpi(o),cls=dpiClass(dpi),badge=$("#resolutionBadge");
  badge.className="resolution-badge "+(cls==="optimal"?"good":cls==="good"?"good":cls==="bad"?"warn":"bad");
  $("#dpiValue").textContent=dpi>=900?"VECTOR":dpi+" DPI";
  $("#dpiText").textContent=cls==="optimal"?"Resolución óptima":cls==="good"?"Buena resolución":cls==="bad"?"Mala resolución":"Resolución mínima";
 }
-["objWidth","objHeight","objX","objY","objRotation"].forEach(id=>$("#"+id).addEventListener("change",e=>{
+["objWidth","objHeight","objX","objY","objRotation"].forEach(id=>$("#"+id)?.addEventListener("change",e=>{
  const o=objById(state.selectedId);if(!o)return;
  ensureAspect(o);
  pushHistory();
  const v=+e.target.value;
  if(id==="objWidth"){
-   const cx=o.x+o.w/2,cy=o.y+o.h/2;
-   o.w=Math.max(.1,v);
-   if(o.aspectLocked) o.h=o.w/o.aspectRatio;
-   else o.aspectRatio=o.w/o.h;
-   o.visualW=o.w;o.visualH=o.h;
-   o.baseW=o.w;o.baseH=o.h;
-   o.x=cx-o.w/2;o.y=cy-o.h/2;
+   if(o.type==="text") scaleTextObjectToWidth(o,Math.max(.1,v));
+   else{
+     const cx=o.x+o.w/2,cy=o.y+o.h/2;
+     o.w=Math.max(.1,v);
+     if(o.aspectLocked) o.h=o.w/o.aspectRatio;
+     else o.aspectRatio=o.w/o.h;
+     o.visualW=o.w;o.visualH=o.h;
+     o.baseW=o.w;o.baseH=o.h;
+     o.x=cx-o.w/2;o.y=cy-o.h/2;
+   }
  }else if(id==="objHeight"){
-   const cx=o.x+o.w/2,cy=o.y+o.h/2;
-   o.h=Math.max(.1,v);
-   if(o.aspectLocked) o.w=o.h*o.aspectRatio;
-   else o.aspectRatio=o.w/o.h;
-   o.visualW=o.w;o.visualH=o.h;
-   o.baseW=o.w;o.baseH=o.h;
-   o.x=cx-o.w/2;o.y=cy-o.h/2;
+   if(o.type==="text") scaleTextObjectToHeight(o,Math.max(.1,v));
+   else{
+     const cx=o.x+o.w/2,cy=o.y+o.h/2;
+     o.h=Math.max(.1,v);
+     if(o.aspectLocked) o.w=o.h*o.aspectRatio;
+     else o.aspectRatio=o.w/o.h;
+     o.visualW=o.w;o.visualH=o.h;
+     o.baseW=o.w;o.baseH=o.h;
+     o.x=cx-o.w/2;o.y=cy-o.h/2;
+   }
  }else if(id==="objRotation"){
    ensureRotationModel(o);
    o.rot=((v%360)+360)%360;
@@ -2573,9 +3839,26 @@ function updateSelectionPanel(){
  }
  renderAll()
 }));
-$("#duplicateBtn").onclick=()=>{if(copySelection())pasteClipboard()};
+function readDuplicateQty(){
+  const el=$("#duplicateQty");
+  const n=Math.round(+(el?.value)||1);
+  return Math.max(1,Math.min(999,Number.isFinite(n)?n:1));
+}
+function setDuplicateQty(n){
+  const el=$("#duplicateQty");
+  if(!el) return;
+  el.value=String(Math.max(1,Math.min(999,n)));
+}
+$("#dupQtyUp")?.addEventListener("click",()=>setDuplicateQty(readDuplicateQty()+1));
+$("#dupQtyDown")?.addEventListener("click",()=>setDuplicateQty(readDuplicateQty()-1));
+$("#duplicateQty")?.addEventListener("change",()=>setDuplicateQty(readDuplicateQty()));
+$("#duplicateBtn").onclick=()=>{
+  if(!copySelection(true)) return;
+  pasteClipboard(readDuplicateQty());
+};
 $("#aspectLockBtn").onclick=()=>{
  const o=objById(state.selectedId); if(!o) return;
+ if(o.type==="text") return; // text stays proportion-locked
  ensureAspect(o); pushHistory();
  o.aspectLocked=!o.aspectLocked;
  if(o.aspectLocked) o.aspectRatio=Math.max(.0001,o.w/o.h);
@@ -2686,22 +3969,16 @@ $("#toolbarDeleteBtn").onclick=deleteSelection;
 
 
 
-function packCandidateLayout(sourceItems, orderMode, allowRotate){
-  const gap=Math.max(0,+$("#nestGap").value||0);
-  const m=state.sheet.margin;
-  const maxW=state.sheet.w-2*m;
-  const maxH=MAX_SHEET_HEIGHT-2*m;
+async function packCandidateLayout(sourceItems, orderMode, allowRotate){
+  const gap=nestGapValue();
+  const maxW=state.sheet.w-2*state.sheet.margin;
+  const maxH=MAX_SHEET_HEIGHT-2*state.sheet.margin;
 
-  const items=sourceItems.map(o=>{
-    ensureRotationModel(o);
-    return {
-      id:o.id,
-      // Canonical size, completely independent of current manual rotation.
-      w:o.baseW,
-      h:o.baseH,
-      rot:0
-    };
-  });
+  const items=sourceItems.map(o=>({
+    id:o.id,
+    w:o.baseW,
+    h:o.baseH
+  }));
   const sorters={
     area:(a,b)=>(b.w*b.h)-(a.w*a.h),
     maxSide:(a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h),
@@ -2712,94 +3989,18 @@ function packCandidateLayout(sourceItems, orderMode, allowRotate){
   items.sort(sorters[orderMode]||sorters.area);
 
   const placed=[];
+  let usedH=0,usedW=0,area=0,rotations=0;
+  const yieldEvery=items.length>80?12:items.length>40?24:0;
 
-  function collides(candidate){
-    const c={
-      x:candidate.x-gap/2,
-      y:candidate.y-gap/2,
-      w:candidate.w+gap,
-      h:candidate.h+gap
-    };
-    return placed.some(p=>{
-      const r={x:p.x-gap/2,y:p.y-gap/2,w:p.w+gap,h:p.h+gap};
-      return rectsOverlap(c,r);
-    });
-  }
-
-  function candidatesFor(w,h){
-    const pts=[{x:0,y:0}];
-    for(const p of placed){
-      pts.push({x:p.x+p.w+gap,y:p.y});
-      pts.push({x:p.x,y:p.y+p.h+gap});
-      pts.push({x:p.x+p.w+gap,y:0});
-      pts.push({x:0,y:p.y+p.h+gap});
-    }
-
-    // Cross-combinations let a small item fall into holes bounded by
-    // the right edge of one object and bottom edge of another.
-    const xs=[0,...placed.map(p=>p.x+p.w+gap)];
-    const ys=[0,...placed.map(p=>p.y+p.h+gap)];
-    for(const x of xs) for(const y of ys) pts.push({x,y});
-
-    const seen=new Set();
-    return pts.filter(pt=>{
-      const x=Math.round(pt.x*1000)/1000;
-      const y=Math.round(pt.y*1000)/1000;
-      const k=x+"|"+y;
-      if(seen.has(k)) return false;
-      seen.add(k);
-      return x>=0&&y>=0&&x+w<=maxW+.0001&&y+h<=maxH+.0001;
-    }).map(pt=>({x:pt.x,y:pt.y,w,h}));
-  }
-
-  for(const item of items){
+  for(let i=0;i<items.length;i++){
+    const item=items[i];
     const orientations=[{w:item.w,h:item.h,rotated:false}];
     if(allowRotate && Math.abs(item.w-item.h)>.001){
       orientations.push({w:item.h,h:item.w,rotated:true});
     }
 
-    let best=null;
-    for(const or of orientations){
-      for(const c of candidatesFor(or.w,or.h)){
-        if(collides(c)) continue;
-        const usedHeight=Math.max(
-          c.y+c.h,
-          ...placed.map(p=>p.y+p.h),
-          0
-        );
-        const usedWidth=Math.max(
-          c.x+c.w,
-          ...placed.map(p=>p.x+p.w),
-          0
-        );
-
-        // Highest priority: smallest used height.
-        // Then topmost/leftmost placement and compact used width.
-        const score=[
-          usedHeight,
-          c.y,
-          c.x,
-          usedWidth,
-          (maxW-c.w)*(maxH-c.h)
-        ];
-
-        if(!best){
-          best={...c,rotated:or.rotated,score};
-        }else{
-          let better=false;
-          for(let i=0;i<score.length;i++){
-            if(score[i]<best.score[i]-.0001){better=true;break}
-            if(score[i]>best.score[i]+.0001)break;
-          }
-          if(better) best={...c,rotated:or.rotated,score};
-        }
-      }
-    }
-
+    const best=bestNestSlot(orientations,placed,maxW,maxH,gap);
     if(!best) return null;
-
-    // FINAL SAFETY CHECK against every placed rectangle.
-    if(collides(best)) return null;
 
     placed.push({
       id:item.id,
@@ -2809,48 +4010,57 @@ function packCandidateLayout(sourceItems, orderMode, allowRotate){
       h:best.h,
       rotated:best.rotated
     });
-  }
+    usedH=Math.max(usedH,best.y+best.h);
+    usedW=Math.max(usedW,best.x+best.w);
+    area+=best.w*best.h;
+    if(best.rotated) rotations++;
 
-  // Absolute final validation: no pair may overlap.
-  for(let i=0;i<placed.length;i++){
-    for(let j=i+1;j<placed.length;j++){
-      const a={x:placed[i].x-gap/2,y:placed[i].y-gap/2,w:placed[i].w+gap,h:placed[i].h+gap};
-      const b={x:placed[j].x-gap/2,y:placed[j].y-gap/2,w:placed[j].w+gap,h:placed[j].h+gap};
-      if(rectsOverlap(a,b)) return null;
+    if(yieldEvery && (i%yieldEvery===yieldEvery-1)){
+      await new Promise(res=>setTimeout(res,0));
     }
   }
 
-  const usedH=placed.reduce((mx,p)=>Math.max(mx,p.y+p.h),0);
-  const usedW=placed.reduce((mx,p)=>Math.max(mx,p.x+p.w),0);
-  const area=placed.reduce((s,p)=>s+p.w*p.h,0);
   const waste=Math.max(0,usedW*usedH-area);
-  const rotations=placed.reduce((n,p)=>n+(p.rotated?1:0),0);
   return {placed,usedH,usedW,waste,rotations};
 }
 
-function autoNest(){
+function nestLayoutCollides(placed,gap){
+  for(let i=0;i<placed.length;i++){
+    for(let j=i+1;j<placed.length;j++){
+      const a=placed[i],b=placed[j];
+      if(rectsOverlap(
+        {x:a.x-gap/2,y:a.y-gap/2,w:a.w+gap,h:a.h+gap},
+        {x:b.x-gap/2,y:b.y-gap/2,w:b.w+gap,h:b.h+gap}
+      )) return true;
+    }
+  }
+  return false;
+}
+
+let autoNestRunning=false;
+async function autoNest(){
+  if(autoNestRunning) return toast("Ya se está organizando…");
   if(!state.objects.length) return toast("No hay diseños para organizar.");
 
+  const count=state.objects.length;
   const userAllowsRotation=$("#allowRotate").checked;
-  const modes=["area","maxSide","height","width","perimeter"];
-  let bestResult=null;
+  // Fewer strategies as N grows — quality vs UI freeze.
+  let modes;
+  if(count>120) modes=["area"];
+  else if(count>60) modes=["area","maxSide"];
+  else if(count>30) modes=["area","maxSide","height"];
+  else modes=["area","maxSide","height","width","perimeter"];
 
-  // Always test a complete layout with zero rotations. This prevents the
-  // greedy packer from rotating the first item just because it is shorter,
-  // when the global result would actually use more sheet length.
-  const rotationPolicies=userAllowsRotation ? [false,true] : [false];
+  // For large packs, skip the extra "force no-rotate" pass (biggest cost).
+  const rotationPolicies=(userAllowsRotation && count<=60) ? [false,true]
+    : [userAllowsRotation];
 
   const cleanItems=state.objects.map(o=>{
     ensureRotationModel(o);
     return {
-      ...o,
-      x:0,
-      y:0,
-      rot:0,
-      w:o.baseW,
-      h:o.baseH,
-      visualW:o.baseW,
-      visualH:o.baseH
+      id:o.id,
+      baseW:o.baseW,
+      baseH:o.baseH
     };
   });
 
@@ -2858,128 +4068,250 @@ function autoNest(){
     if(!best) return true;
     if(r.usedH < best.usedH-.001) return true;
     if(r.usedH > best.usedH+.001) return false;
-
-    // Same length: use less wasted rectangle area.
     if(r.waste < best.waste-.001) return true;
     if(r.waste > best.waste+.001) return false;
-
-    // Same practical packing quality: prefer fewer rotations.
     if((r.rotations||0) < (best.rotations||0)) return true;
     if((r.rotations||0) > (best.rotations||0)) return false;
-
     return r.usedW < best.usedW-.001;
   }
 
-  for(const rotationPolicy of rotationPolicies){
-    for(const mode of modes){
-      const r=packCandidateLayout(cleanItems,mode,rotationPolicy);
-      if(!r) continue;
-      if(betterLayout(r,bestResult)) bestResult=r;
+  autoNestRunning=true;
+  const btn=$("#autoNestTopBtn");
+  if(btn) btn.disabled=true;
+  let bestResult=null;
+
+  try{
+    toast(count>40?`Organizando ${count} diseños…`:"Organizando…");
+    const jobs=[];
+    for(const rotationPolicy of rotationPolicies){
+      for(const mode of modes) jobs.push({mode,rotationPolicy});
     }
-  }
 
-  if(!bestResult){
-    toast("No se pudo acomodar todo. Prueba reducir la separación o dividir el trabajo en otra hoja.");
-    return;
-  }
+    for(let i=0;i<jobs.length;i++){
+      const {mode,rotationPolicy}=jobs[i];
+      if(count>40) toast(`Organizando… ${i+1}/${jobs.length}`);
+      const r=await packCandidateLayout(cleanItems,mode,rotationPolicy);
+      if(r && betterLayout(r,bestResult)) bestResult=r;
+    }
 
-  const gap=Math.max(0,+$("#nestGap").value||0);
-  for(let i=0;i<bestResult.placed.length;i++){
-    for(let j=i+1;j<bestResult.placed.length;j++){
-      const a=bestResult.placed[i],b=bestResult.placed[j];
-      if(rectsOverlap(
-        {x:a.x-gap/2,y:a.y-gap/2,w:a.w+gap,h:a.h+gap},
-        {x:b.x-gap/2,y:b.y-gap/2,w:b.w+gap,h:b.h+gap}
-      )){
-        toast("Auto Organizar cancelado: se detectó una colisión interna.");
-        return;
+    if(!bestResult){
+      toast("No se pudo acomodar todo. Prueba reducir la separación o dividir el trabajo en otra hoja.");
+      return;
+    }
+
+    const gap=nestGapValue();
+    if(nestLayoutCollides(bestResult.placed,gap)){
+      toast("Auto Organizar cancelado: se detectó una colisión interna.");
+      return;
+    }
+
+    pushHistory();
+    const byId=new Map(bestResult.placed.map(p=>[p.id,p]));
+    const m=state.sheet.margin;
+
+    for(const o of state.objects){
+      ensureRotationModel(o);
+      const p=byId.get(o.id);
+      if(!p) continue;
+
+      o.w=o.baseW;
+      o.h=o.baseH;
+      o.visualW=o.baseW;
+      o.visualH=o.baseH;
+      o.aspectRatio=o.baseW/o.baseH;
+      o.rot=0;
+
+      if(p.rotated){
+        o.rot=90;
+        const cx=m+p.x+p.w/2;
+        const cy=m+p.y+p.h/2;
+        o.x=cx-o.w/2;
+        o.y=cy-o.h/2;
+      }else{
+        o.x=m+p.x;
+        o.y=m+p.y;
       }
     }
-  }
 
-  pushHistory();
-  const byId=new Map(bestResult.placed.map(p=>[p.id,p]));
+    recalcActiveSheetHeight();
+    updateDiagnostics();
 
-  for(const o of state.objects){
-    ensureRotationModel(o);
-    const p=byId.get(o.id);
-    if(!p) continue;
-
-    // Full reset to canonical size and zero manual rotation.
-    o.w=o.baseW;
-    o.h=o.baseH;
-    o.visualW=o.baseW;
-    o.visualH=o.baseH;
-    o.aspectRatio=o.baseW/o.baseH;
-    o.rot=0;
-
-    if(p.rotated){
-      o.rot=90;
-      const cx=state.sheet.margin+p.x+p.w/2;
-      const cy=state.sheet.margin+p.y+p.h/2;
-      o.x=cx-o.w/2;
-      o.y=cy-o.h/2;
-    }else{
-      o.x=state.sheet.margin+p.x;
-      o.y=state.sheet.margin+p.y;
+    if(state.objects.some(o=>o.overlap)){
+      undo();
+      toast("Auto Organizar cancelado porque el resultado tenía imágenes superpuestas.");
+      return;
     }
+
+    renderAll();
+    setTimeout(fitViewport,20);
+    const rotText=(bestResult.rotations||0) ? ` · ${bestResult.rotations} rotada${bestResult.rotations===1?"":"s"}` : " · sin rotaciones";
+    toast(`Auto Organizar listo · ${bestResult.usedH.toFixed(1)} cm${rotText}`);
+  }finally{
+    autoNestRunning=false;
+    if(btn) btn.disabled=false;
   }
-
-  recalcActiveSheetHeight();
-  updateDiagnostics();
-
-  if(state.objects.some(o=>o.overlap)){
-    undo();
-    toast("Auto Organizar cancelado porque el resultado tenía imágenes superpuestas.");
-    return;
-  }
-
-  renderAll();
-  setTimeout(fitViewport,20);
-  const rotText=(bestResult.rotations||0) ? ` · ${bestResult.rotations} rotada${bestResult.rotations===1?"":"s"}` : " · sin rotaciones";
-  toast(`Auto Organizar listo · ${bestResult.usedH.toFixed(1)} cm${rotText}`);
 }
-$("#autoNestTopBtn").onclick=autoNest;
-$("#fillSelectedBtn").onclick=()=>{
+$("#autoNestTopBtn").onclick=()=>{autoNest()};
+
+// Auto Rellenar: shelf pack left→right, top→bottom.
+// MaxRects/BSSF was leaving random right-edge orphans and rotating into skinny pockets.
+function fillOccupancyFromSheet(gap,m){
+  return state.objects.map(o=>{
+    ensureRotationModel(o);
+    const r=rotatedAABB(o);
+    return {x:r.x-m,y:r.y-m,w:r.w+gap,h:r.h+gap};
+  });
+}
+function fillLocalCollides(x,y,w,h,occupied){
+  const a={x,y,w,h};
+  return occupied.some(b=>rectsOverlap(a,b));
+}
+function fillJumpPastObstacle(x,y,w,h,occupied){
+  let next=x+0.05;
+  const probe={x,y,w,h};
+  for(const b of occupied){
+    if(!rectsOverlap(probe,b)) continue;
+    next=Math.max(next,b.x+b.w);
+  }
+  return next;
+}
+
+let fillRunning=false;
+$("#fillSelectedBtn").onclick=async ()=>{
+  if(fillRunning) return toast("Ya se está rellenando…");
   const src=objById(state.selectedId);
   if(!src) return toast("Selecciona un diseño primero.");
 
   ensureRotationModel(src);
+  const gap=nestGapValue();
+  const m=state.sheet.margin;
+  const maxW=state.sheet.w-2*m;
+  const maxH=state.sheet.h-2*m;
+  if(maxW<=.01 || maxH<=.01) return toast("La hoja no tiene área útil.");
+
+  // Prefer the current orientation. Rotation only as a second pass for leftovers.
+  const srcRot=((src.rot||0)%360+360)%360;
+  const box0=rotatedAABB({...src,rot:srcRot});
+  if(box0.w>maxW+.001 || box0.h>maxH+.001){
+    return toast("Este diseño no cabe en el área útil de la hoja.");
+  }
+
   pushHistory();
+  fillRunning=true;
+  const btn=$("#fillSelectedBtn");
+  if(btn) btn.disabled=true;
 
-  const maxSafety=500;
+  const occupied=fillOccupancyFromSheet(gap,m);
   let added=0;
+  let rotated=0;
+  let copySeq=0;
+  const baseName=baseCopyName(src.name||"Diseño");
+  // Pre-scan once so renaming stays O(1) while placing hundreds of copies.
+  for(const o of state.objects){
+    if(baseCopyName(o.name||"")!==baseName) continue;
+    const mNum=String(o.name||"").match(/\s+x(\d+)$/i);
+    const num=mNum?parseInt(mNum[1],10):1;
+    if(Number.isFinite(num)) copySeq=Math.max(copySeq,num);
+  }
 
-  for(let i=0;i<maxSafety;i++){
+  function commitPlacement(localX,localY,rot,bw,bh){
+    const probe=objectAtAABBTopLeft({...src,rot},m+localX,m+localY);
+    if(!objectInsidePrintableArea(probe,state.sheet.h)) return null;
+    if(objectPlacementCollides(probe,null,gap)) return null;
     const n=JSON.parse(JSON.stringify(src));
     delete n.src;
     n.id=uid();
-    n.name=nextCopyName(src.name||"Diseño");
-
-    // STRICT: only use already-existing empty space. Never grow the sheet.
-    const pos=findFreePlacementForObject(n,state.sheet.h,null);
-    if(!pos) break;
-
-    n.x=pos.x;
-    n.y=pos.y;
-
-    if(!objectInsidePrintableArea(n,state.sheet.h)) break;
-    if(objectPlacementCollides(n,null)) break;
-
+    copySeq++;
+    n.name=`${baseName} x${copySeq}`;
+    n.x=probe.x;n.y=probe.y;n.rot=rot;
+    // Keep fill visuals calm: new copies are not selected mid-animation.
     state.objects.push(n);
+    occupied.push({x:localX,y:localY,w:bw+gap,h:bh+gap});
+    if(Math.abs((((rot-srcRot)%360)+360)%360)>1) rotated++;
     added++;
+    return n;
   }
 
-  if(!added){
-    state.history.pop();
-    toast("No hay espacio vacío suficiente para otra copia.");
-    return;
+  async function paintPlacement(n){
+    ensureAspect(n);
+    ensureRotationModel(n);
+    renderObject(n);
+    if(added===1 || added%20===0) toast(`Rellenando… ${added} copia${added===1?"":"s"}`);
+    // One frame per copy so the user sees them land (and the tab stays responsive).
+    await new Promise(r=>requestAnimationFrame(r));
   }
 
-  state.selectedId=state.objects.at(-1).id;
-  state.selectedIds=[state.selectedId];
-  renderAll();
-  toast(`Se añadieron ${added} copia${added===1?"":"s"} solo en espacios vacíos`);
+  async function shelfFill(bw,bh,rot){
+    const ySet=new Set([0]);
+    for(const o of occupied) ySet.add(Math.max(0,o.y+o.h));
+    for(let y=0;y+bh<=maxH+.001;y+=bh+gap) ySet.add(Math.round(y*1000)/1000);
+    const yList=[...ySet].filter(y=>y>=0 && y+bh<=maxH+.001).sort((a,b)=>a-b);
+
+    for(const y of yList){
+      let x=0;
+      while(x+bw<=maxW+.001){
+        if(!fillLocalCollides(x,y,bw,bh,occupied)){
+          const n=commitPlacement(x,y,rot,bw,bh);
+          if(n){
+            x+=bw+gap;
+            await paintPlacement(n);
+          }else{
+            x+=Math.max(0.05,Math.min(bw,0.5));
+          }
+        }else{
+          const jumped=fillJumpPastObstacle(x,y,bw,bh,occupied);
+          x=jumped<=x?x+0.05:jumped;
+        }
+      }
+    }
+  }
+
+  try{
+    toast("Rellenando espacios…");
+    // Pass 1: keep orientation, fill row by row around obstacles.
+    await shelfFill(box0.w,box0.h,srcRot);
+
+    // Pass 2: hunt leftover pockets with nest scoring (same orientation first).
+    for(;;){
+      const probeTemplate={...src,rot:srcRot};
+      const pos=findFreePlacementForObject(probeTemplate,state.sheet.h,null,gap,false);
+      if(!pos) break;
+      const n=commitPlacement(pos.x-m,pos.y-m,pos.rot??srcRot,box0.w,box0.h);
+      if(!n) break;
+      await paintPlacement(n);
+    }
+
+    // Pass 3 (optional): only if "Permitir rotar" is on — fill odd leftover pockets.
+    if($("#allowRotate")?.checked){
+      const rot1=(srcRot+90)%360;
+      const box1=rotatedAABB({...src,rot:rot1});
+      if(box1.w<=maxW+.001 && box1.h<=maxH+.001 && (Math.abs(box1.w-box0.w)>.001||Math.abs(box1.h-box0.h)>.001)){
+        await shelfFill(box1.w,box1.h,rot1);
+        for(;;){
+          const pos=findFreePlacementForObject({...src,rot:rot1},state.sheet.h,null,gap,false);
+          if(!pos) break;
+          const n=commitPlacement(pos.x-m,pos.y-m,pos.rot??rot1,box1.w,box1.h);
+          if(!n) break;
+          await paintPlacement(n);
+        }
+      }
+    }
+
+    if(!added){
+      state.history.pop();
+      toast("No hay espacio vacío suficiente para otra copia.");
+      return;
+    }
+
+    state.selectedId=state.objects.at(-1).id;
+    state.selectedIds=[state.selectedId];
+    renderAll();
+    const rotTxt=rotated?` · ${rotated} rotada${rotated===1?"":"s"}`:"";
+    toast(`Se añadieron ${added} copia${added===1?"":"s"}${rotTxt}`);
+  }finally{
+    fillRunning=false;
+    if(btn) btn.disabled=false;
+  }
 };
 
 
@@ -3058,18 +4390,7 @@ async function renderQualityTile(tileX,tileY,tileW,tileH,s){
       continue;
     }
 
-    ctx.save();
-    const cx=(o.x+o.w/2)*s;
-    const cy=(o.y+o.h/2)*s;
-    ctx.translate(cx,cy);
-    ctx.rotate((o.rot||0)*Math.PI/180);
-    ctx.scale(o.flipX?-1:1,o.flipY?-1:1);
-    ctx.fillStyle=o.color||"#111";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
-    ctx.font=`900 ${Math.max(10,o.fontSize*s/10)}px sans-serif`;
-    ctx.fillText(o.text,0,0,o.w*s);
-    ctx.restore();
+    drawCanvasTextObject(ctx,o,s);
   }
 
   ctx.restore();
@@ -3271,7 +4592,7 @@ async function quality(){
 function renderQualityCanvas(){
  const c=$("#qualityCanvas"),ctx=c.getContext("2d"),scale=Math.min(260/(state.sheet.w*PX_PER_CM),300/(state.sheet.h*PX_PER_CM));
  c.width=Math.max(1,state.sheet.w*PX_PER_CM*scale);c.height=Math.max(1,state.sheet.h*PX_PER_CM*scale);ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);
- state.objects.forEach(o=>{if(o.type==="image"){const im=new Image;im.onload=()=>ctx.drawImage(im,o.x*PX_PER_CM*scale,o.y*PX_PER_CM*scale,o.w*PX_PER_CM*scale,o.h*PX_PER_CM*scale);im.src=objectSrc(o)}else{ctx.fillStyle=o.color||"#111";ctx.font=`bold ${Math.max(8,o.fontSize*.25*scale)}px sans-serif`;ctx.fillText(o.text,o.x*PX_PER_CM*scale,(o.y+o.h*.7)*PX_PER_CM*scale)}})
+ state.objects.forEach(o=>{if(o.type==="image"){const im=new Image;im.onload=()=>ctx.drawImage(im,o.x*PX_PER_CM*scale,o.y*PX_PER_CM*scale,o.w*PX_PER_CM*scale,o.h*PX_PER_CM*scale);im.src=objectSrc(o)}else{drawCanvasTextObject(ctx,o,PX_PER_CM*scale)}})
 }
 $("#qualityBtn").onclick=quality;
 $("#alphaThreshold").addEventListener("input",e=>$("#alphaThresholdValue").textContent=e.target.value);
@@ -3289,10 +4610,29 @@ $("#sheetsTabBtn").onclick=()=>showRightPanel("sheets");
 $("#createSheetBtn").onclick=createBlankSheetFromUI;
 
 
+function setShowOutlines(on,{skipRender=false}={}){
+  state.showResolution=!!on;
+  const settings=$("#showResolution");
+  const help=$("#showOutlinesToggle");
+  if(settings) settings.checked=state.showResolution;
+  if(help) help.checked=state.showResolution;
+  if(!skipRender) renderAll();
+}
 $("#colorHelpBtn").onclick=e=>{
   e.stopPropagation();
-  $("#colorHelpPopover").classList.toggle("hidden");
+  const pop=$("#colorHelpPopover");
+  const opening=pop.classList.contains("hidden");
+  pop.classList.toggle("hidden");
+  if(opening){
+    const t=$("#showOutlinesToggle");
+    if(t) t.checked=!!state.showResolution;
+  }
 };
+$("#showOutlinesToggle")?.addEventListener("click",e=>e.stopPropagation());
+$("#showOutlinesToggle")?.addEventListener("change",e=>{
+  e.stopPropagation();
+  setShowOutlines(e.target.checked);
+});
 document.addEventListener("click",e=>{
   const wrap=document.querySelector(".color-help-wrap");
   if(wrap && !wrap.contains(e.target)) $("#colorHelpPopover").classList.add("hidden");
@@ -3300,13 +4640,22 @@ document.addEventListener("click",e=>{
 
 
 function openModal(id){$("#"+id).classList.remove("hidden")}
-$$("[data-close]").forEach(b=>b.onclick=()=>$("#"+b.dataset.close).classList.add("hidden"));
+$$("[data-close]").forEach(b=>b.onclick=()=>{
+  if(b.dataset.close==="inspectModal"){ closeInspectPreview(); return; }
+  $("#"+b.dataset.close).classList.add("hidden");
+});
+wireInspectPreview();
 
 
 function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function setPanel(name){
- const map={uploads:["Añadir imagen","Sube tus diseños y colócalos en la hoja."],text:["Añadir texto","Crea textos directamente en la hoja."],settings:["Ajustes","Configura la hoja y la asistencia visual."]};
- $$(".tool-nav").forEach(x=>x.classList.toggle("active",x.dataset.panel===name));$$(".panel-view").forEach(x=>x.classList.remove("active"));$("#"+name+"Panel").classList.add("active");$("#panelTitle").textContent=map[name][0];$("#panelSubtitle").textContent=map[name][1]
+ const map={uploads:["Añadir imagen","Sube tus diseños y colócalos en la hoja."],text:["Texto","Edita estilo; doble clic en la hoja para cambiar la palabra."],settings:["Ajustes","Configura la hoja y la asistencia visual."]};
+ $$(".tool-nav").forEach(x=>x.classList.toggle("active",x.dataset.panel===name));
+ $$(".panel-view").forEach(x=>x.classList.remove("active"));
+ $("#"+name+"Panel").classList.add("active");
+ $("#panelTitle").textContent=map[name][0];
+ $("#panelSubtitle").textContent=map[name][1];
+ if(name==="text") void addText("bixprint");
 }
 $$(".tool-nav[data-panel]").forEach(b=>b.onclick=()=>setPanel(b.dataset.panel));
 
@@ -3351,10 +4700,11 @@ $("#applySettingsBtn").onclick=()=>{
  state.sheet.w=Math.max(5,+$("#sheetWidth").value||62);
  state.sheet.h=Math.min(MAX_SHEET_HEIGHT,Math.max(MIN_SHEET_HEIGHT,+$("#sheetHeight").value||MIN_SHEET_HEIGHT));
  state.sheet.margin=Math.max(0,+$("#sheetMargin").value||0);
- state.snap=$("#snapToggle").checked;state.showResolution=$("#showResolution").checked;
+ state.snap=$("#snapToggle").checked;
+ setShowOutlines($("#showResolution").checked,{skipRender:true});
  renderAll();setTimeout(fitViewport,20);toast("Ajustes aplicados")
 };
-$("#showResolution").onchange=e=>{state.showResolution=e.target.checked;renderAll()};
+$("#showResolution").onchange=e=>setShowOutlines(e.target.checked);
 $("#snapToggle").onchange=e=>state.snap=e.target.checked;
 
 
@@ -3629,18 +4979,7 @@ async function exportPng(){
     }
 
     // Text remains vector-like until rasterized onto the 300-DPI canvas.
-    ctx.save();
-    const cx=(o.x+o.w/2)*pxPerCm;
-    const cy=(o.y+o.h/2)*pxPerCm;
-    ctx.translate(cx,cy);
-    ctx.rotate((o.rot||0)*Math.PI/180);
-    ctx.scale(o.flipX?-1:1,o.flipY?-1:1);
-    ctx.fillStyle=o.color||"#111";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
-    ctx.font=`900 ${Math.max(10,o.fontSize*pxPerCm/10)}px sans-serif`;
-    ctx.fillText(o.text,0,0,o.w*pxPerCm);
-    ctx.restore();
+    drawCanvasTextObject(ctx,o,pxPerCm);
   }
 
   // Final alpha safety only when all raster images are known binary.
@@ -3760,7 +5099,7 @@ function cloneForPaste(o,offsetCm=.8){
   n.y=state.sheet.margin;
   return n;
 }
-function copySelection(){
+function copySelection(silent=false){
   const ids=state.selectedIds.length?state.selectedIds:(state.selectedId?[state.selectedId]:[]);
   if(!ids.length) return false;
   state.clipboard=ids.map(id=>objById(id)).filter(Boolean).map(o=>{
@@ -3768,26 +5107,29 @@ function copySelection(){
     delete n.src;
     return n;
   });
-  toast(state.clipboard.length===1?"Copiado":"Objetos copiados");
+  if(!silent) toast(state.clipboard.length===1?"Copiado":"Objetos copiados");
   return true;
 }
-function pasteClipboard(){
+function pasteClipboard(count=1){
   if(!state.clipboard.length) return false;
+  const times=Math.max(1,Math.min(999,Math.round(+count||1)));
   pushHistory();
 
   const pasted=[];
   let failed=0;
 
-  for(const src of state.clipboard){
-    const n=cloneForPaste(src);
-    const placed=placeObjectWithAutoGrowth(n);
-    if(!placed){
-      failed++;
-      continue;
+  for(let t=0;t<times;t++){
+    for(const src of state.clipboard){
+      const n=cloneForPaste(src);
+      const placed=placeObjectWithAutoGrowth(n);
+      if(!placed){
+        failed++;
+        continue;
+      }
+      // Important: add only AFTER a valid in-sheet position was found.
+      state.objects.push(n);
+      pasted.push(n);
     }
-    // Important: add only AFTER a valid in-sheet position was found.
-    state.objects.push(n);
-    pasted.push(n);
   }
 
   if(!pasted.length){
@@ -3798,10 +5140,12 @@ function pasteClipboard(){
 
   state.selectedIds=pasted.map(o=>o.id);
   state.selectedId=pasted.at(-1).id;
+  recalcActiveSheetHeight();
   renderAll();
 
   if(failed) toast(`${pasted.length} copia(s) colocadas; ${failed} no pudieron acomodarse.`);
-  else toast(pasted.length===1?"Pegado y acomodado":"Objetos pegados y acomodados");
+  else if(times>1) toast(`${pasted.length} copia(s) duplicadas y acomodadas`);
+  else toast(pasted.length===1?"Duplicado y acomodado (compacto)":"Objetos pegados y acomodados (compacto)");
   return true;
 }
 // Exponer el pegado interno únicamente para el menú contextual.
@@ -3896,6 +5240,27 @@ document.addEventListener("keydown",e=>{
  const mod=e.ctrlKey||e.metaKey;
  const key=e.key.toLowerCase();
 
+ if(isInspectOpen()){
+   if(e.key==="Escape"){ e.preventDefault(); closeInspectPreview(); return; }
+   if(key==="0" || key==="f"){ e.preventDefault(); inspectCenterAt(inspectFitScale()); return; }
+   if(key==="1"){ e.preventDefault(); inspectCenterAt(1); return; }
+   if(key==="+" || key==="="){
+     e.preventDefault();
+     const r=$("#inspectStage").getBoundingClientRect();
+     inspectZoomAt(r.left+r.width/2, r.top+r.height/2, inspect.scale*1.35);
+     return;
+   }
+   if(key==="-"){
+     e.preventDefault();
+     const r=$("#inspectStage").getBoundingClientRect();
+     inspectZoomAt(r.left+r.width/2, r.top+r.height/2, inspect.scale/1.35);
+     return;
+   }
+   // Block canvas shortcuts while inspecting.
+   if(["Delete","Backspace"].includes(e.key) || mod) e.preventDefault();
+   return;
+ }
+
  if(e.code==="Space"&&!typing){
    e.preventDefault();
    spaceHeld=true;
@@ -3925,7 +5290,7 @@ document.addEventListener("keydown",e=>{
  }
  if(mod && key==="d" && !typing){
    e.preventDefault();
-   if(copySelection()) pasteClipboard();
+   if(copySelection(true)) pasteClipboard();
    return;
  }
  if((e.key==="Delete"||e.key==="Backspace")&&!typing){

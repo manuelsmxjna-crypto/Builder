@@ -1,9 +1,17 @@
-BixStudio · Semitono + mejora de calidad
+BixStudio · Semitono + mejora de calidad + quitar fondo
 
 1. Ejecuta INICIAR_BIXSTUDIO.bat en Windows.
 2. El navegador abrirá BixStudio desde un servidor local.
 3. Selecciona una imagen.
-4. Usa “Mejorar calidad con IA” directamente: el progreso aparece sobre la imagen, sin ventanas.
+4. Usa “Mejorar calidad con IA” o “Quitar fondo con IA” directamente: el progreso aparece sobre la imagen.
 5. “Crear semitono” usa Intensidad Ligero por defecto.
+
+Quitar fondo:
+- Usa el modelo local en models/ (no renombres ni muevas esa carpeta)
+- WebGPU si está disponible; si no, WASM
+- El modelo se precarga al abrir BixStudio
+- Salida con alpha sólido pensado para DTF
+- Se puede combinar con mejora de calidad y semitono
+- “Restaurar imagen original” deshace los procesados
 
 Los archivos de procesamiento deben mantenerse dentro de esta carpeta.
