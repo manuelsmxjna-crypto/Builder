@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v4.1-inline-worker-fallback · SHOPIFY_STORAGE_V1 · PNG_300DPI_PHYS_EXIF_XMP_V2 -->
+  <!-- SHAPE_NEST_VERSION: v4.1-inline-worker-fallback · SHOPIFY_STORAGE_V1 · PNG_PHYS_300DPI_VERIFIED · ORDER_DOWNLOAD_LINK_V1 -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -6184,111 +6184,19 @@ function pngWriteU32(bytes,offset,value){
   bytes[offset+3]=value&255;
 }
 
-function pngMakeChunk(typeText,data){
-  const type=new TextEncoder().encode(typeText);
-  const chunk=new Uint8Array(12+data.length);
-  pngWriteU32(chunk,0,data.length);
-  chunk.set(type,4);
-  chunk.set(data,8);
-
-  const crcData=new Uint8Array(type.length+data.length);
-  crcData.set(type,0);
-  crcData.set(data,type.length);
-  pngWriteU32(chunk,8+data.length,pngCrc32(crcData));
-  return chunk;
-}
-
 function makePngPhysChunk(dpi=300){
-  const ppm=Math.round(dpi/0.0254); // 300 DPI => 11811 pixels/metre
-  const data=new Uint8Array(9);
-  pngWriteU32(data,0,ppm);
-  pngWriteU32(data,4,ppm);
-  data[8]=1; // metre
-  return pngMakeChunk("pHYs",data);
-}
+  const ppm=Math.round(dpi/0.0254); // 300 DPI = 11811 px/m
+  const chunk=new Uint8Array(21);
 
-function makePngExifChunk(dpi=300){
-  // PNG eXIf contains the TIFF profile directly (without "Exif\0\0").
-  // Little-endian TIFF with:
-  // XResolution = dpi/1
-  // YResolution = dpi/1
-  // ResolutionUnit = inches (2)
-  const data=new Uint8Array(66);
-  const v=new DataView(data.buffer);
+  pngWriteU32(chunk,0,9);
+  chunk.set([0x70,0x48,0x59,0x73],4); // "pHYs"
+  pngWriteU32(chunk,8,ppm);           // X pixels/metre
+  pngWriteU32(chunk,12,ppm);          // Y pixels/metre
+  chunk[16]=1;                        // unit specifier: metre
 
-  // TIFF header
-  data[0]=0x49; data[1]=0x49;       // "II"
-  v.setUint16(2,42,true);
-  v.setUint32(4,8,true);            // first IFD offset
-
-  // 3 directory entries
-  v.setUint16(8,3,true);
-
-  let e=10;
-
-  // XResolution (0x011A), RATIONAL, count 1, data offset 50
-  v.setUint16(e,0x011A,true);
-  v.setUint16(e+2,5,true);
-  v.setUint32(e+4,1,true);
-  v.setUint32(e+8,50,true);
-  e+=12;
-
-  // YResolution (0x011B), RATIONAL, count 1, data offset 58
-  v.setUint16(e,0x011B,true);
-  v.setUint16(e+2,5,true);
-  v.setUint32(e+4,1,true);
-  v.setUint32(e+8,58,true);
-  e+=12;
-
-  // ResolutionUnit (0x0128), SHORT, count 1, value = 2 (inch)
-  v.setUint16(e,0x0128,true);
-  v.setUint16(e+2,3,true);
-  v.setUint32(e+4,1,true);
-  v.setUint16(e+8,2,true);
-  v.setUint16(e+10,0,true);
-  e+=12;
-
-  // Next IFD = none
-  v.setUint32(e,0,true);
-
-  // Rationals
-  v.setUint32(50,Math.round(dpi),true);
-  v.setUint32(54,1,true);
-  v.setUint32(58,Math.round(dpi),true);
-  v.setUint32(62,1,true);
-
-  return pngMakeChunk("eXIf",data);
-}
-
-function makePngAdobeXmpChunk(dpi=300){
-  const xml=`<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>
-<x:xmpmeta xmlns:x="adobe:ns:meta/">
- <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-  <rdf:Description rdf:about=""
-   xmlns:tiff="http://ns.adobe.com/tiff/1.0/"
-   tiff:XResolution="${dpi}/1"
-   tiff:YResolution="${dpi}/1"
-   tiff:ResolutionUnit="2"/>
- </rdf:RDF>
-</x:xmpmeta>
-<?xpacket end="w"?>`;
-
-  const keyword=new TextEncoder().encode("XML:com.adobe.xmp");
-  const xmlBytes=new TextEncoder().encode(xml);
-
-  // iTXt layout:
-  // keyword\0 compressionFlag compressionMethod language\0 translatedKeyword\0 text
-  const data=new Uint8Array(keyword.length+5+xmlBytes.length);
-  let p=0;
-  data.set(keyword,p); p+=keyword.length;
-  data[p++]=0; // keyword terminator
-  data[p++]=0; // uncompressed
-  data[p++]=0; // compression method
-  data[p++]=0; // empty language tag
-  data[p++]=0; // empty translated keyword
-  data.set(xmlBytes,p);
-
-  return pngMakeChunk("iTXt",data);
+  const crcData=chunk.slice(4,17);
+  pngWriteU32(chunk,17,pngCrc32(crcData));
+  return chunk;
 }
 
 async function forcePngDpi(blob,dpi=300){
@@ -6299,79 +6207,59 @@ async function forcePngDpi(blob,dpi=300){
     throw new Error("El PNG generado no es válido.");
   }
 
-  const phys=makePngPhysChunk(dpi);
-  const exif=makePngExifChunk(dpi);
-  const xmp=makePngAdobeXmpChunk(dpi);
-
   const output=[png.slice(0,8)];
+  const phys=makePngPhysChunk(dpi);
   let pos=8;
   let inserted=false;
 
   while(pos+12<=png.length){
     const len=pngU32(png,pos);
     const chunkEnd=pos+12+len;
-    if(chunkEnd>png.length){
-      throw new Error("PNG incompleto al fijar la resolución.");
-    }
+    if(chunkEnd>png.length) throw new Error("PNG incompleto al fijar 300 DPI.");
 
     const type=String.fromCharCode(
       png[pos+4],png[pos+5],png[pos+6],png[pos+7]
     );
 
-    // Replace density / EXIF metadata from the browser, if any.
-    // Preserve all other chunks.
-    if(type!=="pHYs" && type!=="eXIf"){
+    // Remove any density chunk generated by the browser.
+    if(type!=="pHYs"){
       output.push(png.slice(pos,chunkEnd));
     }
 
+    // PNG requires pHYs before IDAT; directly after IHDR is ideal.
     if(type==="IHDR" && !inserted){
-      // Put all physical-resolution metadata before IDAT.
       output.push(phys);
-      output.push(exif);
-      output.push(xmp);
       inserted=true;
     }
 
     pos=chunkEnd;
   }
 
-  if(!inserted){
-    throw new Error("No se pudo insertar metadata de resolución.");
-  }
+  if(!inserted) throw new Error("No se pudo insertar la resolución en el PNG.");
 
   const result=new Blob(output,{type:"image/png"});
 
-  // Verify pHYs in the exact bytes that will be uploaded.
+  // Verify the actual bytes that will be uploaded/downloaded.
   const check=new Uint8Array(await result.arrayBuffer());
+  let p=8, found=false;
   const expected=Math.round(dpi/0.0254);
-  let p=8;
-  let physOk=false;
-  let exifOk=false;
 
   while(p+12<=check.length){
     const len=pngU32(check,p);
     const type=String.fromCharCode(
       check[p+4],check[p+5],check[p+6],check[p+7]
     );
-
-    if(type==="pHYs" && len===9){
+    if(type==="pHYs"){
       const x=pngU32(check,p+8);
       const y=pngU32(check,p+12);
       const unit=check[p+16];
-      physOk=(x===expected && y===expected && unit===1);
+      if(x===expected && y===expected && unit===1) found=true;
+      break;
     }
-
-    if(type==="eXIf"){
-      exifOk=true;
-    }
-
     p+=12+len;
   }
 
-  if(!physOk || !exifOk){
-    throw new Error("Falló la verificación de metadata 300 DPI.");
-  }
-
+  if(!found) throw new Error("Falló la verificación interna de metadata 300 DPI.");
   return result;
 }
 
@@ -6506,6 +6394,7 @@ function shopifyLineProperties(uploadInfo=null){
 
   if(uploadInfo?.id) props["_Gang Sheet ID"]=String(uploadInfo.id);
   if(uploadInfo?.path) props["_Gang Sheet Path"]=String(uploadInfo.path);
+  if(uploadInfo?.downloadUrl) props["_Archivo de impresión"]=String(uploadInfo.downloadUrl);
 
   return props;
 }
@@ -6567,7 +6456,7 @@ async function addActiveSheetToShopifyCart(){
   }
 
   try{
-    toast("Generando PNG · 300 DPI verificados…");
+    toast("Generando PNG y fijando metadata a 300 DPI…");
     const blob=await generateActiveSheetPngBlob();
 
     if(btn) btn.textContent="Subiendo archivo…";
