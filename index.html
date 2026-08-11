@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
+  <!-- SHAPE_NEST_VERSION: v4.1-inline-worker-fallback -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -1359,18 +1360,35 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       </div>
       <div class="processing-body">
         <p id="gpuWarnBody" style="margin:0 0 12px;font-size:13px;line-height:1.5;color:#334155">
-          No se detectó <b>WebGPU</b> en este dispositivo o navegador.
-          El proceso <b id="gpuWarnFeature">de IA</b> seguirá funcionando con el procesador (CPU/WASM),
-          pero puede tardar <b>más de lo normal</b>.
+          El navegador no pudo usar <b>WebGPU</b> (la API de aceleración, no la tarjeta gráfica).
+          El proceso <b id="gpuWarnFeature">de IA</b> seguirá en CPU/WASM y puede tardar <b>más</b>.
         </p>
         <div id="gpuWarnMobileNote" class="processing-note hidden" style="margin-bottom:10px">
-          En este celular se usa un <b>modelo ligero (~5 MB)</b> para no cerrar Chrome.
-          La calidad puede ser un poco menor que en PC. Cierra otras pestañas antes de continuar.
+          En este celular se usa un <b>modelo ligero (~5 MB)</b> y CPU a propósito, para no cerrar Chrome.
         </div>
-        <div class="processing-note">En PC se usa el modelo completo; en móvil un modelo más liviano. El fondo se elimina igual.</div>
+        <div class="processing-note">Tener GPU en el PC no basta: hace falta Chrome/Edge actualizado y abrir BixStudio por http/https (no como archivo local).</div>
         <div class="modal-action-row">
           <button class="ghost-btn" id="gpuWarnCancelBtn" type="button">Cancelar</button>
           <button class="primary-btn" id="gpuWarnContinueBtn" type="button">Continuar igual</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sessionRestoreModal" class="modal-backdrop hidden">
+    <div class="modal processing-modal" role="alertdialog" aria-modal="true" aria-labelledby="sessionRestoreTitle">
+      <div class="modal-head">
+        <h2 id="sessionRestoreTitle">↻ Sesión anterior</h2>
+      </div>
+      <div class="processing-body">
+        <p style="margin:0 0 12px;font-size:13px;line-height:1.5;color:#334155">
+          Hay una sesión guardada de este navegador.
+          ¿Quieres <b>retomar donde la dejaste</b> o <b>iniciar de nuevo</b>?
+        </p>
+        <div id="sessionRestoreMeta" class="processing-note" style="margin-bottom:12px">—</div>
+        <div class="modal-action-row">
+          <button class="ghost-btn" id="sessionFreshBtn" type="button">Iniciar de nuevo</button>
+          <button class="primary-btn" id="sessionResumeBtn" type="button">Retomar sesión</button>
         </div>
       </div>
     </div>
@@ -1463,11 +1481,376 @@ const MAX_SHEET_HEIGHT=310;
 const PX_PER_CM = 20;
 /** Si el archivo no trae DPI, se asume el default de pantalla/Photoshop (72). */
 const ASSUMED_SOURCE_DPI=72;
+
+// =====================================================================
+// SHAPE NEST V2 — nesting por la silueta alpha real, no por recuadros.
+// Resolución geométrica independiente del preview/export.
+// 6 celdas/cm ≈ 1.67 mm por celda: buen equilibrio precisión/rendimiento.
+// =====================================================================
+const SHAPE_NEST_GRID=6;
+const SHAPE_NEST_ALPHA_THRESHOLD=20;
+const shapeNestMaskCache=new Map();
+
+function shapeNestRot90(rot){
+  const r=((rot||0)%360+360)%360;
+  if(Math.abs(r-90)<.01) return 1;
+  if(Math.abs(r-180)<.01) return 2;
+  if(Math.abs(r-270)<.01) return 3;
+  return 0;
+}
+function shapeNestMaskKey(item,rotQuarter=0){
+  return [
+    item.assetId||item.id||'shape',
+    (+item.baseW||+item.w||1).toFixed(3),
+    (+item.baseH||+item.h||1).toFixed(3),
+    item.flipX?1:0,item.flipY?1:0,rotQuarter
+  ].join('|');
+}
+function shapeNestRotateMask(mask,w,h,q){
+  q=((q%4)+4)%4;
+  if(!q) return {data:mask,w,h};
+  let src=mask,sw=w,sh=h;
+  for(let turn=0;turn<q;turn++){
+    const dw=sh,dh=sw,out=new Uint8Array(dw*dh);
+    for(let y=0;y<sh;y++) for(let x=0;x<sw;x++){
+      const nx=sh-1-y, ny=x;
+      out[ny*dw+nx]=src[y*sw+x];
+    }
+    src=out;sw=dw;sh=dh;
+  }
+  return {data:src,w:sw,h:sh};
+}
+function shapeNestFullRectMask(w,h){
+  const data=new Uint8Array(w*h);data.fill(1);return {data,w,h};
+}
+async function getShapeNestMask(item,rotQuarter=0){
+  const key=shapeNestMaskKey(item,rotQuarter);
+  if(shapeNestMaskCache.has(key)) return shapeNestMaskCache.get(key);
+  const promise=(async()=>{
+    const baseW=Math.max(.01,+item.baseW||+item.w||1);
+    const baseH=Math.max(.01,+item.baseH||+item.h||1);
+    const mw=Math.max(1,Math.round(baseW*SHAPE_NEST_GRID));
+    const mh=Math.max(1,Math.round(baseH*SHAPE_NEST_GRID));
+    if(item.type==='text' || !item.assetId){
+      return shapeNestRotateMask(shapeNestFullRectMask(mw,mh).data,mw,mh,rotQuarter);
+    }
+    const asset=assetById(item.assetId);
+    if(!asset) return shapeNestRotateMask(shapeNestFullRectMask(mw,mh).data,mw,mh,rotQuarter);
+    const img=await loadImageFromSrc(asset.src);
+    const c=document.createElement('canvas');c.width=mw;c.height=mh;
+    const ctx=c.getContext('2d',{willReadFrequently:true});
+    ctx.clearRect(0,0,mw,mh);
+    ctx.save();
+    if(item.flipX||item.flipY){
+      ctx.translate(item.flipX?mw:0,item.flipY?mh:0);
+      ctx.scale(item.flipX?-1:1,item.flipY?-1:1);
+    }
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+    ctx.drawImage(img,0,0,mw,mh);ctx.restore();
+    const rgba=ctx.getImageData(0,0,mw,mh).data;
+    const mask=new Uint8Array(mw*mh);
+    let occupied=0;
+    for(let i=0,j=3;i<mask.length;i++,j+=4){
+      if(rgba[j]>=SHAPE_NEST_ALPHA_THRESHOLD){mask[i]=1;occupied++}
+    }
+    // Seguridad: si por algún formato/canvas no pudimos leer silueta,
+    // tratamos la pieza como rectángulo en lugar de permitir solapes.
+    if(!occupied) mask.fill(1);
+    return shapeNestRotateMask(mask,mw,mh,rotQuarter);
+  })();
+  shapeNestMaskCache.set(key,promise);
+  try{
+    const result=await promise;
+    shapeNestMaskCache.set(key,result);
+    return result;
+  }catch(e){
+    shapeNestMaskCache.delete(key);
+    throw e;
+  }
+}
+function getShapeNestMaskSync(item,rotQuarter=0){
+  const v=shapeNestMaskCache.get(shapeNestMaskKey(item,rotQuarter));
+  return v && typeof v.then!=='function' ? v : null;
+}
+function shapeNestDilate(mask,r){
+  r=Math.max(0,r|0);
+  if(!r) return {data:mask.data,w:mask.w,h:mask.h,offsetX:0,offsetY:0};
+  const sw=mask.w,sh=mask.h,dw=sw+r*2,dh=sh+r*2;
+  const tmp=new Uint8Array(dw*dh),out=new Uint8Array(dw*dh);
+  // Copia centrada y dilatación horizontal.
+  for(let y=0;y<sh;y++){
+    const sy=y*sw,dy=(y+r)*dw+r;
+    for(let x=0;x<sw;x++) if(mask.data[sy+x]){
+      const from=Math.max(0,x+r-r),to=Math.min(dw-1,x+r+r);
+      for(let xx=from;xx<=to;xx++) tmp[(y+r)*dw+xx]=1;
+    }
+  }
+  // Dilatación vertical (Chebyshev). Es levemente conservadora en diagonales.
+  for(let y=0;y<dh;y++) for(let x=0;x<dw;x++) if(tmp[y*dw+x]){
+    const from=Math.max(0,y-r),to=Math.min(dh-1,y+r);
+    for(let yy=from;yy<=to;yy++) out[yy*dw+x]=1;
+  }
+  return {data:out,w:dw,h:dh,offsetX:-r,offsetY:-r};
+}
+function shapeNestGridCollides(shape,x,y,grid,gw,gh){
+  x=Math.round(x);y=Math.round(y);
+  if(x<0||y<0||x+shape.w>gw||y+shape.h>gh) return true;
+  for(let sy=0;sy<shape.h;sy++){
+    const si=sy*shape.w,gi=(y+sy)*gw+x;
+    for(let sx=0;sx<shape.w;sx++){
+      if(shape.data[si+sx] && grid[gi+sx]) return true;
+    }
+  }
+  return false;
+}
+function shapeNestMark(shape,x,y,grid,gw,gh,gapCells){
+  const expanded=shapeNestDilate(shape,gapCells);
+  const ox=Math.round(x)+expanded.offsetX,oy=Math.round(y)+expanded.offsetY;
+  for(let sy=0;sy<expanded.h;sy++){
+    const gy=oy+sy;if(gy<0||gy>=gh) continue;
+    const si=sy*expanded.w;
+    for(let sx=0;sx<expanded.w;sx++){
+      const gx=ox+sx;if(gx<0||gx>=gw) continue;
+      if(expanded.data[si+sx]) grid[gy*gw+gx]=1;
+    }
+  }
+}
+function shapeNestCompact(shape,startX,startY,grid,gw,gh){
+  let x=Math.round(startX),y=Math.round(startY);
+  if(shapeNestGridCollides(shape,x,y,grid,gw,gh)) return null;
+  // Alternar izquierda/arriba permite que una pieza entre en concavidades
+  // aunque sus bounding boxes ya se superpongan.
+  let changed=true,guard=0;
+  while(changed && guard++<8){
+    changed=false;
+    while(x>0 && !shapeNestGridCollides(shape,x-1,y,grid,gw,gh)){x--;changed=true}
+    while(y>0 && !shapeNestGridCollides(shape,x,y-1,grid,gw,gh)){y--;changed=true}
+  }
+  return {x,y};
+}
+function shapeNestCandidateCells(shape,placed,gw,gh,gapCells){
+  const pts=[{x:0,y:0},{x:Math.max(0,gw-shape.w),y:0},{x:0,y:Math.max(0,gh-shape.h)}];
+  for(const p of placed){
+    const px=Number.isFinite(p.gridX)?p.gridX:Math.round(p.x*SHAPE_NEST_GRID);
+    const py=Number.isFinite(p.gridY)?p.gridY:Math.round(p.y*SHAPE_NEST_GRID);
+    const pw=p.shape?.w??Math.round(p.w*SHAPE_NEST_GRID);
+    const ph=p.shape?.h??Math.round(p.h*SHAPE_NEST_GRID);
+    pts.push({x:px+pw+gapCells,y:py});
+    pts.push({x:px,y:py+ph+gapCells});
+    pts.push({x:px+pw+gapCells,y:0});
+    pts.push({x:0,y:py+ph+gapCells});
+    pts.push({x:Math.max(0,px-shape.w-gapCells),y:py});
+    pts.push({x:px,y:Math.max(0,py-shape.h-gapCells)});
+    pts.push({x:px+pw+gapCells,y:Math.max(0,py-shape.h-gapCells)});
+    pts.push({x:Math.max(0,px-shape.w-gapCells),y:py+ph+gapCells});
+  }
+  const seen=new Set(),out=[];
+  for(const pt of pts){
+    const x=Math.round(pt.x),y=Math.round(pt.y),k=x+'|'+y;
+    if(seen.has(k)) continue;seen.add(k);
+    if(x<0||y<0||x+shape.w>gw||y+shape.h>gh) continue;
+    out.push({x,y});
+  }
+  return out;
+}
+function shapeNestObjectsOverlapSync(a,b){
+  if(a.type!=='image'||b.type!=='image') return null;
+  const qa=shapeNestRot90(a.rot),qb=shapeNestRot90(b.rot);
+  // Forma exacta v1 solo para múltiplos de 90°. Rotaciones libres usan SAT antiguo.
+  const ra=((a.rot||0)%90+90)%90, rb=((b.rot||0)%90+90)%90;
+  if(ra>.01&&ra<89.99 || rb>.01&&rb<89.99) return null;
+  const ma=getShapeNestMaskSync(a,qa),mb=getShapeNestMaskSync(b,qb);
+  if(!ma||!mb) return null;
+  const aa=rotatedAABB(a),bb=rotatedAABB(b);
+  const ax=Math.round(aa.x*SHAPE_NEST_GRID),ay=Math.round(aa.y*SHAPE_NEST_GRID);
+  const bx=Math.round(bb.x*SHAPE_NEST_GRID),by=Math.round(bb.y*SHAPE_NEST_GRID);
+  const left=Math.max(ax,bx),top=Math.max(ay,by);
+  const right=Math.min(ax+ma.w,bx+mb.w),bottom=Math.min(ay+ma.h,by+mb.h);
+  if(left>=right||top>=bottom) return false;
+  for(let y=top;y<bottom;y++){
+    const ayi=y-ay,byi=y-by;
+    for(let x=left;x<right;x++){
+      if(ma.data[ayi*ma.w+(x-ax)] && mb.data[byi*mb.w+(x-bx)]) return true;
+    }
+  }
+  return false;
+}
+
+// =====================================================================
+// SHAPE NEST V2 — motor compartido para insertar, duplicar y auto rellenar.
+// AABB sigue siendo broad-phase; la ocupación real sale del alpha.
+// =====================================================================
+function shapeNestIsQuarterTurn(o){
+  const r=((o.rot||0)%90+90)%90;
+  return r<.01 || r>89.99;
+}
+async function shapeNestShapeForObject(o){
+  ensureRotationModel(o);
+  if(o.type==='image' && shapeNestIsQuarterTurn(o)){
+    return await getShapeNestMask(o,shapeNestRot90(o.rot));
+  }
+  // Texto o rotación libre: fallback seguro al AABB.
+  const box=rotatedAABB(o);
+  return shapeNestFullRectMask(
+    Math.max(1,Math.round(box.w*SHAPE_NEST_GRID)),
+    Math.max(1,Math.round(box.h*SHAPE_NEST_GRID))
+  );
+}
+async function buildShapeNestOccupancy(limitH=state.sheet.h,excludeId=null){
+  const m=state.sheet.margin;
+  const gap=nestGapValue();
+  const gapCells=Math.max(0,Math.round(gap*SHAPE_NEST_GRID));
+  const maxW=Math.max(.01,state.sheet.w-2*m);
+  const maxH=Math.max(.01,limitH-2*m);
+  const gw=Math.max(1,Math.floor(maxW*SHAPE_NEST_GRID));
+  const gh=Math.max(1,Math.floor(maxH*SHAPE_NEST_GRID));
+  const grid=new Uint8Array(gw*gh);
+  const placed=[];
+
+  for(const o of state.objects){
+    if(o.id===excludeId) continue;
+    ensureRotationModel(o);
+    const box=rotatedAABB(o);
+    const shape=await shapeNestShapeForObject(o);
+    const gx=Math.round((box.x-m)*SHAPE_NEST_GRID);
+    const gy=Math.round((box.y-m)*SHAPE_NEST_GRID);
+    shapeNestMark(shape,gx,gy,grid,gw,gh,gapCells);
+    placed.push({
+      id:o.id,gridX:gx,gridY:gy,shape,
+      x:gx/SHAPE_NEST_GRID,y:gy/SHAPE_NEST_GRID,
+      w:shape.w/SHAPE_NEST_GRID,h:shape.h/SHAPE_NEST_GRID
+    });
+  }
+  return {grid,placed,gw,gh,gapCells,m,limitH};
+}
+function shapeNestFrontierCandidates(shape,grid,gw,gh,placed,gapCells){
+  const base=shapeNestCandidateCells(shape,placed,gw,gh,gapCells);
+  const seen=new Set(base.map(p=>p.x+'|'+p.y));
+  const out=[...base];
+
+  // Bordes reales de la ocupación. Estos puntos permiten entrar en huecos
+  // cóncavos que no existen en el skyline rectangular.
+  const MAX_FRONTIER=7000;
+  outer:
+  for(let y=0;y<gh;y++){
+    const row=y*gw;
+    for(let x=0;x<gw;x++){
+      if(grid[row+x]) continue;
+      const left=x>0 && grid[row+x-1];
+      const up=y>0 && grid[(y-1)*gw+x];
+      if(!left && !up) continue;
+      const variants=[
+        {x,y},
+        {x:Math.max(0,x-shape.w+1),y},
+        {x,y:Math.max(0,y-shape.h+1)},
+        {x:Math.max(0,x-shape.w+1),y:Math.max(0,y-shape.h+1)}
+      ];
+      for(const p of variants){
+        if(p.x+shape.w>gw || p.y+shape.h>gh) continue;
+        const k=p.x+'|'+p.y;
+        if(seen.has(k)) continue;
+        seen.add(k);out.push(p);
+        if(out.length>=MAX_FRONTIER) break outer;
+      }
+    }
+  }
+  return out;
+}
+function shapeNestFindSlotInOccupancy(shape,occ){
+  if(shape.w>occ.gw || shape.h>occ.gh) return null;
+  const starts=shapeNestFrontierCandidates(shape,occ.grid,occ.gw,occ.gh,occ.placed,occ.gapCells);
+  let best=null;
+  const finals=new Set();
+  for(const st of starts){
+    if(shapeNestGridCollides(shape,st.x,st.y,occ.grid,occ.gw,occ.gh)) continue;
+    const compact=shapeNestCompact(shape,st.x,st.y,occ.grid,occ.gw,occ.gh);
+    if(!compact) continue;
+    const key=compact.x+'|'+compact.y;
+    if(finals.has(key)) continue; finals.add(key);
+    const score=[compact.y+shape.h,compact.y,compact.x,compact.x+shape.w];
+    if(!best || compareNestScores(score,best.score)<0) best={...compact,score};
+  }
+  return best;
+}
+async function findShapePlacementForObject(template,limitH=state.sheet.h,excludeId=null,allowRotate=null,existingOcc=null){
+  ensureRotationModel(template);
+  const occ=existingOcc || await buildShapeNestOccupancy(limitH,excludeId);
+  const allow=allowRotate==null?!!$('#allowRotate')?.checked:!!allowRotate;
+  const rot0=((template.rot||0)%360+360)%360;
+  const rots=[rot0];
+  if(allow) rots.push((rot0+90)%360);
+
+  let best=null;
+  for(const rot of [...new Set(rots)]){
+    const probeTemplate={...template,rot};
+    const shape=await shapeNestShapeForObject(probeTemplate);
+    const slot=shapeNestFindSlotInOccupancy(shape,occ);
+    if(!slot) continue;
+    const score=slot.score;
+    if(!best || compareNestScores(score,best.score)<0){
+      const left=occ.m+slot.x/SHAPE_NEST_GRID;
+      const top=occ.m+slot.y/SHAPE_NEST_GRID;
+      const probe=objectAtAABBTopLeft(probeTemplate,left,top);
+      best={x:probe.x,y:probe.y,rot,shape,gridX:slot.x,gridY:slot.y,score};
+    }
+  }
+  return best;
+}
+async function placeObjectWithShapeAutoGrowth(o,excludeId=null){
+  ensureRotationModel(o);
+  if(!objectCanEverFitSheet(o)){
+    toast('Este diseño es demasiado grande para el ancho útil de la Gang Sheet, incluso con la rotación permitida.');
+    return false;
+  }
+
+  // 1) Huecos de la altura actual.
+  let pos=await findShapePlacementForObject(o,state.sheet.h,excludeId);
+  if(pos){
+    o.x=pos.x;o.y=pos.y;o.rot=pos.rot;
+    return true;
+  }
+
+  // 2) Mismo nesting por forma, pero permitiendo crecer hasta 310 cm.
+  pos=await findShapePlacementForObject(o,MAX_SHEET_HEIGHT,excludeId);
+  if(pos){
+    o.x=pos.x;o.y=pos.y;o.rot=pos.rot;
+    growSheetTo(requiredSheetHeightFor(o));
+    return true;
+  }
+
+  // 3) Nueva hoja, igual que el comportamiento previo.
+  const ok=confirm(
+    `La Gang Sheet ${state.activeSheetIndex+1} ya no tiene espacio disponible dentro del máximo de ${MAX_SHEET_HEIGHT} cm.\n\n`+
+    `Se necesita crear una nueva Gang Sheet para continuar. ¿Crear una nueva hoja?`
+  );
+  if(!ok) return false;
+  createNewSheet();
+  pos=await findShapePlacementForObject(o,MAX_SHEET_HEIGHT,null);
+  if(!pos){
+    toast('El diseño no pudo colocarse en una Gang Sheet nueva de 62 × 310 cm.');
+    return false;
+  }
+  o.x=pos.x;o.y=pos.y;o.rot=pos.rot;
+  growSheetTo(requiredSheetHeightFor(o));
+  toast(`${activeSheetRecord().name} creada`);
+  return true;
+}
 const artboard = $("#artboard"), layer=$("#objectsLayer"), shell=$("#artboardShell");
 const fileInput=$("#fileInput");
 
-const ASSET_DB_NAME="bixstudio_assets_v1", ASSET_STORE="assets";
-function openAssetDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(ASSET_DB_NAME,1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(ASSET_STORE))db.createObjectStore(ASSET_STORE,{keyPath:"id"})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+const ASSET_DB_NAME="bixstudio_assets_v1", ASSET_STORE="assets", SESSION_STORE="session", ASSET_DB_VERSION=2;
+const SESSION_KEY="current";
+const SESSION_LS_KEY="bixstudio_session_v1";
+function openAssetDB(){return new Promise((resolve,reject)=>{
+  const req=indexedDB.open(ASSET_DB_NAME,ASSET_DB_VERSION);
+  req.onupgradeneeded=()=>{
+    const db=req.result;
+    if(!db.objectStoreNames.contains(ASSET_STORE)) db.createObjectStore(ASSET_STORE,{keyPath:"id"});
+    if(!db.objectStoreNames.contains(SESSION_STORE)) db.createObjectStore(SESSION_STORE,{keyPath:"id"});
+  };
+  req.onsuccess=()=>resolve(req.result);
+  req.onerror=()=>reject(req.error);
+})}
 async function persistAsset(asset){
  try{const db=await openAssetDB();await new Promise((resolve,reject)=>{const tx=db.transaction(ASSET_STORE,"readwrite");tx.objectStore(ASSET_STORE).put({id:asset.id,name:asset.name,blob:asset.file,w:asset.w,h:asset.h,dpiX:asset.dpiX,dpiY:asset.dpiY,dpiSource:asset.dpiSource,dpiAssumed:!!asset.dpiAssumed,physicalWcm:asset.physicalWcm,physicalHcm:asset.physicalHcm,
         alphaCleaned:!!asset.alphaCleaned,
@@ -1475,6 +1858,169 @@ async function persistAsset(asset){
         alphaBinary:!!asset.alphaBinary,
         autoTrimmed:!!asset.autoTrimmed,
         updatedAt:Date.now()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}catch(e){console.warn("No se pudo guardar localmente",e)}
+}
+
+function buildSessionPayload(){
+  const sheets=state.sheets.map(s=>({
+    id:s.id,name:s.name,
+    sheet:{...s.sheet},
+    objects:s.objects.map(serializableObject)
+  }));
+  const objectCount=sheets.reduce((n,s)=>n+(s.objects?.length||0),0);
+  return {
+    id:SESSION_KEY,
+    version:1,
+    savedAt:Date.now(),
+    sheets,
+    activeSheetIndex:state.activeSheetIndex,
+    nextSheetId:state.nextSheetId,
+    nextId:state.nextId,
+    zoom:state.zoom,
+    viewport:{...state.viewport},
+    snap:!!state.snap,
+    showResolution:!!state.showResolution,
+    objectCount,
+    sheetCount:sheets.length
+  };
+}
+function sessionHasWork(payload){
+  if(!payload||!Array.isArray(payload.sheets)) return false;
+  return payload.sheets.some(s=>(s.objects&&s.objects.length>0));
+}
+let sessionSaveTimer=null;
+let sessionSaveReady=false;
+async function saveSessionNow(){
+  if(!sessionSaveReady) return;
+  const payload=buildSessionPayload();
+  try{localStorage.setItem(SESSION_LS_KEY,JSON.stringify(payload))}catch{}
+  try{
+    const db=await openAssetDB();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(SESSION_STORE,"readwrite");
+      tx.objectStore(SESSION_STORE).put(payload);
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error);
+    });
+    db.close();
+  }catch(e){console.warn("No se pudo guardar la sesión",e)}
+}
+function scheduleSessionSave(){
+  if(!sessionSaveReady) return;
+  clearTimeout(sessionSaveTimer);
+  sessionSaveTimer=setTimeout(()=>{ void saveSessionNow(); },700);
+}
+async function loadSessionPayload(){
+  try{
+    const db=await openAssetDB();
+    const row=await new Promise((resolve,reject)=>{
+      const tx=db.transaction(SESSION_STORE,"readonly");
+      const req=tx.objectStore(SESSION_STORE).get(SESSION_KEY);
+      req.onsuccess=()=>resolve(req.result||null);
+      req.onerror=()=>reject(req.error);
+    });
+    db.close();
+    if(row && sessionHasWork(row)) return row;
+  }catch{}
+  try{
+    const raw=localStorage.getItem(SESSION_LS_KEY);
+    if(!raw) return null;
+    const parsed=JSON.parse(raw);
+    return sessionHasWork(parsed)?parsed:null;
+  }catch{ return null; }
+}
+async function clearSessionPayload(){
+  try{localStorage.removeItem(SESSION_LS_KEY)}catch{}
+  try{
+    const db=await openAssetDB();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(SESSION_STORE,"readwrite");
+      tx.objectStore(SESSION_STORE).delete(SESSION_KEY);
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error);
+    });
+    db.close();
+  }catch{}
+}
+function applySessionPayload(payload){
+  if(!payload||!Array.isArray(payload.sheets)||!payload.sheets.length) return false;
+  state.sheets=payload.sheets.map((s,i)=>({
+    id:s.id||("gs"+(i+1)),
+    name:s.name||("Gang Sheet "+(i+1)),
+    sheet:{w:62,h:30,margin:.3,...(s.sheet||{})},
+    objects:Array.isArray(s.objects)?s.objects.map(o=>({...o})):[]
+  }));
+  state.activeSheetIndex=Math.max(0,Math.min(payload.activeSheetIndex||0,state.sheets.length-1));
+  state.nextSheetId=payload.nextSheetId||state.sheets.length+1;
+  let maxObj=0;
+  for(const s of state.sheets){
+    for(const o of s.objects||[]){
+      const m=/^o(\d+)$/.exec(o.id||"");
+      if(m) maxObj=Math.max(maxObj,+m[1]);
+    }
+  }
+  state.nextId=Math.max(1,payload.nextId||1,maxObj+1);
+  state.selectedId=null;
+  state.selectedIds=[];
+  state.history=[];
+  state.future=[];
+  if(Number.isFinite(payload.zoom)) state.zoom=payload.zoom;
+  if(payload.viewport) state.viewport={x:+payload.viewport.x||0,y:+payload.viewport.y||0};
+  if(typeof payload.snap==="boolean") state.snap=payload.snap;
+  if(typeof payload.showResolution==="boolean") setShowOutlines(payload.showResolution,{skipRender:true});
+  syncSheetInputs();
+  renderSheetsPanel?.();
+  renderAll();
+  return true;
+}
+function resetToFreshSession(){
+  state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:.3},objects:[]}];
+  state.activeSheetIndex=0;
+  state.nextSheetId=2;
+  state.nextId=1;
+  state.selectedId=null;
+  state.selectedIds=[];
+  state.history=[];
+  state.future=[];
+  state.clipboard=[];
+  syncSheetInputs();
+  renderSheetsPanel?.();
+  renderAll();
+}
+function showSessionRestoreModal(payload){
+  return new Promise(resolve=>{
+    const meta=$("#sessionRestoreMeta");
+    if(meta){
+      const when=payload.savedAt?new Date(payload.savedAt).toLocaleString():"recién";
+      const objs=payload.objectCount??payload.sheets?.reduce((n,s)=>n+(s.objects?.length||0),0)??0;
+      const sheets=payload.sheetCount??payload.sheets?.length??1;
+      meta.textContent=`Guardada: ${when} · ${sheets} hoja(s) · ${objs} diseño(s)`;
+    }
+    modalOpen("sessionRestoreModal");
+    let settled=false;
+    const finish=choice=>{
+      if(settled) return;
+      settled=true;
+      $("#sessionResumeBtn").onclick=null;
+      $("#sessionFreshBtn").onclick=null;
+      modalClose("sessionRestoreModal");
+      resolve(choice);
+    };
+    $("#sessionResumeBtn").onclick=()=>finish("resume");
+    $("#sessionFreshBtn").onclick=()=>finish("fresh");
+  });
+}
+async function offerSessionRestore(){
+  const payload=await loadSessionPayload();
+  if(!payload) return;
+  const choice=await showSessionRestoreModal(payload);
+  if(choice==="resume"){
+    applySessionPayload(payload);
+    toast("Sesión restaurada");
+  }else{
+    await clearSessionPayload();
+    resetToFreshSession();
+    toast("Sesión nueva");
+  }
 }
 function applyAssumedDpiIfMissing(asset){
   if(!asset) return asset;
@@ -1637,7 +2183,7 @@ function snapshot(){
     nextSheetId:state.nextSheetId
   });
 }
-function pushHistory(){state.history.push(snapshot()); if(state.history.length>35)state.history.shift(); state.future=[]}
+function pushHistory(){state.history.push(snapshot()); if(state.history.length>35)state.history.shift(); state.future=[]; scheduleSessionSave()}
 function restore(raw){
   const d=JSON.parse(raw);
   if(Array.isArray(d.sheets)){
@@ -1652,6 +2198,7 @@ function restore(raw){
   state.selectedIds=[];
   syncSheetInputs();
   renderAll();
+  scheduleSessionSave();
 }
 function undo(){if(!state.history.length)return;state.future.push(snapshot());restore(state.history.pop())}
 function redo(){if(!state.future.length)return;state.history.push(snapshot());restore(state.future.pop())}
@@ -1912,9 +2459,13 @@ function updateDiagnostics(){
 
  for(let i=0;i<state.objects.length;i++){
    for(let j=i+1;j<state.objects.length;j++){
-     if(rotatedObjectsOverlap(state.objects[i],state.objects[j])){
-       state.objects[i].overlap=true;
-       state.objects[j].overlap=true;
+     const A=state.objects[i],B=state.objects[j];
+     if(!rectsOverlap(rotatedAABB(A),rotatedAABB(B))) continue;
+     const shapeHit=shapeNestObjectsOverlapSync(A,B);
+     const overlaps=shapeHit==null ? rotatedObjectsOverlap(A,B) : shapeHit;
+     if(overlaps){
+       A.overlap=true;
+       B.overlap=true;
      }
    }
  }
@@ -2800,6 +3351,7 @@ function switchSheet(index){
   state.selectedId=null;state.selectedIds=[];
   syncSheetInputs();
   renderAll();
+  scheduleSessionSave();
   setTimeout(fitViewport,20);
 }
 function createNewSheet(){
@@ -3226,7 +3778,8 @@ async function insertAsset(a){
    aspectLocked:true,aspectRatio:printW/printH,
    baseW:printW,baseH:printH
  };
- const placed=placeObjectWithAutoGrowth(o);
+ toast("Buscando hueco por forma…");
+ const placed=await placeObjectWithShapeAutoGrowth(o);
  if(!placed){state.history.pop();return}
  state.objects.push(o);
  state.selectedId=o.id;state.selectedIds=[o.id];
@@ -3520,23 +4073,22 @@ function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
 }
 // Persistent BiRefNet_lite 512 worker (WebGPU → WASM). Kept alive so the
 // ~94 MB ONNX is loaded once and reused across clicks.
-const bgRemoveState={worker:null,ready:null,backend:null,failed:null,pending:new Map(),preferGpu:null,modelUrl:null};
+const bgRemoveState={worker:null,ready:null,backend:null,gpuError:null,failed:null,pending:new Map(),preferGpu:null,modelUrl:null};
 const BG_MODEL_URL="./models/bg-remove.onnx";
 const BG_MODEL_LITE_URL="./models/bg-remove-lite.onnx"; // u2netp ~4.7 MB — Galaxy A16 / móvil
 const gpuAccelState={webgpu:null,sessionWarned:false};
 
-/** Celulares / poca RAM: menos resolución y sin WebGPU (evita crash por memoria). */
-function isConstrainedAiDevice(){
-  try{
-    if(typeof matchMedia==="function" && matchMedia("(max-width:900px)").matches) return true;
-    if(/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||"")) return true;
-    if(typeof navigator.deviceMemory==="number" && navigator.deviceMemory>0 && navigator.deviceMemory<=4) return true;
-  }catch{}
-  return false;
+/** Solo celulares/tablets reales. NO usar ancho de ventana (en PC estrecho daba falsos positivos). */
+function isMobileUaDevice(){
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||"");
 }
+/** Celular o tablet: modelo lite + menos resolución (ahorro de RAM). */
+function isConstrainedAiDevice(){
+  return isMobileUaDevice();
+}
+/** En PC/laptop siempre intentar WebGPU; en móvil no ( tumba Chrome ). */
 function preferGpuForAi(){
-  if(isConstrainedAiDevice()) return false;
-  return true;
+  return !isMobileUaDevice();
 }
 function bgRemoveModelUrl(){
   // BiRefNet (~94 MB) tumba Chrome en Galaxy A-series; u2netp cabe en ~5 MB.
@@ -3548,12 +4100,13 @@ function bgRemoveMaxLongSide(){
 
 async function detectWebGpuAvailable(){
   if(gpuAccelState.webgpu!==null) return gpuAccelState.webgpu;
-  if(typeof navigator==="undefined" || !navigator.gpu){
+  if(typeof navigator==="undefined" || !navigator.gpu || !window.isSecureContext){
     gpuAccelState.webgpu=false;
     return false;
   }
   try{
-    const adapter=await navigator.gpu.requestAdapter();
+    const adapter=await navigator.gpu.requestAdapter({powerPreference:"high-performance"})
+      || await navigator.gpu.requestAdapter();
     gpuAccelState.webgpu=!!adapter;
   }catch{
     gpuAccelState.webgpu=false;
@@ -3562,15 +4115,16 @@ async function detectWebGpuAvailable(){
 }
 
 /** true = seguir; false = usuario canceló. */
-function showGpuFallbackWarning(featureLabel){
+function showGpuFallbackWarning(featureLabel,{title,body}={}){
   return new Promise(resolve=>{
     const feat=$("#gpuWarnFeature");
     if(feat) feat.textContent=featureLabel||"de IA";
     const mobileNote=$("#gpuWarnMobileNote");
     if(mobileNote) mobileNote.classList.toggle("hidden",!isConstrainedAiDevice());
-    const title=$("#gpuWarnTitle");
-    if(title && isConstrainedAiDevice()) title.textContent="⚠ Modo ahorro de memoria";
-    else if(title) title.textContent="⚠ Sin aceleración GPU";
+    const titleEl=$("#gpuWarnTitle");
+    if(titleEl) titleEl.textContent=title||(isConstrainedAiDevice()?"⚠ Modo ahorro de memoria":"⚠ Sin WebGPU en el navegador");
+    const bodyEl=$("#gpuWarnBody");
+    if(bodyEl && body) bodyEl.innerHTML=body;
     modalOpen("gpuWarnModal");
     let settled=false;
     const finish=ok=>{
@@ -3590,27 +4144,44 @@ function showGpuFallbackWarning(featureLabel){
 }
 
 /**
- * Avisa si no hay WebGPU / el worker cayó a WASM.
- * knownBackend: "webgpu" | "wasm" | null
+ * En PC: solo bloquea con modal si el navegador NO tiene WebGPU.
+ * Si WebGPU existe pero ORT cayó a WASM → toast suave (no asustar).
  */
 async function warnIfNoGpuAccel(featureLabel,knownBackend=null){
   if(gpuAccelState.sessionWarned) return true;
-  let accelerated=false;
-  if(knownBackend==="webgpu" || bgRemoveState.backend==="webgpu"){
-    accelerated=true;
-  }else if(knownBackend==="wasm" || bgRemoveState.backend==="wasm"){
-    accelerated=false;
-  }else{
-    accelerated=await detectWebGpuAvailable();
+  if(isMobileUaDevice()){
+    return showGpuFallbackWarning(featureLabel);
   }
-  if(accelerated) return true;
-  return showGpuFallbackWarning(featureLabel);
+
+  const backend=knownBackend||bgRemoveState.backend||null;
+  if(backend==="webgpu") return true;
+
+  // Recalcular siempre en PC (no fiarse de un cache viejo en falso).
+  gpuAccelState.webgpu=null;
+  const apiOk=await detectWebGpuAvailable();
+
+  if(backend==="wasm" && apiOk){
+    // Tu caso: localhost + GPU OK, pero el motor ORT usó CPU.
+    console.warn("[BixStudio] WebGPU API OK; ORT backend=wasm", bgRemoveState.gpuError||"");
+    toast("GPU detectada · la IA corre en CPU esta vez (más lento)");
+    gpuAccelState.sessionWarned=true;
+    return true;
+  }
+
+  if(apiOk) return true;
+
+  return showGpuFallbackWarning(featureLabel,{
+    title:"⚠ Sin WebGPU en el navegador",
+    body:`Chrome/Edge no expone <b>WebGPU</b> aquí (aunque el PC tenga tarjeta gráfica).
+      El proceso <b id="gpuWarnFeature">${featureLabel||"de IA"}</b> seguirá en CPU/WASM y puede tardar <b>más</b>.`
+  });
 }
 function resetBgRemoveWorker(){
  try{bgRemoveState.worker?.terminate()}catch{}
  bgRemoveState.worker=null;
  bgRemoveState.ready=null;
  bgRemoveState.backend=null;
+ bgRemoveState.gpuError=null;
  bgRemoveState.failed=null;
  bgRemoveState.preferGpu=null;
  bgRemoveState.modelUrl=null;
@@ -3650,6 +4221,7 @@ function ensureBgRemoveWorker(){
      const m=e.data||{};
      if(m.type==="ready"){
        bgRemoveState.backend=m.backend||"wasm";
+       bgRemoveState.gpuError=m.gpuError||null;
        worker.removeEventListener("message",onReady);
        resolve();
        return;
@@ -3735,17 +4307,22 @@ async function removeBackgroundSelected(){
  btn.disabled=true;
  const constrained=isConstrainedAiDevice();
  try{
-   // Avisar ANTES de cargar el ONNX (~94 MB); en A16 el crash ocurre al inicializar.
    showObjectProcessing(o.id,"Preparando…",3);
    if(typeof closeMobileDrawers==="function") closeMobileDrawers();
-   const ok=await warnIfNoGpuAccel("Quitar fondo",constrained?"wasm":(bgRemoveState.backend||null));
-   if(!ok){ hideObjectProcessing(o.id); return; }
+   // En móvil avisar antes (modelo lite). En PC cargar primero y avisar solo si cayó a WASM.
+   if(constrained){
+     const ok=await warnIfNoGpuAccel("Quitar fondo");
+     if(!ok){ hideObjectProcessing(o.id); return; }
+   }
 
    showObjectProcessing(o.id,constrained?"Cargando IA (modo ahorro)…":"Cargando IA…",6);
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   // Pequeña pausa para que Android libere UI/GPU antes del pico de memoria.
    if(constrained) await new Promise(r=>setTimeout(r,120));
    await ensureBgRemoveWorker();
+   if(!constrained){
+     const ok=await warnIfNoGpuAccel("Quitar fondo",bgRemoveState.backend||null);
+     if(!ok){ hideObjectProcessing(o.id); resetBgRemoveWorker(); return; }
+   }
 
    showObjectProcessing(o.id,"Quitando fondo…",10);
    let c=await assetCanvas(asset);
@@ -3826,7 +4403,7 @@ async function enhanceSelectedWithAi(){
  btn.disabled=true;
  try{
    showObjectProcessing(o.id,"Comprobando GPU…",4);
-   const ok=await warnIfNoGpuAccel("Mejorar calidad",preferGpuForAi()?null:"wasm");
+   const ok=await warnIfNoGpuAccel("Mejorar calidad");
    if(!ok){ hideObjectProcessing(o.id); return; }
    showObjectProcessing(o.id,"Mejorando calidad…",6);
    // Give the overlay one frame to become visible before the heavy work begins.
@@ -4223,9 +4800,9 @@ function setDuplicateQty(n){
 $("#dupQtyUp")?.addEventListener("click",()=>setDuplicateQty(readDuplicateQty()+1));
 $("#dupQtyDown")?.addEventListener("click",()=>setDuplicateQty(readDuplicateQty()-1));
 $("#duplicateQty")?.addEventListener("change",()=>setDuplicateQty(readDuplicateQty()));
-$("#duplicateBtn").onclick=()=>{
+$("#duplicateBtn").onclick=async()=>{
   if(!copySelection(true)) return;
-  pasteClipboard(readDuplicateQty());
+  await pasteClipboard(readDuplicateQty());
 };
 $("#aspectLockBtn").onclick=()=>{
  const o=objById(state.selectedId); if(!o) return;
@@ -4344,163 +4921,390 @@ async function packCandidateLayout(sourceItems, orderMode, allowRotate){
   const gap=nestGapValue();
   const maxW=state.sheet.w-2*state.sheet.margin;
   const maxH=MAX_SHEET_HEIGHT-2*state.sheet.margin;
+  const gw=Math.max(1,Math.floor(maxW*SHAPE_NEST_GRID));
+  const gh=Math.max(1,Math.floor(maxH*SHAPE_NEST_GRID));
+  const gapCells=Math.max(0,Math.round(gap*SHAPE_NEST_GRID));
 
   const items=sourceItems.map(o=>({
-    id:o.id,
-    w:o.baseW,
-    h:o.baseH
+    id:o.id,type:o.type,assetId:o.assetId,
+    baseW:o.baseW,baseH:o.baseH,
+    flipX:!!o.flipX,flipY:!!o.flipY
   }));
   const sorters={
-    area:(a,b)=>(b.w*b.h)-(a.w*a.h),
-    maxSide:(a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h),
-    height:(a,b)=>b.h-a.h,
-    width:(a,b)=>b.w-a.w,
-    perimeter:(a,b)=>(b.w+b.h)-(a.w+a.h)
+    area:(a,b)=>(b.baseW*b.baseH)-(a.baseW*a.baseH),
+    maxSide:(a,b)=>Math.max(b.baseW,b.baseH)-Math.max(a.baseW,a.baseH),
+    height:(a,b)=>b.baseH-a.baseH,
+    width:(a,b)=>b.baseW-a.baseW,
+    perimeter:(a,b)=>(b.baseW+b.baseH)-(a.baseW+a.baseH),
+    // Keep large pieces first; frontier search then tucks smaller pieces
+    // into the real alpha pockets they leave behind.
+    compact:(a,b)=>{
+      const ma=getShapeNestMaskSync(a,0), mb=getShapeNestMaskSync(b,0);
+      const aa=ma ? ma.data.reduce((s,v)=>s+v,0) : a.baseW*a.baseH*SHAPE_NEST_GRID*SHAPE_NEST_GRID;
+      const ab=mb ? mb.data.reduce((s,v)=>s+v,0) : b.baseW*b.baseH*SHAPE_NEST_GRID*SHAPE_NEST_GRID;
+      return ab-aa;
+    }
   };
   items.sort(sorters[orderMode]||sorters.area);
 
+  const occupancy=new Uint8Array(gw*gh);
   const placed=[];
   let usedH=0,usedW=0,area=0,rotations=0;
-  const yieldEvery=items.length>80?12:items.length>40?24:0;
+  const yieldEvery=items.length>80?8:items.length>40?16:0;
 
   for(let i=0;i<items.length;i++){
     const item=items[i];
-    const orientations=[{w:item.w,h:item.h,rotated:false}];
-    if(allowRotate && Math.abs(item.w-item.h)>.001){
-      orientations.push({w:item.h,h:item.w,rotated:true});
-    }
+    const orientations=[0];
+    if(allowRotate && Math.abs(item.baseW-item.baseH)>.001) orientations.push(1);
 
-    const best=bestNestSlot(orientations,placed,maxW,maxH,gap);
+    const ranked=[];
+    for(const q of orientations){
+      const shape=await getShapeNestMask(item,q);
+      if(shape.w>gw||shape.h>gh) continue;
+      // IMPORTANT: Auto Organizar must search the same REAL-SHAPE frontiers
+      // used by Auto Rellenar. The old code only generated rectangle/skyline
+      // anchors here, so valid concave pockets were lost during a full repack.
+      //
+      // Search primarily inside the height already occupied (+ this shape),
+      // rather than immediately considering the full 310 cm sheet. This keeps
+      // small pieces hunting holes above before being allowed to fall below.
+      const occupiedBottomCells=placed.length
+        ? Math.max(...placed.map(p=>p.gridY+(p.shape?.h||Math.round(p.h*SHAPE_NEST_GRID))))
+        : 0;
+      const searchH=Math.min(
+        gh,
+        Math.max(shape.h, occupiedBottomCells + shape.h + gapCells + 2)
+      );
+
+      let starts=shapeNestFrontierCandidates(
+        shape,occupancy,gw,searchH,placed,gapCells
+      );
+
+      // If nothing can fit in the compact search band, expand to the whole
+      // available sheet as a fallback. This preserves the ability to grow.
+      if(!starts.length){
+        starts=shapeNestFrontierCandidates(
+          shape,occupancy,gw,gh,placed,gapCells
+        );
+      }
+
+      const seenFinal=new Set();
+      for(const st of starts){
+        const compact=shapeNestCompact(shape,st.x,st.y,occupancy,gw,gh);
+        if(!compact) continue;
+        const k=compact.x+'|'+compact.y+'|'+q;
+        if(seenFinal.has(k)) continue;seenFinal.add(k);
+        const ch=(compact.y+shape.h)/SHAPE_NEST_GRID;
+        const cw=(compact.x+shape.w)/SHAPE_NEST_GRID;
+        const nextUsedH=Math.max(usedH,ch);
+        const nextUsedW=Math.max(usedW,cw);
+        // Prioridad: menor altura, luego más arriba/izquierda y finalmente ancho.
+        ranked.push({
+          q,shape,x:compact.x,y:compact.y,
+          score:[nextUsedH,compact.y,compact.x,nextUsedW]
+        });
+      }
+    }
+    ranked.sort((a,b)=>compareNestScores(a.score,b.score));
+    const best=ranked[0];
     if(!best) return null;
 
+    shapeNestMark(best.shape,best.x,best.y,occupancy,gw,gh,gapCells);
+    const pw=best.q===1?item.baseH:item.baseW;
+    const ph=best.q===1?item.baseW:item.baseH;
     placed.push({
       id:item.id,
-      x:best.x,
-      y:best.y,
-      w:best.w,
-      h:best.h,
-      rotated:best.rotated
+      x:best.x/SHAPE_NEST_GRID,
+      y:best.y/SHAPE_NEST_GRID,
+      w:pw,h:ph,
+      rotated:best.q===1,
+      shape:best.shape,
+      gridX:best.x,gridY:best.y
     });
-    usedH=Math.max(usedH,best.y+best.h);
-    usedW=Math.max(usedW,best.x+best.w);
-    area+=best.w*best.h;
-    if(best.rotated) rotations++;
+    usedH=Math.max(usedH,(best.y+best.shape.h)/SHAPE_NEST_GRID);
+    usedW=Math.max(usedW,(best.x+best.shape.w)/SHAPE_NEST_GRID);
+    area+=item.baseW*item.baseH;
+    if(best.q===1) rotations++;
 
-    if(yieldEvery && (i%yieldEvery===yieldEvery-1)){
-      await new Promise(res=>setTimeout(res,0));
-    }
+    if(yieldEvery && (i%yieldEvery===yieldEvery-1)) await new Promise(res=>setTimeout(res,0));
   }
 
   const waste=Math.max(0,usedW*usedH-area);
-  return {placed,usedH,usedW,waste,rotations};
+  return {placed,usedH,usedW,waste,rotations,shapeAware:true};
 }
 
 function nestLayoutCollides(placed,gap){
+  // Shape Nest ya fue construido contra una occupancy grid con la separación
+  // aplicada. Esta validación solo comprueba solape real de máscaras.
   for(let i=0;i<placed.length;i++){
+    const a=placed[i];
+    if(!a.shape) continue;
     for(let j=i+1;j<placed.length;j++){
-      const a=placed[i],b=placed[j];
-      if(rectsOverlap(
-        {x:a.x-gap/2,y:a.y-gap/2,w:a.w+gap,h:a.h+gap},
-        {x:b.x-gap/2,y:b.y-gap/2,w:b.w+gap,h:b.h+gap}
-      )) return true;
+      const b=placed[j];
+      if(!b.shape) continue;
+      const ax=a.gridX,ay=a.gridY,bx=b.gridX,by=b.gridY;
+      const left=Math.max(ax,bx),top=Math.max(ay,by);
+      const right=Math.min(ax+a.shape.w,bx+b.shape.w),bottom=Math.min(ay+a.shape.h,by+b.shape.h);
+      if(left>=right||top>=bottom) continue;
+      for(let y=top;y<bottom;y++){
+        for(let x=left;x<right;x++){
+          if(a.shape.data[(y-ay)*a.shape.w+(x-ax)] && b.shape.data[(y-by)*b.shape.w+(x-bx)]) return true;
+        }
+      }
     }
   }
   return false;
 }
 
 let autoNestRunning=false;
+
+const adaptiveNestMaskCache=new Map();
+function autoNestDeviceProfile(count){
+  const mobile=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||"");
+  const cores=navigator.hardwareConcurrency||4;
+  let grid,quality;
+  if(mobile){
+    grid=count>80?2:3;
+    quality=count>80?"fast":"balanced";
+  }else{
+    grid=count<=30?5:count<=90?4:3;
+    quality=(count>120||cores<=4)?"fast":"balanced";
+  }
+  return {mobile,cores,grid,quality};
+}
+function adaptiveNestMaskKey(item,q,grid){
+  return [item.assetId||item.id||"shape",(+item.baseW||1).toFixed(3),(+item.baseH||1).toFixed(3),
+    item.flipX?1:0,item.flipY?1:0,q,grid].join("|");
+}
+async function getAdaptiveNestMask(item,q,grid){
+  const key=adaptiveNestMaskKey(item,q,grid);
+  if(adaptiveNestMaskCache.has(key)) return adaptiveNestMaskCache.get(key);
+  const promise=(async()=>{
+    const baseW=Math.max(.01,+item.baseW||+item.w||1);
+    const baseH=Math.max(.01,+item.baseH||+item.h||1);
+    const mw=Math.max(1,Math.round(baseW*grid));
+    const mh=Math.max(1,Math.round(baseH*grid));
+    let data;
+    if(item.type==="text"||!item.assetId){
+      data=new Uint8Array(mw*mh);data.fill(1);
+    }else{
+      const asset=assetById(item.assetId);
+      if(!asset){data=new Uint8Array(mw*mh);data.fill(1)}
+      else{
+        const img=await loadImageFromSrc(asset.src);
+        const c=document.createElement("canvas");c.width=mw;c.height=mh;
+        const ctx=c.getContext("2d",{willReadFrequently:true});
+        ctx.clearRect(0,0,mw,mh);
+        ctx.save();
+        if(item.flipX||item.flipY){
+          ctx.translate(item.flipX?mw:0,item.flipY?mh:0);
+          ctx.scale(item.flipX?-1:1,item.flipY?-1:1);
+        }
+        ctx.drawImage(img,0,0,mw,mh);ctx.restore();
+        const rgba=ctx.getImageData(0,0,mw,mh).data;
+        data=new Uint8Array(mw*mh);
+        let occupied=0;
+        for(let i=0,j=3;i<data.length;i++,j+=4){
+          if(rgba[j]>=SHAPE_NEST_ALPHA_THRESHOLD){data[i]=1;occupied++}
+        }
+        if(!occupied) data.fill(1);
+      }
+    }
+    let shape={data,w:mw,h:mh};
+    if(q===1) shape=shapeNestRotateMask(shape.data,shape.w,shape.h,1);
+    let occupied=0;for(const v of shape.data) occupied+=v;
+    return {...shape,occupied,key};
+  })();
+  adaptiveNestMaskCache.set(key,promise);
+  const result=await promise;
+  adaptiveNestMaskCache.set(key,result);
+  return result;
+}
+function currentNestUsedHeight(){
+  if(!state.objects.length) return 0;
+  const m=state.sheet.margin;
+  let bottom=m;
+  for(const o of state.objects){
+    ensureRotationModel(o);
+    const r=rotatedAABB(o);
+    bottom=Math.max(bottom,r.y+r.h);
+  }
+  return Math.max(0,bottom-m);
+}
+const INLINE_NEST_WORKER_SOURCE="\n'use strict';\n\nlet cancelled=false;\n\nfunction postProgress(pct,label){\n  self.postMessage({type:'progress',pct,label});\n}\nfunction cmpScore(a,b){\n  for(let i=0;i<a.length;i++){\n    if(a[i]<b[i]) return -1;\n    if(a[i]>b[i]) return 1;\n  }\n  return 0;\n}\nfunction collides(shape,x,y,grid,gw,gh){\n  x|=0;y|=0;\n  if(x<0||y<0||x+shape.w>gw||y+shape.h>gh) return true;\n  const sd=shape.data;\n  for(let sy=0;sy<shape.h;sy++){\n    let si=sy*shape.w, gi=(y+sy)*gw+x;\n    for(let sx=0;sx<shape.w;sx++){\n      if(sd[si+sx] && grid[gi+sx]) return true;\n    }\n  }\n  return false;\n}\nfunction mark(shape,x,y,grid,gw,gh,gap){\n  // Small Chebyshev dilation at placement time; cheaper than storing expanded masks.\n  const sd=shape.data, r=Math.max(0,gap|0);\n  for(let sy=0;sy<shape.h;sy++){\n    for(let sx=0;sx<shape.w;sx++){\n      if(!sd[sy*shape.w+sx]) continue;\n      const gx=x+sx, gy=y+sy;\n      for(let yy=Math.max(0,gy-r);yy<=Math.min(gh-1,gy+r);yy++){\n        const row=yy*gw;\n        for(let xx=Math.max(0,gx-r);xx<=Math.min(gw-1,gx+r);xx++){\n          grid[row+xx]=1;\n        }\n      }\n    }\n  }\n}\nfunction compact(shape,x,y,grid,gw,gh){\n  if(collides(shape,x,y,grid,gw,gh)) return null;\n  let changed=true, guard=0;\n  while(changed && guard++<5){\n    changed=false;\n    while(x>0 && !collides(shape,x-1,y,grid,gw,gh)){x--;changed=true}\n    while(y>0 && !collides(shape,x,y-1,grid,gw,gh)){y--;changed=true}\n  }\n  return {x,y};\n}\nfunction bboxCandidates(shape,placed,gw,gh,gap){\n  const out=[{x:0,y:0}];\n  for(const p of placed){\n    out.push(\n      {x:p.x+p.w+gap,y:p.y},\n      {x:p.x,y:p.y+p.h+gap},\n      {x:Math.max(0,p.x-shape.w-gap),y:p.y},\n      {x:p.x,y:Math.max(0,p.y-shape.h-gap)}\n    );\n  }\n  return out;\n}\nfunction frontierCandidates(shape,grid,gw,searchH,placed,gap,quality){\n  const seen=new Set(), out=[];\n  const push=(x,y)=>{\n    x=Math.max(0,Math.min(gw-shape.w,x|0));\n    y=Math.max(0,Math.min(searchH-shape.h,y|0));\n    const k=x+'|'+y;\n    if(!seen.has(k)){seen.add(k);out.push({x,y})}\n  };\n  for(const p of bboxCandidates(shape,placed,gw,searchH,gap)) push(p.x,p.y);\n\n  // Adaptive frontier sampling. Mobile/large jobs use fewer candidates.\n  const stride = quality==='fast' ? 2 : 1;\n  const maxFrontier = quality==='fast' ? 550 : quality==='balanced' ? 1000 : 1600;\n  let added=0;\n  outer:\n  for(let y=0;y<searchH;y+=stride){\n    const row=y*gw;\n    for(let x=0;x<gw;x+=stride){\n      if(grid[row+x]) continue;\n      const left=x>0 && grid[row+x-1];\n      const up=y>0 && grid[(y-1)*gw+x];\n      if(!left && !up) continue;\n      push(x,y);\n      push(x-shape.w+1,y);\n      push(x,y-shape.h+1);\n      push(x-shape.w+1,y-shape.h+1);\n      added++;\n      if(added>=maxFrontier) break outer;\n    }\n  }\n  return out;\n}\nfunction bestSlot(shape,grid,gw,gh,placed,gap,quality){\n  const usedBottom=placed.length ? Math.max(...placed.map(p=>p.y+p.h)) : 0;\n  const searchH=Math.min(gh,Math.max(shape.h,usedBottom+shape.h+gap+2));\n  let starts=frontierCandidates(shape,grid,gw,searchH,placed,gap,quality);\n  if(!starts.length) starts=[{x:0,y:usedBottom+gap}];\n\n  let best=null;\n  const finals=new Set();\n  for(const st of starts){\n    if(cancelled) return null;\n    if(collides(shape,st.x,st.y,grid,gw,gh)) continue;\n    const c=compact(shape,st.x,st.y,grid,gw,gh);\n    if(!c) continue;\n    const key=c.x+'|'+c.y;\n    if(finals.has(key)) continue;\n    finals.add(key);\n    const usedH=Math.max(c.y+shape.h,usedBottom);\n    const score=[usedH,c.y,c.x,c.x+shape.w];\n    if(!best || cmpScore(score,best.score)<0) best={...c,score};\n  }\n  return best;\n}\nfunction layout(items,shapeMap,gw,gh,gap,mode,allowRotate,quality){\n  const sorted=[...items];\n  if(mode==='maxSide'){\n    sorted.sort((a,b)=>Math.max(b.baseW,b.baseH)-Math.max(a.baseW,a.baseH));\n  }else{\n    sorted.sort((a,b)=>(b.baseW*b.baseH)-(a.baseW*a.baseH));\n  }\n\n  const occupancy=new Uint8Array(gw*gh);\n  const placed=[];\n  let rotations=0,usedH=0,usedW=0,area=0;\n\n  for(let i=0;i<sorted.length;i++){\n    if(cancelled) return null;\n    const item=sorted[i];\n    const options=[{q:0,key:item.k0}];\n    if(allowRotate && item.k1 && item.k1!==item.k0) options.push({q:1,key:item.k1});\n\n    let best=null;\n    for(const opt of options){\n      const shape=shapeMap.get(opt.key);\n      if(!shape||shape.w>gw||shape.h>gh) continue;\n      const slot=bestSlot(shape,occupancy,gw,gh,placed,gap,quality);\n      if(!slot) continue;\n      const score=slot.score;\n      if(!best || cmpScore(score,best.score)<0) best={...slot,shape,q:opt.q};\n    }\n    if(!best) return null;\n\n    mark(best.shape,best.x,best.y,occupancy,gw,gh,gap);\n    const p={\n      id:item.id,\n      x:best.x,y:best.y,\n      w:best.shape.w,h:best.shape.h,\n      rotated:best.q===1\n    };\n    placed.push(p);\n    if(p.rotated) rotations++;\n    usedH=Math.max(usedH,p.y+p.h);\n    usedW=Math.max(usedW,p.x+p.w);\n    area+=best.shape.occupied||0;\n  }\n  const waste=Math.max(0,usedW*usedH-area);\n  return {placed,usedH,usedW,waste,rotations};\n}\nfunction better(a,b){\n  if(!b) return true;\n  if(a.usedH!==b.usedH) return a.usedH<b.usedH;\n  if(a.waste!==b.waste) return a.waste<b.waste;\n  if(a.rotations!==b.rotations) return a.rotations<b.rotations;\n  return a.usedW<b.usedW;\n}\n\nself.onmessage=(e)=>{\n  const msg=e.data||{};\n  if(msg.type==='cancel'){cancelled=true;return}\n  if(msg.type!=='run') return;\n  cancelled=false;\n\n  try{\n    const {items,shapes,gw,gh,gap,allowRotate,quality='balanced'}=msg;\n    const shapeMap=new Map();\n    for(const s of shapes){\n      shapeMap.set(s.key,{...s,data:new Uint8Array(s.data)});\n    }\n\n    // Only two pack orders. This is intentionally bounded.\n    const modes=items.length>90?['area']:['area','maxSide'];\n    let best=null;\n    for(let i=0;i<modes.length;i++){\n      if(cancelled) throw new Error('cancelled');\n      postProgress(Math.round((i/modes.length)*90),`Organizando ${i+1}/${modes.length}`);\n      const r=layout(items,shapeMap,gw,gh,gap,modes[i],allowRotate,quality);\n      if(r && better(r,best)) best=r;\n    }\n    if(cancelled) throw new Error('cancelled');\n    postProgress(100,'Listo');\n    self.postMessage({type:'done',ok:!!best,result:best});\n  }catch(err){\n    self.postMessage({type:'done',ok:false,error:String(err&&err.message||err)});\n  }\n};\n";
+let inlineNestWorkerUrl=null;
+function createNestWorker(){
+  // First try the normal external worker (best for cache/debug).
+  // If it fails to load, fall back to an inline Blob worker so the HTML
+  // remains self-contained and works on GitHub Pages/local servers.
+  try{
+    return new Worker("./nest.worker.js");
+  }catch(e){
+    console.warn("[ShapeNest] external worker create failed, using inline worker",e);
+  }
+  if(!inlineNestWorkerUrl){
+    inlineNestWorkerUrl=URL.createObjectURL(new Blob([INLINE_NEST_WORKER_SOURCE],{type:"text/javascript"}));
+  }
+  return new Worker(inlineNestWorkerUrl);
+}
+function runNestWorker(payload,onProgress){
+  return new Promise((resolve,reject)=>{
+    let w;
+    try{w=createNestWorker()}catch(e){reject(e);return}
+    let settled=false;
+    let retriedInline=false;
+    const cleanup=()=>{try{w.terminate()}catch{}};
+    const send=()=>{
+      try{
+        // Do not include the transfer list itself in the structured-cloned payload.
+        const transfers=payload.transfers||[];
+        const msg={...payload};
+        delete msg.transfers;
+        w.postMessage(msg,transfers);
+      }catch(err){
+        cleanup();reject(err);
+      }
+    };
+    const attach=()=>{
+      w.onmessage=e=>{
+        const msg=e.data||{};
+        if(msg.type==="progress"){onProgress?.(msg);return}
+        if(msg.type==="done"){
+          settled=true;cleanup();
+          if(msg.ok) resolve(msg.result);
+          else reject(new Error(msg.error||"El motor de organización no encontró una solución"));
+        }
+      };
+      w.onerror=e=>{
+        if(settled)return;
+        const reason=e?.message||"No se pudo cargar el motor de organización";
+        console.error("[ShapeNest worker]",e);
+        // A Worker constructor can succeed even if the URL later returns 404/HTML.
+        // Retry once using the embedded source.
+        if(!retriedInline){
+          retriedInline=true;cleanup();
+          try{
+            if(!inlineNestWorkerUrl) inlineNestWorkerUrl=URL.createObjectURL(new Blob([INLINE_NEST_WORKER_SOURCE],{type:"text/javascript"}));
+            w=new Worker(inlineNestWorkerUrl);
+            attach();
+            // buffers from the first failed send may already be detached, so reject
+            // here with a precise error rather than silently hanging. The caller can retry.
+            reject(new Error(reason+". Recarga y vuelve a intentar; ya quedó activado el worker integrado."));
+          }catch(err){reject(err)}
+          return;
+        }
+        cleanup();reject(new Error(reason));
+      };
+    };
+    attach();send();
+  });
+}
+
 async function autoNest(){
   if(autoNestRunning) return toast("Ya se está organizando…");
   if(!state.objects.length) return toast("No hay diseños para organizar.");
 
   const count=state.objects.length;
-  const userAllowsRotation=$("#allowRotate").checked;
-  // Fewer strategies as N grows — quality vs UI freeze.
-  let modes;
-  if(count>120) modes=["area"];
-  else if(count>60) modes=["area","maxSide"];
-  else if(count>30) modes=["area","maxSide","height"];
-  else modes=["area","maxSide","height","width","perimeter"];
+  const allowRotate=!!$("#allowRotate")?.checked;
+  const profile=autoNestDeviceProfile(count);
+  const grid=profile.grid;
+  const gap=Math.max(0,nestGapValue());
+  const margin=state.sheet.margin;
+  const maxW=state.sheet.w-2*margin;
+  const maxH=MAX_SHEET_HEIGHT-2*margin;
+  const gw=Math.max(1,Math.floor(maxW*grid));
+  const gh=Math.max(1,Math.floor(maxH*grid));
+  const gapCells=Math.max(0,Math.round(gap*grid));
+  const currentH=currentNestUsedHeight();
 
-  // For large packs, skip the extra "force no-rotate" pass (biggest cost).
-  const rotationPolicies=(userAllowsRotation && count<=60) ? [false,true]
-    : [userAllowsRotation];
-
-  const cleanItems=state.objects.map(o=>{
+  const items=state.objects.map(o=>{
     ensureRotationModel(o);
     return {
-      id:o.id,
-      baseW:o.baseW,
-      baseH:o.baseH
+      id:o.id,type:o.type,assetId:o.assetId||null,
+      baseW:o.baseW,baseH:o.baseH,
+      flipX:!!o.flipX,flipY:!!o.flipY
     };
   });
-
-  function betterLayout(r,best){
-    if(!best) return true;
-    if(r.usedH < best.usedH-.001) return true;
-    if(r.usedH > best.usedH+.001) return false;
-    if(r.waste < best.waste-.001) return true;
-    if(r.waste > best.waste+.001) return false;
-    if((r.rotations||0) < (best.rotations||0)) return true;
-    if((r.rotations||0) > (best.rotations||0)) return false;
-    return r.usedW < best.usedW-.001;
-  }
 
   autoNestRunning=true;
   const btn=$("#autoNestTopBtn");
   if(btn) btn.disabled=true;
-  let bestResult=null;
 
   try{
-    toast(count>40?`Organizando ${count} diseños…`:"Organizando…");
-    const jobs=[];
-    for(const rotationPolicy of rotationPolicies){
-      for(const mode of modes) jobs.push({mode,rotationPolicy});
+    toast(profile.mobile
+      ? `Organizando en modo móvil · ${grid} celdas/cm…`
+      : `Organizando por forma · ${grid} celdas/cm…`);
+
+    // Build each UNIQUE shape once. Hundreds of duplicates reuse the same mask.
+    const shapeDefs=new Map();
+    for(let i=0;i<items.length;i++){
+      const item=items[i];
+      const s0=await getAdaptiveNestMask(item,0,grid);
+      shapeDefs.set(s0.key,s0);
+      item.k0=s0.key;
+      item.k1=s0.key;
+
+      if(allowRotate && Math.abs(item.baseW-item.baseH)>.001){
+        const s1=await getAdaptiveNestMask(item,1,grid);
+        shapeDefs.set(s1.key,s1);
+        item.k1=s1.key;
+      }
+
+      if(i%12===0) await new Promise(r=>requestAnimationFrame(r));
     }
 
-    for(let i=0;i<jobs.length;i++){
-      const {mode,rotationPolicy}=jobs[i];
-      if(count>40) toast(`Organizando… ${i+1}/${jobs.length}`);
-      const r=await packCandidateLayout(cleanItems,mode,rotationPolicy);
-      if(r && betterLayout(r,bestResult)) bestResult=r;
+    const shapes=[];
+    const transfers=[];
+    for(const s of shapeDefs.values()){
+      // Clone before transfer so the in-page cache remains usable by Auto Rellenar/Duplicar.
+      const copy=new Uint8Array(s.data);
+      shapes.push({key:s.key,w:s.w,h:s.h,occupied:s.occupied,data:copy.buffer});
+      transfers.push(copy.buffer);
     }
 
-    if(!bestResult){
-      toast("No se pudo acomodar todo. Prueba reducir la separación o dividir el trabajo en otra hoja.");
+    const result=await runNestWorker({
+      type:"run",
+      items,shapes,gw,gh,gap:gapCells,
+      allowRotate,
+      quality:profile.quality,
+      transfers
+    },msg=>{
+      if(msg.label) toast(`${msg.label}…`);
+    });
+
+    if(!result||!result.placed?.length){
+      toast("No se encontró una distribución válida.");
       return;
     }
 
-    const gap=nestGapValue();
-    if(nestLayoutCollides(bestResult.placed,gap)){
-      toast("Auto Organizar cancelado: se detectó una colisión interna.");
+    const proposedH=result.usedH/grid;
+
+    // Never make an already-good sheet worse.
+    if(currentH>0 && proposedH>=currentH-.05){
+      toast(`La distribución actual ya es igual o mejor · ${currentH.toFixed(1)} cm`);
       return;
     }
 
     pushHistory();
-    const byId=new Map(bestResult.placed.map(p=>[p.id,p]));
-    const m=state.sheet.margin;
+    const byId=new Map(result.placed.map(p=>[p.id,p]));
 
     for(const o of state.objects){
-      ensureRotationModel(o);
       const p=byId.get(o.id);
       if(!p) continue;
-
-      o.w=o.baseW;
-      o.h=o.baseH;
-      o.visualW=o.baseW;
-      o.visualH=o.baseH;
+      ensureRotationModel(o);
+      o.w=o.baseW;o.h=o.baseH;
+      o.visualW=o.baseW;o.visualH=o.baseH;
       o.aspectRatio=o.baseW/o.baseH;
-      o.rot=0;
+      o.rot=p.rotated?90:0;
 
+      const left=margin+p.x/grid;
+      const top=margin+p.y/grid;
       if(p.rotated){
-        o.rot=90;
-        const cx=m+p.x+p.w/2;
-        const cy=m+p.y+p.h/2;
-        o.x=cx-o.w/2;
-        o.y=cy-o.h/2;
+        const pw=p.w/grid, ph=p.h/grid;
+        const cx=left+pw/2, cy=top+ph/2;
+        o.x=cx-o.w/2;o.y=cy-o.h/2;
       }else{
-        o.x=m+p.x;
-        o.y=m+p.y;
+        o.x=left;o.y=top;
       }
     }
 
@@ -4515,176 +5319,114 @@ async function autoNest(){
 
     renderAll();
     setTimeout(fitViewport,20);
-    const rotText=(bestResult.rotations||0) ? ` · ${bestResult.rotations} rotada${bestResult.rotations===1?"":"s"}` : " · sin rotaciones";
-    toast(`Auto Organizar listo · ${bestResult.usedH.toFixed(1)} cm${rotText}`);
+    const saved=Math.max(0,currentH-proposedH);
+    toast(`Auto Organizar listo · ${proposedH.toFixed(1)} cm${saved>.05?` · ahorrados ${saved.toFixed(1)} cm`:""}`);
+  }catch(e){
+    console.error("[Auto Organizar]",e);
+    const msg=String(e?.message||e||"");
+    if(msg.includes("cancelled")) toast("Organización cancelada");
+    else toast(`Auto Organizar: ${msg.slice(0,160) || "error desconocido"}`);
   }finally{
     autoNestRunning=false;
     if(btn) btn.disabled=false;
   }
 }
+
 $("#autoNestTopBtn").onclick=()=>{autoNest()};
 
-// Auto Rellenar: shelf pack left→right, top→bottom.
-// MaxRects/BSSF was leaving random right-edge orphans and rotating into skinny pockets.
-function fillOccupancyFromSheet(gap,m){
-  return state.objects.map(o=>{
-    ensureRotationModel(o);
-    const r=rotatedAABB(o);
-    return {x:r.x-m,y:r.y-m,w:r.w+gap,h:r.h+gap};
-  });
-}
-function fillLocalCollides(x,y,w,h,occupied){
-  const a={x,y,w,h};
-  return occupied.some(b=>rectsOverlap(a,b));
-}
-function fillJumpPastObstacle(x,y,w,h,occupied){
-  let next=x+0.05;
-  const probe={x,y,w,h};
-  for(const b of occupied){
-    if(!rectsOverlap(probe,b)) continue;
-    next=Math.max(next,b.x+b.w);
-  }
-  return next;
-}
 
+// Auto Rellenar — Shape Nest: conserva lo existente y rellena huecos alpha reales.
 let fillRunning=false;
-$("#fillSelectedBtn").onclick=async ()=>{
-  if(fillRunning) return toast("Ya se está rellenando…");
+$('#fillSelectedBtn').onclick=async()=>{
+  if(fillRunning) return toast('Ya se está rellenando…');
   const src=objById(state.selectedId);
-  if(!src) return toast("Selecciona un diseño primero.");
+  if(!src) return toast('Selecciona un diseño primero.');
 
   ensureRotationModel(src);
-  const gap=nestGapValue();
   const m=state.sheet.margin;
-  const maxW=state.sheet.w-2*m;
-  const maxH=state.sheet.h-2*m;
-  if(maxW<=.01 || maxH<=.01) return toast("La hoja no tiene área útil.");
-
-  // Prefer the current orientation. Rotation only as a second pass for leftovers.
   const srcRot=((src.rot||0)%360+360)%360;
-  const box0=rotatedAABB({...src,rot:srcRot});
-  if(box0.w>maxW+.001 || box0.h>maxH+.001){
-    return toast("Este diseño no cabe en el área útil de la hoja.");
-  }
+  const allowRotate=!!$('#allowRotate')?.checked;
 
   pushHistory();
   fillRunning=true;
-  const btn=$("#fillSelectedBtn");
+  const btn=$('#fillSelectedBtn');
   if(btn) btn.disabled=true;
 
-  const occupied=fillOccupancyFromSheet(gap,m);
-  let added=0;
-  let rotated=0;
-  let copySeq=0;
-  const baseName=baseCopyName(src.name||"Diseño");
-  // Pre-scan once so renaming stays O(1) while placing hundreds of copies.
+  let added=0,rotated=0,copySeq=0;
+  const baseName=baseCopyName(src.name||'Diseño');
   for(const o of state.objects){
-    if(baseCopyName(o.name||"")!==baseName) continue;
-    const mNum=String(o.name||"").match(/\s+x(\d+)$/i);
-    const num=mNum?parseInt(mNum[1],10):1;
+    if(baseCopyName(o.name||'')!==baseName) continue;
+    const mt=String(o.name||'').match(/\s+x(\d+)$/i);
+    const num=mt?parseInt(mt[1],10):1;
     if(Number.isFinite(num)) copySeq=Math.max(copySeq,num);
   }
 
-  function commitPlacement(localX,localY,rot,bw,bh){
-    const probe=objectAtAABBTopLeft({...src,rot},m+localX,m+localY);
-    if(!objectInsidePrintableArea(probe,state.sheet.h)) return null;
-    if(objectPlacementCollides(probe,null,gap)) return null;
-    const n=JSON.parse(JSON.stringify(src));
-    delete n.src;
-    n.id=uid();
-    copySeq++;
-    n.name=`${baseName} x${copySeq}`;
-    n.x=probe.x;n.y=probe.y;n.rot=rot;
-    // Keep fill visuals calm: new copies are not selected mid-animation.
-    state.objects.push(n);
-    occupied.push({x:localX,y:localY,w:bw+gap,h:bh+gap});
-    if(Math.abs((((rot-srcRot)%360)+360)%360)>1) rotated++;
-    added++;
-    return n;
-  }
-
-  async function paintPlacement(n){
-    ensureAspect(n);
-    ensureRotationModel(n);
-    renderObject(n);
-    if(added===1 || added%20===0) toast(`Rellenando… ${added} copia${added===1?"":"s"}`);
-    // One frame per copy so the user sees them land (and the tab stays responsive).
-    await new Promise(r=>requestAnimationFrame(r));
-  }
-
-  async function shelfFill(bw,bh,rot){
-    const ySet=new Set([0]);
-    for(const o of occupied) ySet.add(Math.max(0,o.y+o.h));
-    for(let y=0;y+bh<=maxH+.001;y+=bh+gap) ySet.add(Math.round(y*1000)/1000);
-    const yList=[...ySet].filter(y=>y>=0 && y+bh<=maxH+.001).sort((a,b)=>a-b);
-
-    for(const y of yList){
-      let x=0;
-      while(x+bw<=maxW+.001){
-        if(!fillLocalCollides(x,y,bw,bh,occupied)){
-          const n=commitPlacement(x,y,rot,bw,bh);
-          if(n){
-            x+=bw+gap;
-            await paintPlacement(n);
-          }else{
-            x+=Math.max(0.05,Math.min(bw,0.5));
-          }
-        }else{
-          const jumped=fillJumpPastObstacle(x,y,bw,bh,occupied);
-          x=jumped<=x?x+0.05:jumped;
-        }
-      }
-    }
-  }
-
   try{
-    toast("Rellenando espacios…");
-    // Pass 1: keep orientation, fill row by row around obstacles.
-    await shelfFill(box0.w,box0.h,srcRot);
+    toast('Analizando huecos reales…');
+    // Precalentar ambas orientaciones antes del bucle.
+    await getShapeNestMask(src,shapeNestRot90(srcRot));
+    if(allowRotate) await getShapeNestMask({...src,rot:(srcRot+90)%360},shapeNestRot90((srcRot+90)%360));
 
-    // Pass 2: hunt leftover pockets with nest scoring (same orientation first).
-    for(;;){
-      const probeTemplate={...src,rot:srcRot};
-      const pos=findFreePlacementForObject(probeTemplate,state.sheet.h,null,gap,false);
-      if(!pos) break;
-      const n=commitPlacement(pos.x-m,pos.y-m,pos.rot??srcRot,box0.w,box0.h);
-      if(!n) break;
-      await paintPlacement(n);
-    }
+    // Una sola ocupación incremental: mucho más rápido que reconstruir la hoja por copia.
+    const occ=await buildShapeNestOccupancy(state.sheet.h,null);
+    const MAX_COPIES=999;
 
-    // Pass 3 (optional): only if "Permitir rotar" is on — fill odd leftover pockets.
-    if($("#allowRotate")?.checked){
-      const rot1=(srcRot+90)%360;
-      const box1=rotatedAABB({...src,rot:rot1});
-      if(box1.w<=maxW+.001 && box1.h<=maxH+.001 && (Math.abs(box1.w-box0.w)>.001||Math.abs(box1.h-box0.h)>.001)){
-        await shelfFill(box1.w,box1.h,rot1);
-        for(;;){
-          const pos=findFreePlacementForObject({...src,rot:rot1},state.sheet.h,null,gap,false);
-          if(!pos) break;
-          const n=commitPlacement(pos.x-m,pos.y-m,pos.rot??rot1,box1.w,box1.h);
-          if(!n) break;
-          await paintPlacement(n);
-        }
+    while(added<MAX_COPIES){
+      let best=null;
+      const rots=allowRotate?[srcRot,(srcRot+90)%360]:[srcRot];
+      for(const rot of [...new Set(rots)]){
+        const temp={...src,rot};
+        const shape=await shapeNestShapeForObject(temp);
+        const slot=shapeNestFindSlotInOccupancy(shape,occ);
+        if(!slot) continue;
+        if(!best || compareNestScores(slot.score,best.slot.score)<0) best={rot,shape,slot};
       }
+      if(!best) break;
+
+      const left=m+best.slot.x/SHAPE_NEST_GRID;
+      const top=m+best.slot.y/SHAPE_NEST_GRID;
+      const probe=objectAtAABBTopLeft({...src,rot:best.rot},left,top);
+      if(!objectInsidePrintableArea(probe,state.sheet.h)) break;
+
+      const n=JSON.parse(JSON.stringify(src)); delete n.src;
+      n.id=uid(); copySeq++; n.name=`${baseName} x${copySeq}`;
+      n.x=probe.x;n.y=probe.y;n.rot=best.rot;
+      state.objects.push(n);
+
+      // Registrar la forma ya colocada en el mismo grid para la siguiente copia.
+      shapeNestMark(best.shape,best.slot.x,best.slot.y,occ.grid,occ.gw,occ.gh,occ.gapCells);
+      occ.placed.push({
+        id:n.id,gridX:best.slot.x,gridY:best.slot.y,shape:best.shape,
+        x:best.slot.x/SHAPE_NEST_GRID,y:best.slot.y/SHAPE_NEST_GRID,
+        w:best.shape.w/SHAPE_NEST_GRID,h:best.shape.h/SHAPE_NEST_GRID
+      });
+      if(Math.abs((((best.rot-srcRot)%360)+360)%360)>1) rotated++;
+      added++;
+
+      ensureAspect(n);ensureRotationModel(n);renderObject(n);
+      if(added===1 || added%15===0) toast(`Rellenando por forma… ${added} copia${added===1?'':'s'}`);
+      if(added%6===0) await new Promise(r=>requestAnimationFrame(r));
     }
 
     if(!added){
       state.history.pop();
-      toast("No hay espacio vacío suficiente para otra copia.");
+      toast('No hay un hueco real suficiente para otra copia.');
       return;
     }
-
     state.selectedId=state.objects.at(-1).id;
     state.selectedIds=[state.selectedId];
     renderAll();
-    const rotTxt=rotated?` · ${rotated} rotada${rotated===1?"":"s"}`:"";
-    toast(`Se añadieron ${added} copia${added===1?"":"s"}${rotTxt}`);
+    const rotTxt=rotated?` · ${rotated} rotada${rotated===1?'':'s'}`:'';
+    toast(`Se añadieron ${added} copia${added===1?'':'s'} por forma${rotTxt}`);
+  }catch(e){
+    console.error(e);
+    if(added===0) state.history.pop();
+    toast('No se pudo completar el relleno por forma.');
   }finally{
     fillRunning=false;
     if(btn) btn.disabled=false;
   }
 };
-
 
 async function loadImageFromSrc(src){return new Promise((resolve,reject)=>{const img=new Image;img.onload=()=>resolve(img);img.onerror=reject;img.src=src})}
 
@@ -5604,31 +6346,30 @@ function copySelection(silent=false){
   if(!silent) toast(state.clipboard.length===1?"Copiado":"Objetos copiados");
   return true;
 }
-function pasteClipboard(count=1){
+async function pasteClipboard(count=1){
   if(!state.clipboard.length) return false;
   const times=Math.max(1,Math.min(999,Math.round(+count||1)));
   pushHistory();
 
   const pasted=[];
   let failed=0;
+  toast(times>1?`Acomodando ${times} copia(s) por forma…`:'Buscando hueco por forma…');
 
   for(let t=0;t<times;t++){
     for(const src of state.clipboard){
       const n=cloneForPaste(src);
-      const placed=placeObjectWithAutoGrowth(n);
-      if(!placed){
-        failed++;
-        continue;
-      }
-      // Important: add only AFTER a valid in-sheet position was found.
+      const placed=await placeObjectWithShapeAutoGrowth(n);
+      if(!placed){failed++;continue;}
       state.objects.push(n);
       pasted.push(n);
+      // Yield periodically and make the new piece available to the next occupancy build.
+      if(pasted.length%12===0) await new Promise(r=>requestAnimationFrame(r));
     }
   }
 
   if(!pasted.length){
     state.history.pop();
-    toast("No se pudo colocar la copia dentro de una gang sheet.");
+    toast('No se pudo colocar la copia dentro de una gang sheet.');
     return false;
   }
 
@@ -5637,9 +6378,9 @@ function pasteClipboard(count=1){
   recalcActiveSheetHeight();
   renderAll();
 
-  if(failed) toast(`${pasted.length} copia(s) colocadas; ${failed} no pudieron acomodarse.`);
-  else if(times>1) toast(`${pasted.length} copia(s) duplicadas y acomodadas`);
-  else toast(pasted.length===1?"Duplicado y acomodado (compacto)":"Objetos pegados y acomodados (compacto)");
+  if(failed) toast(`${pasted.length} copia(s) colocadas por forma; ${failed} no pudieron acomodarse.`);
+  else if(times>1) toast(`${pasted.length} copia(s) acomodadas por forma`);
+  else toast(pasted.length===1?'Duplicado acomodado por forma':'Objetos acomodados por forma');
   return true;
 }
 // Exponer el pegado interno únicamente para el menú contextual.
@@ -5835,22 +6576,35 @@ window.addEventListener("resize",()=>{
   clearTimeout(resizeFitTimer);
   resizeFitTimer=setTimeout(()=>fitViewport(),80);
 });
-window.addEventListener("beforeunload",()=>{
-  state.assets.forEach(a=>{
-    if(a.src && a.src.startsWith("blob:")) URL.revokeObjectURL(a.src);
-  });
+function flushSessionBackup(){
+  try{
+    if(sessionSaveReady) localStorage.setItem(SESSION_LS_KEY,JSON.stringify(buildSessionPayload()));
+  }catch{}
+}
+window.addEventListener("beforeunload",flushSessionBackup);
+window.addEventListener("pagehide",flushSessionBackup);
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="hidden"){
+    flushSessionBackup();
+    void saveSessionNow();
+  }
 });
 
 syncSheetInputs();
 renderAll();
 showRightPanel("properties");
-loadPersistedAssets();
-requestAnimationFrame(()=>{
+(async()=>{
+  await loadPersistedAssets();
+  await offerSessionRestore();
+  sessionSaveReady=true;
+  scheduleSessionSave();
   requestAnimationFrame(()=>{
-    fitViewport();
-    setTimeout(fitViewport,120);
+    requestAnimationFrame(()=>{
+      fitViewport();
+      setTimeout(fitViewport,120);
+    });
   });
-});
+})();
 })();
 </script>
 

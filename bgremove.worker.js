@@ -128,23 +128,54 @@ function sessionOptions(eps){
   };
 }
 
+let lastGpuError = null;
+
+async function workerHasWebGpu(){
+  try{
+    if (!self.navigator || !self.navigator.gpu) return false;
+    const adapter = await self.navigator.gpu.requestAdapter({ powerPreference: 'high-performance' })
+      || await self.navigator.gpu.requestAdapter();
+    return !!adapter;
+  }catch(e){
+    lastGpuError = String((e && e.message) || e || 'navigator.gpu failed');
+    return false;
+  }
+}
+
 async function ensureSession(modelUrl, preferGpu, ortBase){
   const key = modelUrl + '|' + (preferGpu ? 'gpu' : 'cpu') + '|' + (lowMemoryMode ? 'low' : 'hi');
   if (cachedSession && cachedModelKey === key) return cachedSession;
   await loadOrt(preferGpu, ortBase);
 
-  const tryEps = preferGpu ? [['webgpu'], ['wasm']] : [['wasm']];
+  lastGpuError = null;
+  const gpuOk = preferGpu ? await workerHasWebGpu() : false;
+  const tryEps = (preferGpu && gpuOk) ? [['webgpu'], ['wasm']] : [['wasm']];
+  if (preferGpu && !gpuOk && !lastGpuError) lastGpuError = 'Sin adapter WebGPU en el worker';
+
   let lastErr = null, session = null, backend = 'wasm';
   for (const eps of tryEps){
-    try {
-      progress(null, 'init', eps[0] === 'webgpu' ? 30 : 60, { trying: eps[0] });
-      session = await ortApi.InferenceSession.create(modelUrl, sessionOptions(eps));
-      backend = eps[0];
-      break;
-    } catch (e){
-      lastErr = e;
-      console.warn('[bgremove] EP failed:', eps[0], e && e.message ? e.message : e);
+    const optionSets = eps[0] === 'webgpu'
+      ? [
+          sessionOptions(eps),
+          { executionProviders: eps, graphOptimizationLevel: 'basic' },
+          { executionProviders: eps, graphOptimizationLevel: 'disabled' },
+        ]
+      : [sessionOptions(eps)];
+    for (const opts of optionSets){
+      try {
+        progress(null, 'init', eps[0] === 'webgpu' ? 30 : 60, { trying: eps[0] });
+        session = await ortApi.InferenceSession.create(modelUrl, opts);
+        backend = eps[0];
+        break;
+      } catch (e){
+        lastErr = e;
+        if (eps[0] === 'webgpu'){
+          lastGpuError = String((e && e.message) || e || 'webgpu EP failed');
+        }
+        console.warn('[bgremove] EP failed:', eps[0], e && e.message ? e.message : e);
+      }
     }
+    if (session) break;
   }
   if (!session){
     throw friendlyOrtError(lastErr) || new Error('No se pudo iniciar el removedor de fondo');
@@ -408,6 +439,7 @@ async function initModel(req){
     input: session.inputNames[0],
     lowMemory: lowMemoryMode,
     modelSize: activeModelSize,
+    gpuError: cachedBackend === 'webgpu' ? null : lastGpuError,
   });
 }
 
