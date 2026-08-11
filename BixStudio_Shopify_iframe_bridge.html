@@ -984,6 +984,24 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .context-menu button:disabled{opacity:.38;cursor:not-allowed;background:#fff;color:#9ca3af}
 .context-menu hr{border:0;border-top:1px solid #e5e7eb;margin:4px 0}
 
+
+.shopify-price-chip{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:34px;padding:6px 10px;border:1px solid #bbf7d0;border-radius:7px;
+  background:#f0fdf4;color:#166534;font-size:11px;font-weight:900;
+  white-space:nowrap;font-variant-numeric:tabular-nums
+}
+.shopify-cart-btn{
+  background:#16a34a!important;border-color:#16a34a!important;
+  min-width:150px;white-space:nowrap
+}
+.shopify-cart-btn:hover{background:#15803d!important;border-color:#15803d!important}
+.shopify-cart-btn:disabled{opacity:.55;cursor:not-allowed;transform:none!important}
+@media(max-width:767px){
+  .shopify-price-chip{display:none}
+  .shopify-cart-btn{min-width:0!important;padding:7px 10px!important;font-size:11px!important}
+}
+
 </style>
 </head>
 <body>
@@ -1005,7 +1023,8 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       <button class="ghost-btn" id="qualityBtn">✓ Revisar lienzo</button>
       <button class="autonest-top-btn" id="autoNestTopBtn">✦ Auto Organizar</button>
       <button class="ghost-btn" id="saveBtn">Guardar</button>
-      <button class="primary-btn" id="exportBtn">Exportar PNG</button>
+      <span id="shopifyPriceChip" class="shopify-price-chip" title="Precio de la hoja activa">—</span>
+<button class="primary-btn shopify-cart-btn" id="exportBtn">🛒 Agregar al carrito</button>
     </div>
   </header>
 
@@ -6211,7 +6230,98 @@ async function exportPng(){
     toast("PNG exportado a 300 DPI sin reducción global");
   },"image/png");
 }
-$("#exportBtn").onclick=exportPng;
+
+// ============================================================
+// Shopify bridge · BixStudio dentro de iframe
+// ============================================================
+const SHOPIFY_DTF_VARIANT_ID = 10551427694773;
+const SHOPIFY_PRICE_PER_CM = 2.00;
+
+function shopifyBillableCm(){
+  return Math.max(1,Math.ceil((+state.sheet.h||0)-1e-9));
+}
+function shopifyMoney(v){
+  return new Intl.NumberFormat("es-MX",{
+    style:"currency",currency:"MXN",minimumFractionDigits:0,maximumFractionDigits:2
+  }).format(v);
+}
+function updateShopifyCartUi(){
+  const btn=$("#exportBtn"), chip=$("#shopifyPriceChip");
+  if(!btn) return;
+  if(!state.objects.length){
+    if(chip) chip.textContent="—";
+    btn.textContent="🛒 Agregar al carrito";
+    return;
+  }
+  const cm=shopifyBillableCm();
+  const total=cm*SHOPIFY_PRICE_PER_CM;
+  if(chip) chip.textContent=shopifyMoney(total);
+  btn.textContent=`🛒 Agregar · ${shopifyMoney(total)}`;
+}
+function shopifyLineProperties(){
+  const cm=shopifyBillableCm();
+  const sheet=activeSheetRecord();
+  return {
+    "Medida":`${state.sheet.w.toFixed(0)} × ${state.sheet.h.toFixed(1).replace(".0","")} cm`,
+    "Largo facturado":`${cm} cm`,
+    "Hoja":sheet?.name||"Gang Sheet",
+    "_BixStudio":"Gang Sheet Builder"
+  };
+}
+function addActiveSheetToShopifyCart(){
+  if(!state.objects.length){
+    toast("Añade al menos un diseño antes de agregar al carrito.");
+    return;
+  }
+  updateDiagnostics();
+  if(state.objects.some(o=>o.overlap)){
+    toast("Revisa el lienzo: hay diseños superpuestos.");
+    return;
+  }
+  if(state.objects.some(o=>o.offboard)){
+    toast("Revisa el lienzo: hay diseños fuera del área de impresión.");
+    return;
+  }
+
+  const quantity=shopifyBillableCm();
+  const message={
+    type:"BIXSTUDIO_ADD_TO_CART",
+    variantId:SHOPIFY_DTF_VARIANT_ID,
+    quantity,
+    properties:shopifyLineProperties(),
+    total:quantity*SHOPIFY_PRICE_PER_CM
+  };
+
+  // Shopify page is the iframe parent. It owns the cart session.
+  if(window.parent && window.parent!==window){
+    window.parent.postMessage(message,"*");
+    toast(`Añadiendo ${quantity} cm al carrito…`);
+  }else{
+    toast("Abre BixStudio desde la página de BixPrint para agregar al carrito.");
+  }
+}
+$("#exportBtn").onclick=addActiveSheetToShopifyCart;
+
+const shopifySizeChip=$("#activeSheetSize");
+if(shopifySizeChip){
+  new MutationObserver(updateShopifyCartUi)
+    .observe(shopifySizeChip,{childList:true,subtree:true,characterData:true});
+}
+const shopifyObjectsLayer=$("#objectsLayer");
+if(shopifyObjectsLayer){
+  new MutationObserver(updateShopifyCartUi)
+    .observe(shopifyObjectsLayer,{childList:true});
+}
+window.addEventListener("message",e=>{
+  const d=e.data||{};
+  if(d.type==="BIXSTUDIO_CART_OK"){
+    toast(`✓ Añadido al carrito · ${d.quantity||shopifyBillableCm()} cm`);
+  }else if(d.type==="BIXSTUDIO_CART_ERROR"){
+    toast(`No se pudo agregar al carrito: ${String(d.error||"Error de Shopify").slice(0,120)}`);
+  }
+});
+setTimeout(updateShopifyCartUi,0);
+
 
 
 // ----- Viewport dinámico: zoom + pan tipo editor -----
