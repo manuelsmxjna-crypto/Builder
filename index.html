@@ -6273,16 +6273,6 @@ function addActiveSheetToShopifyCart(){
     toast("Añade al menos un diseño antes de agregar al carrito.");
     return;
   }
-  updateDiagnostics();
-  if(state.objects.some(o=>o.overlap)){
-    toast("Revisa el lienzo: hay diseños superpuestos.");
-    return;
-  }
-  if(state.objects.some(o=>o.offboard)){
-    toast("Revisa el lienzo: hay diseños fuera del área de impresión.");
-    return;
-  }
-
   const quantity=shopifyBillableCm();
   const message={
     type:"BIXSTUDIO_ADD_TO_CART",
