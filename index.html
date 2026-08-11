@@ -1364,10 +1364,10 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           pero puede tardar <b>más de lo normal</b>.
         </p>
         <div id="gpuWarnMobileNote" class="processing-note hidden" style="margin-bottom:10px">
-          En celulares con poca RAM (p. ej. Galaxy A16) la imagen se procesa a <b>512 px</b> y puede tardar varios minutos.
-          Cierra otras apps de Chrome antes de continuar. Si la pestaña se cierra, prueba en un PC.
+          En este celular se usa un <b>modelo ligero (~5 MB)</b> para no cerrar Chrome.
+          La calidad puede ser un poco menor que en PC. Cierra otras pestañas antes de continuar.
         </div>
-        <div class="processing-note">El resultado es el mismo modelo; solo cambian velocidad y, en móvil, la resolución de trabajo.</div>
+        <div class="processing-note">En PC se usa el modelo completo; en móvil un modelo más liviano. El fondo se elimina igual.</div>
         <div class="modal-action-row">
           <button class="ghost-btn" id="gpuWarnCancelBtn" type="button">Cancelar</button>
           <button class="primary-btn" id="gpuWarnContinueBtn" type="button">Continuar igual</button>
@@ -3520,8 +3520,9 @@ function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
 }
 // Persistent BiRefNet_lite 512 worker (WebGPU → WASM). Kept alive so the
 // ~94 MB ONNX is loaded once and reused across clicks.
-const bgRemoveState={worker:null,ready:null,backend:null,failed:null,pending:new Map(),preferGpu:null};
+const bgRemoveState={worker:null,ready:null,backend:null,failed:null,pending:new Map(),preferGpu:null,modelUrl:null};
 const BG_MODEL_URL="./models/bg-remove.onnx";
+const BG_MODEL_LITE_URL="./models/bg-remove-lite.onnx"; // u2netp ~4.7 MB — Galaxy A16 / móvil
 const gpuAccelState={webgpu:null,sessionWarned:false};
 
 /** Celulares / poca RAM: menos resolución y sin WebGPU (evita crash por memoria). */
@@ -3537,9 +3538,12 @@ function preferGpuForAi(){
   if(isConstrainedAiDevice()) return false;
   return true;
 }
+function bgRemoveModelUrl(){
+  // BiRefNet (~94 MB) tumba Chrome en Galaxy A-series; u2netp cabe en ~5 MB.
+  return isConstrainedAiDevice() ? BG_MODEL_LITE_URL : BG_MODEL_URL;
+}
 function bgRemoveMaxLongSide(){
-  // Galaxy A16 / 4GB: trabajar a 512 (tamaño del modelo) o el navegador mata la pestaña.
-  return isConstrainedAiDevice() ? 512 : 3600;
+  return isConstrainedAiDevice() ? 768 : 3600;
 }
 
 async function detectWebGpuAvailable(){
@@ -3609,6 +3613,7 @@ function resetBgRemoveWorker(){
  bgRemoveState.backend=null;
  bgRemoveState.failed=null;
  bgRemoveState.preferGpu=null;
+ bgRemoveState.modelUrl=null;
  bgRemoveState.pending.clear();
 }
 function failAllBgRemoveJobs(err){
@@ -3621,11 +3626,12 @@ function failAllBgRemoveJobs(err){
 }
 function ensureBgRemoveWorker(){
  const wantGpu=preferGpuForAi();
+ const modelUrl=bgRemoveModelUrl();
  if(bgRemoveState.failed){
    // Allow a fresh retry after a previous init/inference failure.
    resetBgRemoveWorker();
  }
- if(bgRemoveState.worker && bgRemoveState.preferGpu!==wantGpu){
+ if(bgRemoveState.worker && (bgRemoveState.preferGpu!==wantGpu || bgRemoveState.modelUrl!==modelUrl)){
    resetBgRemoveWorker();
  }
  if(bgRemoveState.worker) return bgRemoveState.ready;
@@ -3638,6 +3644,7 @@ function ensureBgRemoveWorker(){
  }
  bgRemoveState.worker=worker;
  bgRemoveState.preferGpu=wantGpu;
+ bgRemoveState.modelUrl=modelUrl;
  bgRemoveState.ready=new Promise((resolve,reject)=>{
    const onReady=e=>{
      const m=e.data||{};
@@ -3660,7 +3667,7 @@ function ensureBgRemoveWorker(){
    });
    worker.postMessage({
      type:"init",
-     modelUrl:BG_MODEL_URL,
+     modelUrl,
      preferGpu:wantGpu,
      lowMemory:isConstrainedAiDevice(),
      ortBase:"./ort/"
@@ -3691,7 +3698,7 @@ function ensureBgRemoveWorker(){
  return bgRemoveState.ready;
 }
 function preloadBgRemoveModel(){
- // En celular no precargar el ONNX (~94 MB): tumba la pestaña antes de usarlo.
+ // En celular el modelo lite es pequeño; aún así no precargar para no pelear RAM con la UI.
  if(isConstrainedAiDevice()) return;
  ensureBgRemoveWorker().catch(()=>{/* silent warm-up; errors surface on first use */});
 }
@@ -3705,7 +3712,7 @@ function runBgRemoveWorker(rgba,width,height,onProgress){
    bgRemoveState.pending.set(id,{resolve,reject,onProgress});
    bgRemoveState.worker.postMessage({
      id,type:"run",rgba,width,height,
-     modelUrl:BG_MODEL_URL,
+     modelUrl:bgRemoveModelUrl(),
      preferGpu:preferGpuForAi(),
      lowMemory:isConstrainedAiDevice(),
      alphaMode:"binary",ortBase:"./ort/"
@@ -3784,10 +3791,10 @@ async function removeBackgroundSelected(){
    applyProcessedAssetToObject(o,na,"bgremove",sizeOverride);
    showObjectProcessing(o.id,"Fondo eliminado",100);
    const slow=bgRemoveState.backend && bgRemoveState.backend!=="webgpu"?" · sin GPU":"";
-   const scaleNote=(downscaled||constrained)?" · 512 px (ahorro memoria)":"";
+   const liteNote=constrained?" · modelo ligero móvil":(downscaled?" · imagen reducida":"");
    toast(trimmed.trimmed
-     ?"Fondo eliminado · márgenes recortados"+slow+scaleNote
-     :"Fondo eliminado · alpha sólido"+slow+scaleNote);
+     ?"Fondo eliminado · márgenes recortados"+slow+liteNote
+     :"Fondo eliminado · alpha sólido"+slow+liteNote);
    await new Promise(r=>setTimeout(r,650));
  }catch(e){
    console.error(e);

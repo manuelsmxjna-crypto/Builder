@@ -15,12 +15,11 @@ const ORT_CDN_BASES = [
   'https://unpkg.com/onnxruntime-web@' + ORT_VERSION + '/dist/',
 ];
 
-// BiRefNet_lite 512 preprocessor (ViTFeatureExtractor / ImageNet):
-// size 512×512, mean/std ImageNet, rescale 1/255
-const MODEL_SIZE = 512;
+// BiRefNet_lite 512 (desktop) · u2netp 320 / bg-remove-lite (móvil, ~4.7 MB)
 const IMAGENET_MEAN = [0.485, 0.456, 0.406];
 const IMAGENET_STD  = [0.229, 0.224, 0.225];
 const DEFAULT_MODEL = './models/bg-remove.onnx';
+const LITE_MODEL = './models/bg-remove-lite.onnx';
 
 let ortApi = null;
 let ortInit = null;
@@ -29,7 +28,14 @@ let cachedSession = null;
 let cachedBackend = 'wasm';
 let cachedModelKey = '';
 let lowMemoryMode = false;
+let activeModelSize = 512;
 const cancelled = new Set();
+
+function resolveModelSize(modelUrl, lowMemory){
+  const u = String(modelUrl || '').toLowerCase();
+  if (lowMemory || u.includes('lite') || u.includes('u2netp')) return 320;
+  return 512;
+}
 
 function tryImport(url){
   try { importScripts(url); return null; }
@@ -177,9 +183,9 @@ function friendlyOrtError(err){
   return new Error(raw.length > 220 ? raw.slice(0, 220) + '…' : raw);
 }
 
-// Bilinear resize + ImageNet normalize → NCHW float32 [1,3,512,512]
-function rgbaToModelInput(rgba, width, height){
-  const N = MODEL_SIZE;
+// Bilinear resize + ImageNet normalize → NCHW float32 [1,3,N,N]
+function rgbaToModelInput(rgba, width, height, modelSize){
+  const N = modelSize || activeModelSize || 512;
   const out = new Float32Array(3 * N * N);
   const xRatio = width  / N;
   const yRatio = height / N;
@@ -348,20 +354,49 @@ function composeWithAlpha(rgba, maskU8, width, height, alphaMode){
   return out;
 }
 
-function logitsToMaskU8(data, plane){
-  const maskU8 = new Uint8ClampedArray(plane);
-  for (let i = 0; i < plane; i++){
-    let z = data[i];
-    if (z > 50) z = 50; else if (z < -50) z = -50;
-    const s = 1 / (1 + Math.exp(-z));
-    maskU8[i] = s * 255;
+function tensorToMaskU8(out, fallbackSize){
+  let data = out.data;
+  let mw = fallbackSize, mh = fallbackSize;
+  const dims = out.dims || [];
+  if (dims.length === 4){
+    // NCHW — si hay varios canales, usar el primero (u2net).
+    const c = dims[1] || 1;
+    mh = dims[2]; mw = dims[3];
+    if (c > 1) data = data.subarray(0, mw * mh);
+  } else if (dims.length === 3){
+    mh = dims[1]; mw = dims[2];
+  } else if (dims.length === 2){
+    mh = dims[0]; mw = dims[1];
   }
-  return maskU8;
+  const plane = mw * mh;
+  let min = Infinity, max = -Infinity;
+  for (let i = 0; i < plane; i++){
+    const v = data[i];
+    if (v < min) min = v;
+    if (v > max) max = v;
+  }
+  const looksLikeProb = min >= -0.05 && max <= 1.05;
+  const maskU8 = new Uint8ClampedArray(plane);
+  if (looksLikeProb){
+    for (let i = 0; i < plane; i++){
+      let v = data[i];
+      if (v < 0) v = 0; else if (v > 1) v = 1;
+      maskU8[i] = v * 255;
+    }
+  } else {
+    for (let i = 0; i < plane; i++){
+      let z = data[i];
+      if (z > 50) z = 50; else if (z < -50) z = -50;
+      maskU8[i] = (1 / (1 + Math.exp(-z))) * 255;
+    }
+  }
+  return { maskU8, mw, mh };
 }
 
 async function initModel(req){
   lowMemoryMode = !!req.lowMemory || isMobileUa();
-  const modelUrl = req.modelUrl || DEFAULT_MODEL;
+  const modelUrl = req.modelUrl || (lowMemoryMode ? LITE_MODEL : DEFAULT_MODEL);
+  activeModelSize = resolveModelSize(modelUrl, lowMemoryMode);
   const preferGpu = lowMemoryMode ? false : (req.preferGpu !== false);
   const ortBase = req.ortBase || './ort/';
   progress(null, 'init', 0);
@@ -372,6 +407,7 @@ async function initModel(req){
     backend: cachedBackend,
     input: session.inputNames[0],
     lowMemory: lowMemoryMode,
+    modelSize: activeModelSize,
   });
 }
 
@@ -379,12 +415,14 @@ async function runBgRemove(req){
   lowMemoryMode = !!req.lowMemory || isMobileUa() || lowMemoryMode;
   let {
     id, rgba, width, height,
-    modelUrl = DEFAULT_MODEL,
+    modelUrl,
     preferGpu = true,
     alphaMode = 'binary',
     ortBase = './ort/',
   } = req;
 
+  if (!modelUrl) modelUrl = lowMemoryMode ? LITE_MODEL : DEFAULT_MODEL;
+  activeModelSize = resolveModelSize(modelUrl, lowMemoryMode);
   if (lowMemoryMode) preferGpu = false;
 
   progress(id, 'init', 5);
@@ -392,16 +430,17 @@ async function runBgRemove(req){
   if (cancelled.has(id)) throw new Error('cancelled');
   progress(id, 'init', 100, { backend: cachedBackend });
 
-  // Galaxy A16 / low RAM: trabajar como máximo a 512 (tamaño del modelo).
+  // Móvil + modelo lite: se puede componer a ~768 px sin tumbar la pestaña.
   progress(id, 'preprocess', 10);
-  if (lowMemoryMode){
-    const scaled = downscaleRgba(rgba, width, height, MODEL_SIZE);
+  const workMax = lowMemoryMode ? 768 : 3600;
+  if (Math.max(width, height) > workMax){
+    const scaled = downscaleRgba(rgba, width, height, workMax);
     rgba = scaled.rgba;
     width = scaled.width;
     height = scaled.height;
   }
   progress(id, 'preprocess', 40);
-  const inputData = rgbaToModelInput(rgba, width, height);
+  const inputData = rgbaToModelInput(rgba, width, height, activeModelSize);
   if (cancelled.has(id)) throw new Error('cancelled');
   progress(id, 'preprocess', 100);
 
@@ -412,7 +451,7 @@ async function runBgRemove(req){
     ? 'output_image'
     : session.outputNames[0];
 
-  const tensor = new ortApi.Tensor('float32', inputData, [1, 3, MODEL_SIZE, MODEL_SIZE]);
+  const tensor = new ortApi.Tensor('float32', inputData, [1, 3, activeModelSize, activeModelSize]);
   const feed = {}; feed[inputName] = tensor;
 
   progress(id, 'inference', 10);
@@ -422,22 +461,7 @@ async function runBgRemove(req){
 
   progress(id, 'postprocess', 20);
   const out = result[outName];
-  const data = out.data;
-  let mw = MODEL_SIZE, mh = MODEL_SIZE;
-  if (out.dims.length === 4){
-    mh = out.dims[2];
-    mw = out.dims[3];
-  } else if (out.dims.length === 3){
-    mh = out.dims[1];
-    mw = out.dims[2];
-  } else if (out.dims.length === 2){
-    mh = out.dims[0];
-    mw = out.dims[1];
-  }
-
-  const plane = mw * mh;
-  const maskU8 = logitsToMaskU8(data, plane);
-  // Liberar referencia al output de ORT cuanto antes.
+  const { maskU8, mw, mh } = tensorToMaskU8(out, activeModelSize);
   try { out.dispose?.(); } catch {}
 
   const fullMask = upsampleMaskU8(maskU8, mw, mh, width, height);
