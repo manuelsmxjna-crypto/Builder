@@ -4,7 +4,7 @@
 // Tries WebGPU first, falls back to WASM SIMD.
 //
 // Protocol:
-//   in : { id, type:'run'|'init'|'cancel', rgba?, width?, height?, modelUrl?, preferGpu?, alphaMode?, ortBase? }
+//   in : { id, type:'run'|'init'|'cancel', rgba?, width?, height?, modelUrl?, preferGpu?, alphaMode?, ortBase?, lowMemory? }
 //   out: { id?, type:'progress'|'ready'|'done', ... }
 'use strict';
 
@@ -28,6 +28,7 @@ let ortBaseUrl = null;
 let cachedSession = null;
 let cachedBackend = 'wasm';
 let cachedModelKey = '';
+let lowMemoryMode = false;
 const cancelled = new Set();
 
 function tryImport(url){
@@ -36,6 +37,11 @@ function tryImport(url){
     const msg = (e && e.message) ? e.message : String(e);
     return (e && e.name) ? (e.name + ': ' + msg) : msg;
   }
+}
+
+function isMobileUa(){
+  const ua = (self.navigator && self.navigator.userAgent) || '';
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
 }
 
 function loadOrt(preferGpu, overrideBase){
@@ -47,9 +53,10 @@ function loadOrt(preferGpu, overrideBase){
     }
     for (const b of ORT_CDN_BASES) bases.push(b);
 
+    // En low-memory / sin GPU: NUNCA cargar ort.webgpu (extra ~0.7MB JS + riesgo OOM).
     const filesPrimary = preferGpu
       ? ['ort.webgpu.min.js', 'ort.min.js']
-      : ['ort.min.js', 'ort.webgpu.min.js'];
+      : ['ort.min.js'];
 
     const tried = [];
     for (const base of bases){
@@ -77,30 +84,45 @@ function loadOrt(preferGpu, overrideBase){
 
     ortApi.env.wasm.wasmPaths = ortBaseUrl;
     ortApi.env.wasm.simd = true;
-    const canSAB = typeof SharedArrayBuffer !== 'undefined';
-    const cores  = (self.navigator && self.navigator.hardwareConcurrency) || 2;
-    ortApi.env.wasm.numThreads = canSAB ? Math.max(1, Math.min(4, cores)) : 1;
+    // Siempre 1 hilo en móvil / low-memory: el wasm threaded pesa más y pica más RAM.
+    ortApi.env.wasm.numThreads = 1;
+    if (typeof ortApi.env.wasm.proxy !== 'undefined'){
+      ortApi.env.wasm.proxy = false;
+    }
     return ortApi;
   })();
   ortInit.catch(() => { ortInit = null; });
   return ortInit;
 }
 
+function sessionOptions(eps){
+  // 'all' duplica temporalmente el grafo (~94MB) y tumba Galaxy A-series / 4GB.
+  if (lowMemoryMode || isMobileUa()){
+    return {
+      executionProviders: eps,
+      graphOptimizationLevel: 'disabled',
+      executionMode: 'sequential',
+      enableCpuMemArena: false,
+      enableMemPattern: false,
+    };
+  }
+  return {
+    executionProviders: eps,
+    graphOptimizationLevel: 'all',
+  };
+}
+
 async function ensureSession(modelUrl, preferGpu, ortBase){
-  const key = modelUrl + '|' + (preferGpu ? 'gpu' : 'cpu');
+  const key = modelUrl + '|' + (preferGpu ? 'gpu' : 'cpu') + '|' + (lowMemoryMode ? 'low' : 'hi');
   if (cachedSession && cachedModelKey === key) return cachedSession;
   await loadOrt(preferGpu, ortBase);
 
-  // WebGPU first (fp16), then WASM fallback.
   const tryEps = preferGpu ? [['webgpu'], ['wasm']] : [['wasm']];
   let lastErr = null, session = null, backend = 'wasm';
   for (const eps of tryEps){
     try {
       progress(null, 'init', eps[0] === 'webgpu' ? 30 : 60, { trying: eps[0] });
-      session = await ortApi.InferenceSession.create(modelUrl, {
-        executionProviders: eps,
-        graphOptimizationLevel: 'all',
-      });
+      session = await ortApi.InferenceSession.create(modelUrl, sessionOptions(eps));
       backend = eps[0];
       break;
     } catch (e){
@@ -127,7 +149,7 @@ function friendlyOrtError(err){
   const raw = String((err && err.message) || err || '');
   const low = raw.toLowerCase();
   if (low.includes('bad_alloc') || low.includes('out of memory') || low.includes('oom') || low.includes('memory')){
-    return new Error('Memoria insuficiente para quitar el fondo. Cierra otras pestañas e inténtalo de nuevo.');
+    return new Error('Memoria insuficiente en este celular. Prueba una imagen más pequeña o usa un PC.');
   }
   if (low.includes('webgpu')){
     return new Error('No se pudo acelerar con GPU. Actualiza Chrome o prueba de nuevo.');
@@ -182,7 +204,41 @@ function rgbaToModelInput(rgba, width, height){
   return out;
 }
 
+/** Downscale RGBA with canvas-less box average (worker-safe, low alloc). */
+function downscaleRgba(rgba, width, height, maxLong){
+  const long = Math.max(width, height);
+  if (long <= maxLong) return { rgba, width, height };
+  const scale = maxLong / long;
+  const nw = Math.max(1, Math.round(width * scale));
+  const nh = Math.max(1, Math.round(height * scale));
+  const out = new Uint8ClampedArray(nw * nh * 4);
+  for (let y = 0; y < nh; y++){
+    const sy0 = Math.floor(y * height / nh);
+    const sy1 = Math.max(sy0 + 1, Math.floor((y + 1) * height / nh));
+    for (let x = 0; x < nw; x++){
+      const sx0 = Math.floor(x * width / nw);
+      const sx1 = Math.max(sx0 + 1, Math.floor((x + 1) * width / nw));
+      let r = 0, g = 0, b = 0, a = 0, n = 0;
+      for (let yy = sy0; yy < sy1 && yy < height; yy++){
+        for (let xx = sx0; xx < sx1 && xx < width; xx++){
+          const i = (yy * width + xx) * 4;
+          r += rgba[i]; g += rgba[i + 1]; b += rgba[i + 2]; a += rgba[i + 3];
+          n++;
+        }
+      }
+      const o = (y * nw + x) * 4;
+      if (n){
+        out[o] = r / n; out[o + 1] = g / n; out[o + 2] = b / n; out[o + 3] = a / n;
+      }
+    }
+  }
+  return { rgba: out, width: nw, height: nh };
+}
+
 function upsampleMaskU8(mask, mw, mh, width, height){
+  if (mw === width && mh === height){
+    return mask instanceof Uint8ClampedArray ? mask : new Uint8ClampedArray(mask);
+  }
   const out = new Uint8ClampedArray(width * height);
   const xRatio = mw / width;
   const yRatio = mh / height;
@@ -210,18 +266,29 @@ function upsampleMaskU8(mask, mw, mh, width, height){
   return out;
 }
 
+function composeBinary(rgba, maskU8, width, height){
+  const out = new Uint8ClampedArray(width * height * 4);
+  const N = width * height;
+  for (let i = 0, p = 0; i < N; i++, p += 4){
+    if (maskU8[i] >= 128){
+      out[p] = rgba[p];
+      out[p + 1] = rgba[p + 1];
+      out[p + 2] = rgba[p + 2];
+      out[p + 3] = 255;
+    }
+  }
+  return out;
+}
+
 function composeWithAlpha(rgba, maskU8, width, height, alphaMode){
+  if (alphaMode === 'binary') return composeBinary(rgba, maskU8, width, height);
+
   const out = new Uint8ClampedArray(rgba.length);
   out.set(rgba);
   const N = width * height;
-
   for (let i = 0, o = 3; i < N; i++, o += 4){
-    const m = maskU8[i];
-    const prev = rgba[o];
-    out[o] = Math.round((m * prev) / 255);
+    out[o] = Math.round((maskU8[i] * rgba[o]) / 255);
   }
-
-  // Light despill on soft fringe
   for (let y = 0; y < height; y++){
     for (let x = 0; x < width; x++){
       const i = y * width + x;
@@ -254,31 +321,17 @@ function composeWithAlpha(rgba, maskU8, width, height, alphaMode){
       out[o] = r; out[o + 1] = g; out[o + 2] = b;
     }
   }
-
-  if (alphaMode === 'binary'){
-    for (let i = 0, o = 3; i < N; i++, o += 4){
-      const a = out[o] >= 128 ? 255 : 0;
-      out[o] = a;
-      if (a === 0){
-        out[o - 3] = 0;
-        out[o - 2] = 0;
-        out[o - 1] = 0;
-      }
-    }
-  } else {
-    for (let i = 0, o = 3; i < N; i++, o += 4){
-      if (out[o] === 0){
-        out[o - 3] = 0;
-        out[o - 2] = 0;
-        out[o - 1] = 0;
-      }
+  for (let i = 0, o = 3; i < N; i++, o += 4){
+    if (out[o] === 0){
+      out[o - 3] = 0;
+      out[o - 2] = 0;
+      out[o - 1] = 0;
     }
   }
   return out;
 }
 
 function logitsToMaskU8(data, plane){
-  // BiRefNet emits logits → sigmoid → 0..255 (same as transformers.js demo)
   const maskU8 = new Uint8ClampedArray(plane);
   for (let i = 0; i < plane; i++){
     let z = data[i];
@@ -290,8 +343,9 @@ function logitsToMaskU8(data, plane){
 }
 
 async function initModel(req){
+  lowMemoryMode = !!req.lowMemory || isMobileUa();
   const modelUrl = req.modelUrl || DEFAULT_MODEL;
-  const preferGpu = req.preferGpu !== false;
+  const preferGpu = lowMemoryMode ? false : (req.preferGpu !== false);
   const ortBase = req.ortBase || './ort/';
   progress(null, 'init', 0);
   const session = await ensureSession(modelUrl, preferGpu, ortBase);
@@ -300,11 +354,13 @@ async function initModel(req){
     type: 'ready',
     backend: cachedBackend,
     input: session.inputNames[0],
+    lowMemory: lowMemoryMode,
   });
 }
 
 async function runBgRemove(req){
-  const {
+  lowMemoryMode = !!req.lowMemory || isMobileUa() || lowMemoryMode;
+  let {
     id, rgba, width, height,
     modelUrl = DEFAULT_MODEL,
     preferGpu = true,
@@ -312,17 +368,26 @@ async function runBgRemove(req){
     ortBase = './ort/',
   } = req;
 
+  if (lowMemoryMode) preferGpu = false;
+
   progress(id, 'init', 5);
   const session = await ensureSession(modelUrl, preferGpu, ortBase);
   if (cancelled.has(id)) throw new Error('cancelled');
   progress(id, 'init', 100, { backend: cachedBackend });
 
-  progress(id, 'preprocess', 20);
+  // Galaxy A16 / low RAM: trabajar como máximo a 512 (tamaño del modelo).
+  progress(id, 'preprocess', 10);
+  if (lowMemoryMode){
+    const scaled = downscaleRgba(rgba, width, height, MODEL_SIZE);
+    rgba = scaled.rgba;
+    width = scaled.width;
+    height = scaled.height;
+  }
+  progress(id, 'preprocess', 40);
   const inputData = rgbaToModelInput(rgba, width, height);
   if (cancelled.has(id)) throw new Error('cancelled');
   progress(id, 'preprocess', 100);
 
-  // Prefer canonical BiRefNet names; fall back to session discovery.
   const inputName = session.inputNames.includes('input_image')
     ? 'input_image'
     : session.inputNames[0];
@@ -355,6 +420,9 @@ async function runBgRemove(req){
 
   const plane = mw * mh;
   const maskU8 = logitsToMaskU8(data, plane);
+  // Liberar referencia al output de ORT cuanto antes.
+  try { out.dispose?.(); } catch {}
+
   const fullMask = upsampleMaskU8(maskU8, mw, mh, width, height);
   progress(id, 'postprocess', 100);
 

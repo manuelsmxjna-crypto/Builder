@@ -1363,7 +1363,11 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           El proceso <b id="gpuWarnFeature">de IA</b> seguirá funcionando con el procesador (CPU/WASM),
           pero puede tardar <b>más de lo normal</b>.
         </p>
-        <div class="processing-note">El resultado es el mismo; solo cambia la velocidad. En celulares o navegadores sin WebGPU es habitual.</div>
+        <div id="gpuWarnMobileNote" class="processing-note hidden" style="margin-bottom:10px">
+          En celulares con poca RAM (p. ej. Galaxy A16) la imagen se procesa a <b>512 px</b> y puede tardar varios minutos.
+          Cierra otras apps de Chrome antes de continuar. Si la pestaña se cierra, prueba en un PC.
+        </div>
+        <div class="processing-note">El resultado es el mismo modelo; solo cambian velocidad y, en móvil, la resolución de trabajo.</div>
         <div class="modal-action-row">
           <button class="ghost-btn" id="gpuWarnCancelBtn" type="button">Cancelar</button>
           <button class="primary-btn" id="gpuWarnContinueBtn" type="button">Continuar igual</button>
@@ -3516,9 +3520,27 @@ function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
 }
 // Persistent BiRefNet_lite 512 worker (WebGPU → WASM). Kept alive so the
 // ~94 MB ONNX is loaded once and reused across clicks.
-const bgRemoveState={worker:null,ready:null,backend:null,failed:null,pending:new Map()};
+const bgRemoveState={worker:null,ready:null,backend:null,failed:null,pending:new Map(),preferGpu:null};
 const BG_MODEL_URL="./models/bg-remove.onnx";
 const gpuAccelState={webgpu:null,sessionWarned:false};
+
+/** Celulares / poca RAM: menos resolución y sin WebGPU (evita crash por memoria). */
+function isConstrainedAiDevice(){
+  try{
+    if(typeof matchMedia==="function" && matchMedia("(max-width:900px)").matches) return true;
+    if(/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||"")) return true;
+    if(typeof navigator.deviceMemory==="number" && navigator.deviceMemory>0 && navigator.deviceMemory<=4) return true;
+  }catch{}
+  return false;
+}
+function preferGpuForAi(){
+  if(isConstrainedAiDevice()) return false;
+  return true;
+}
+function bgRemoveMaxLongSide(){
+  // Galaxy A16 / 4GB: trabajar a 512 (tamaño del modelo) o el navegador mata la pestaña.
+  return isConstrainedAiDevice() ? 512 : 3600;
+}
 
 async function detectWebGpuAvailable(){
   if(gpuAccelState.webgpu!==null) return gpuAccelState.webgpu;
@@ -3540,6 +3562,11 @@ function showGpuFallbackWarning(featureLabel){
   return new Promise(resolve=>{
     const feat=$("#gpuWarnFeature");
     if(feat) feat.textContent=featureLabel||"de IA";
+    const mobileNote=$("#gpuWarnMobileNote");
+    if(mobileNote) mobileNote.classList.toggle("hidden",!isConstrainedAiDevice());
+    const title=$("#gpuWarnTitle");
+    if(title && isConstrainedAiDevice()) title.textContent="⚠ Modo ahorro de memoria";
+    else if(title) title.textContent="⚠ Sin aceleración GPU";
     modalOpen("gpuWarnModal");
     let settled=false;
     const finish=ok=>{
@@ -3581,11 +3608,24 @@ function resetBgRemoveWorker(){
  bgRemoveState.ready=null;
  bgRemoveState.backend=null;
  bgRemoveState.failed=null;
+ bgRemoveState.preferGpu=null;
  bgRemoveState.pending.clear();
 }
+function failAllBgRemoveJobs(err){
+ const error=err instanceof Error?err:new Error(String(err||"Error al quitar el fondo"));
+ for(const [,job] of bgRemoveState.pending){
+   try{job.reject(error)}catch{}
+ }
+ bgRemoveState.pending.clear();
+ bgRemoveState.failed=true;
+}
 function ensureBgRemoveWorker(){
+ const wantGpu=preferGpuForAi();
  if(bgRemoveState.failed){
    // Allow a fresh retry after a previous init/inference failure.
+   resetBgRemoveWorker();
+ }
+ if(bgRemoveState.worker && bgRemoveState.preferGpu!==wantGpu){
    resetBgRemoveWorker();
  }
  if(bgRemoveState.worker) return bgRemoveState.ready;
@@ -3597,6 +3637,7 @@ function ensureBgRemoveWorker(){
    return bgRemoveState.ready;
  }
  bgRemoveState.worker=worker;
+ bgRemoveState.preferGpu=wantGpu;
  bgRemoveState.ready=new Promise((resolve,reject)=>{
    const onReady=e=>{
      const m=e.data||{};
@@ -3614,10 +3655,16 @@ function ensureBgRemoveWorker(){
    };
    worker.addEventListener("message",onReady);
    worker.addEventListener("error",()=>{
-     bgRemoveState.failed=true;
+     failAllBgRemoveJobs(new Error("El removedor de fondo se cerró (posible falta de memoria). Prueba una imagen más pequeña."));
      reject(new Error("Error cargando el removedor de fondo"));
    });
-   worker.postMessage({type:"init",modelUrl:BG_MODEL_URL,preferGpu:true,ortBase:"./ort/"});
+   worker.postMessage({
+     type:"init",
+     modelUrl:BG_MODEL_URL,
+     preferGpu:wantGpu,
+     lowMemory:isConstrainedAiDevice(),
+     ortBase:"./ort/"
+   });
  });
  worker.addEventListener("message",e=>{
    const m=e.data||{};
@@ -3637,19 +3684,30 @@ function ensureBgRemoveWorker(){
      }
    }
  });
+ worker.addEventListener("messageerror",()=>{
+   failAllBgRemoveJobs(new Error("No se pudo comunicar con el removedor de fondo. La imagen puede ser demasiado grande."));
+ });
  bgRemoveState.ready.catch(()=>{ bgRemoveState.failed=true; });
  return bgRemoveState.ready;
 }
 function preloadBgRemoveModel(){
+ // En celular no precargar el ONNX (~94 MB): tumba la pestaña antes de usarlo.
+ if(isConstrainedAiDevice()) return;
  ensureBgRemoveWorker().catch(()=>{/* silent warm-up; errors surface on first use */});
 }
 function runBgRemoveWorker(rgba,width,height,onProgress){
  return ensureBgRemoveWorker().then(()=>new Promise((resolve,reject)=>{
+   if(!bgRemoveState.worker){
+     reject(new Error("No se pudo iniciar el removedor de fondo"));
+     return;
+   }
    const id="bg_"+Date.now()+"_"+Math.random().toString(36).slice(2);
    bgRemoveState.pending.set(id,{resolve,reject,onProgress});
    bgRemoveState.worker.postMessage({
      id,type:"run",rgba,width,height,
-     modelUrl:BG_MODEL_URL,preferGpu:true,
+     modelUrl:BG_MODEL_URL,
+     preferGpu:preferGpuForAi(),
+     lowMemory:isConstrainedAiDevice(),
      alphaMode:"binary",ortBase:"./ort/"
    },[rgba.buffer]);
  }));
@@ -3668,62 +3726,82 @@ async function removeBackgroundSelected(){
  const btn=$("#removeBgBtn");
  if(btn.disabled)return;
  btn.disabled=true;
+ const constrained=isConstrainedAiDevice();
  try{
-   showObjectProcessing(o.id,"Comprobando GPU…",4);
-   await ensureBgRemoveWorker();
-   const ok=await warnIfNoGpuAccel("Quitar fondo",bgRemoveState.backend);
+   // Avisar ANTES de cargar el ONNX (~94 MB); en A16 el crash ocurre al inicializar.
+   showObjectProcessing(o.id,"Preparando…",3);
+   if(typeof closeMobileDrawers==="function") closeMobileDrawers();
+   const ok=await warnIfNoGpuAccel("Quitar fondo",constrained?"wasm":(bgRemoveState.backend||null));
    if(!ok){ hideObjectProcessing(o.id); return; }
-   showObjectProcessing(o.id,"Quitando fondo…",6);
+
+   showObjectProcessing(o.id,constrained?"Cargando IA (modo ahorro)…":"Cargando IA…",6);
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   updateObjectProcessing(o.id,8,"Cargando IA…");
+   // Pequeña pausa para que Android libere UI/GPU antes del pico de memoria.
+   if(constrained) await new Promise(r=>setTimeout(r,120));
+   await ensureBgRemoveWorker();
+
+   showObjectProcessing(o.id,"Quitando fondo…",10);
    let c=await assetCanvas(asset);
-   // Cap extreme resolutions for memory safety; mask is inferred at model size.
-   const maxLong=3600,long=Math.max(c.width,c.height);
+   const maxLong=bgRemoveMaxLongSide(),long=Math.max(c.width,c.height);
+   let downscaled=false;
    if(long>maxLong){
-     updateObjectProcessing(o.id,10,"Preparando imagen…");
+     updateObjectProcessing(o.id,12,"Reduciendo imagen…");
      const k=maxLong/long;
      c=cloneCanvasHQ(c,Math.round(c.width*k),Math.round(c.height*k));
+     downscaled=true;
    }
    const d=c.getContext("2d",{willReadFrequently:true}).getImageData(0,0,c.width,c.height);
-   const r=await runBgRemoveWorker(d.data,c.width,c.height,m=>{
-     let pct=12;
-     if(m.stage==="init") pct=6+m.pct*0.08;
-     else if(m.stage==="preprocess") pct=14+m.pct*0.10;
-     else if(m.stage==="inference") pct=24+m.pct*0.50;
-     else if(m.stage==="postprocess") pct=74+m.pct*0.12;
-     else if(m.stage==="compose") pct=86+m.pct*0.10;
+   const procW=d.width,procH=d.height;
+   c.width=0;c.height=0;c=null;
+   if(constrained) await new Promise(r=>setTimeout(r,40));
+
+   const r=await runBgRemoveWorker(d.data,procW,procH,m=>{
+     let pct=14;
+     if(m.stage==="init") pct=8+m.pct*0.10;
+     else if(m.stage==="preprocess") pct=18+m.pct*0.10;
+     else if(m.stage==="inference") pct=28+m.pct*0.48;
+     else if(m.stage==="postprocess") pct=76+m.pct*0.10;
+     else if(m.stage==="compose") pct=86+m.pct*0.08;
      updateObjectProcessing(o.id,pct,bgRemoveStageLabel(m.stage));
    });
    updateObjectProcessing(o.id,94,"Recortando márgenes…");
    const trimmed=trimTransparentRgba(r.rgba,r.width,r.height,{alphaMin:1,pad:1});
    if(!trimmed) throw new Error("No se detectó contenido opaco tras quitar el fondo.");
-   const physW=o.w*(trimmed.width/trimmed.srcW);
-   const physH=o.h*(trimmed.height/trimmed.srcH);
+   // Mantener el tamaño físico de la hoja; solo cambian los píxeles del asset.
    const sizeOverride={
-     x:o.x+o.w*(trimmed.offsetX/trimmed.srcW),
-     y:o.y+o.h*(trimmed.offsetY/trimmed.srcH),
-     w:Math.max(0.2,physW),
-     h:Math.max(0.2,physH)
+     x:o.x,y:o.y,w:o.w,h:o.h
    };
+   if(trimmed.trimmed){
+     sizeOverride.x=o.x+o.w*(trimmed.offsetX/trimmed.srcW);
+     sizeOverride.y=o.y+o.h*(trimmed.offsetY/trimmed.srcH);
+     sizeOverride.w=Math.max(0.2,o.w*(trimmed.width/trimmed.srcW));
+     sizeOverride.h=Math.max(0.2,o.h*(trimmed.height/trimmed.srcH));
+   }
    updateObjectProcessing(o.id,97,"Generando PNG…");
    const blob=await rgbaToBlob(trimmed.rgba,trimmed.width,trimmed.height);
    const na=await createProcessedAsset(asset,blob,trimmed.width,trimmed.height,"_sin_fondo",sizeOverride.w,sizeOverride.h,{alphaBinary:true,autoTrimmed:true});
    pushHistory();
    applyProcessedAssetToObject(o,na,"bgremove",sizeOverride);
    showObjectProcessing(o.id,"Fondo eliminado",100);
-   const slow=bgRemoveState.backend && bgRemoveState.backend!=="webgpu"?" · sin GPU (más lento)":"";
+   const slow=bgRemoveState.backend && bgRemoveState.backend!=="webgpu"?" · sin GPU":"";
+   const scaleNote=(downscaled||constrained)?" · 512 px (ahorro memoria)":"";
    toast(trimmed.trimmed
-     ?"Fondo eliminado · márgenes recortados · alpha sólido"+slow
-     :"Fondo eliminado · alpha sólido para DTF"+slow);
+     ?"Fondo eliminado · márgenes recortados"+slow+scaleNote
+     :"Fondo eliminado · alpha sólido"+slow+scaleNote);
    await new Promise(r=>setTimeout(r,650));
  }catch(e){
    console.error(e);
    updateObjectProcessing(o.id,100,"No se pudo quitar el fondo");
-   toast(e.message||"No se pudo quitar el fondo de la imagen");
-   await new Promise(r=>setTimeout(r,850));
+   const msg=e&&e.message?e.message:"No se pudo quitar el fondo de la imagen";
+   toast(constrained
+     ? (msg+" Si Chrome se cerró solo, este celular no tiene RAM suficiente: usa un PC.")
+     : msg);
+   await new Promise(r=>setTimeout(r,1100));
  }finally{
    hideObjectProcessing(o.id);
    btn.disabled=false;
+   // Siempre liberar el modelo en celular tras el intento.
+   if(constrained) resetBgRemoveWorker();
  }
 }
 function runUpscaleWorkerSimple(rgba,width,height,onProgress){return new Promise((resolve,reject)=>{
@@ -3731,7 +3809,7 @@ function runUpscaleWorkerSimple(rgba,width,height,onProgress){return new Promise
  const id="up_"+Date.now()+Math.random();
  worker.onmessage=e=>{const m=e.data||{};if(m.id!==id)return;if(m.type==="progress"){onProgress?.(m);return}if(m.type==="done"){worker.terminate();m.ok?resolve(m):reject(new Error(m.error||"Error de IA"))}};
  worker.onerror=e=>{try{worker.terminate()}catch{};reject(new Error("No se pudo completar la mejora de calidad"))};
- worker.postMessage({id,type:"run",rgba,width,height,modelUrl:"./models/realesr-anime-x4.onnx",preferGpu:true,tile:128,pad:8,alphaMode:"binary",ortBase:"./ort/"},[rgba.buffer]);
+ worker.postMessage({id,type:"run",rgba,width,height,modelUrl:"./models/realesr-anime-x4.onnx",preferGpu:preferGpuForAi(),tile:isConstrainedAiDevice()?96:128,pad:8,alphaMode:"binary",ortBase:"./ort/"},[rgba.buffer]);
 })}
 async function enhanceSelectedWithAi(){
  const o=selectedImageObject();if(!o)return;
@@ -3741,20 +3819,22 @@ async function enhanceSelectedWithAi(){
  btn.disabled=true;
  try{
    showObjectProcessing(o.id,"Comprobando GPU…",4);
-   const ok=await warnIfNoGpuAccel("Mejorar calidad");
+   const ok=await warnIfNoGpuAccel("Mejorar calidad",preferGpuForAi()?null:"wasm");
    if(!ok){ hideObjectProcessing(o.id); return; }
    showObjectProcessing(o.id,"Mejorando calidad…",6);
    // Give the overlay one frame to become visible before the heavy work begins.
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
    let c=await assetCanvas(asset);
-   const maxLong=1500,long=Math.max(c.width,c.height);
+   const maxLong=isConstrainedAiDevice()?960:1500,long=Math.max(c.width,c.height);
    if(long>maxLong){
      updateObjectProcessing(o.id,8,"Preparando imagen…");
      const k=maxLong/long;
      c=cloneCanvasHQ(c,Math.round(c.width*k),Math.round(c.height*k));
    }
    const d=c.getContext("2d",{willReadFrequently:true}).getImageData(0,0,c.width,c.height);
-   const r=await runUpscaleWorkerSimple(d.data,c.width,c.height,m=>{
+   const procW=d.width,procH=d.height;
+   c.width=0;c.height=0;c=null;
+   const r=await runUpscaleWorkerSimple(d.data,procW,procH,m=>{
      const pct=m.stage==="load" ? Math.min(14,4+m.pct*.10) : 14+m.pct*.78;
      updateObjectProcessing(o.id,pct,"Mejorando calidad…");
    });
