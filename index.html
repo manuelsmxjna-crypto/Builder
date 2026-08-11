@@ -1351,6 +1351,27 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       <div class="modal-foot"><button class="primary-btn" data-close="qualityModal">Continuar</button></div>
     </div>
   </div>
+  <div id="gpuWarnModal" class="modal-backdrop hidden">
+    <div class="modal processing-modal gpu-warn-modal" role="alertdialog" aria-modal="true" aria-labelledby="gpuWarnTitle">
+      <div class="modal-head">
+        <h2 id="gpuWarnTitle">⚠ Sin aceleración GPU</h2>
+        <button class="close-btn" id="gpuWarnCloseBtn" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="processing-body">
+        <p id="gpuWarnBody" style="margin:0 0 12px;font-size:13px;line-height:1.5;color:#334155">
+          No se detectó <b>WebGPU</b> en este dispositivo o navegador.
+          El proceso <b id="gpuWarnFeature">de IA</b> seguirá funcionando con el procesador (CPU/WASM),
+          pero puede tardar <b>más de lo normal</b>.
+        </p>
+        <div class="processing-note">El resultado es el mismo; solo cambia la velocidad. En celulares o navegadores sin WebGPU es habitual.</div>
+        <div class="modal-action-row">
+          <button class="ghost-btn" id="gpuWarnCancelBtn" type="button">Cancelar</button>
+          <button class="primary-btn" id="gpuWarnContinueBtn" type="button">Continuar igual</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="halftoneModal" class="modal-backdrop hidden">
     <div class="modal processing-modal">
       <div class="modal-head"><h2>◉ Crear semitono</h2><button class="close-btn" data-close="halftoneModal">×</button></div>
@@ -3497,6 +3518,63 @@ function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
 // ~94 MB ONNX is loaded once and reused across clicks.
 const bgRemoveState={worker:null,ready:null,backend:null,failed:null,pending:new Map()};
 const BG_MODEL_URL="./models/bg-remove.onnx";
+const gpuAccelState={webgpu:null,sessionWarned:false};
+
+async function detectWebGpuAvailable(){
+  if(gpuAccelState.webgpu!==null) return gpuAccelState.webgpu;
+  if(typeof navigator==="undefined" || !navigator.gpu){
+    gpuAccelState.webgpu=false;
+    return false;
+  }
+  try{
+    const adapter=await navigator.gpu.requestAdapter();
+    gpuAccelState.webgpu=!!adapter;
+  }catch{
+    gpuAccelState.webgpu=false;
+  }
+  return gpuAccelState.webgpu;
+}
+
+/** true = seguir; false = usuario canceló. */
+function showGpuFallbackWarning(featureLabel){
+  return new Promise(resolve=>{
+    const feat=$("#gpuWarnFeature");
+    if(feat) feat.textContent=featureLabel||"de IA";
+    modalOpen("gpuWarnModal");
+    let settled=false;
+    const finish=ok=>{
+      if(settled) return;
+      settled=true;
+      $("#gpuWarnContinueBtn").onclick=null;
+      $("#gpuWarnCancelBtn").onclick=null;
+      $("#gpuWarnCloseBtn").onclick=null;
+      modalClose("gpuWarnModal");
+      if(ok) gpuAccelState.sessionWarned=true;
+      resolve(!!ok);
+    };
+    $("#gpuWarnContinueBtn").onclick=()=>finish(true);
+    $("#gpuWarnCancelBtn").onclick=()=>finish(false);
+    $("#gpuWarnCloseBtn").onclick=()=>finish(false);
+  });
+}
+
+/**
+ * Avisa si no hay WebGPU / el worker cayó a WASM.
+ * knownBackend: "webgpu" | "wasm" | null
+ */
+async function warnIfNoGpuAccel(featureLabel,knownBackend=null){
+  if(gpuAccelState.sessionWarned) return true;
+  let accelerated=false;
+  if(knownBackend==="webgpu" || bgRemoveState.backend==="webgpu"){
+    accelerated=true;
+  }else if(knownBackend==="wasm" || bgRemoveState.backend==="wasm"){
+    accelerated=false;
+  }else{
+    accelerated=await detectWebGpuAvailable();
+  }
+  if(accelerated) return true;
+  return showGpuFallbackWarning(featureLabel);
+}
 function resetBgRemoveWorker(){
  try{bgRemoveState.worker?.terminate()}catch{}
  bgRemoveState.worker=null;
@@ -3590,11 +3668,14 @@ async function removeBackgroundSelected(){
  const btn=$("#removeBgBtn");
  if(btn.disabled)return;
  btn.disabled=true;
- showObjectProcessing(o.id,"Quitando fondo…",4);
  try{
-   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   updateObjectProcessing(o.id,6,"Cargando IA…");
+   showObjectProcessing(o.id,"Comprobando GPU…",4);
    await ensureBgRemoveWorker();
+   const ok=await warnIfNoGpuAccel("Quitar fondo",bgRemoveState.backend);
+   if(!ok){ hideObjectProcessing(o.id); return; }
+   showObjectProcessing(o.id,"Quitando fondo…",6);
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   updateObjectProcessing(o.id,8,"Cargando IA…");
    let c=await assetCanvas(asset);
    // Cap extreme resolutions for memory safety; mask is inferred at model size.
    const maxLong=3600,long=Math.max(c.width,c.height);
@@ -3630,9 +3711,10 @@ async function removeBackgroundSelected(){
    pushHistory();
    applyProcessedAssetToObject(o,na,"bgremove",sizeOverride);
    showObjectProcessing(o.id,"Fondo eliminado",100);
+   const slow=bgRemoveState.backend && bgRemoveState.backend!=="webgpu"?" · sin GPU (más lento)":"";
    toast(trimmed.trimmed
-     ?"Fondo eliminado · márgenes recortados · alpha sólido"
-     :"Fondo eliminado · alpha sólido para DTF");
+     ?"Fondo eliminado · márgenes recortados · alpha sólido"+slow
+     :"Fondo eliminado · alpha sólido para DTF"+slow);
    await new Promise(r=>setTimeout(r,650));
  }catch(e){
    console.error(e);
@@ -3657,8 +3739,11 @@ async function enhanceSelectedWithAi(){
  const btn=$("#enhanceImageBtn");
  if(btn.disabled)return;
  btn.disabled=true;
- showObjectProcessing(o.id,"Mejorando calidad…",4);
  try{
+   showObjectProcessing(o.id,"Comprobando GPU…",4);
+   const ok=await warnIfNoGpuAccel("Mejorar calidad");
+   if(!ok){ hideObjectProcessing(o.id); return; }
+   showObjectProcessing(o.id,"Mejorando calidad…",6);
    // Give the overlay one frame to become visible before the heavy work begins.
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
    let c=await assetCanvas(asset);
@@ -3673,6 +3758,10 @@ async function enhanceSelectedWithAi(){
      const pct=m.stage==="load" ? Math.min(14,4+m.pct*.10) : 14+m.pct*.78;
      updateObjectProcessing(o.id,pct,"Mejorando calidad…");
    });
+   if(r.backend && r.backend!=="webgpu" && !gpuAccelState.sessionWarned){
+     // El worker cayó a WASM aunque el navegador parecía tener GPU.
+     gpuAccelState.webgpu=false;
+   }
    updateObjectProcessing(o.id,94,"Finalizando…");
    const blob=await rgbaToBlob(r.rgba,r.width,r.height);
    const na=await createProcessedAsset(asset,blob,r.width,r.height,"_IA",o.w,o.h,{alphaBinary:true});
@@ -3680,7 +3769,8 @@ async function enhanceSelectedWithAi(){
    applyProcessedAssetToObject(o,na,"ai");
    // renderAll() recreates the object DOM, so show the completion state again.
    showObjectProcessing(o.id,"Calidad mejorada",100);
-   toast(`Calidad mejorada · ${Math.round(calcDpi(o))} DPI efectivos`);
+   const backendNote=r.backend==="webgpu"?"":" · sin GPU (más lento)";
+   toast(`Calidad mejorada · ${Math.round(calcDpi(o))} DPI efectivos${backendNote}`);
    await new Promise(r=>setTimeout(r,650));
  }catch(e){
    console.error(e);
