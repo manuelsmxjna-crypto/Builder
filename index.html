@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v4.1-inline-worker-fallback · SHOPIFY_STORAGE_V1 -->
+  <!-- SHAPE_NEST_VERSION: v4.1-inline-worker-fallback · SHOPIFY_STORAGE_V1 · PNG_PHYS_300DPI -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -6157,6 +6157,90 @@ async function drawExportImageExact(ctx,o,s,dpi=300){
   ctx.imageSmoothingEnabled=oldSmooth;
 }
 
+
+// ============================================================
+// PNG metadata · fuerza resolución física real a 300 DPI
+// ============================================================
+function pngCrc32(bytes){
+  let crc=0xffffffff;
+  for(let i=0;i<bytes.length;i++){
+    crc^=bytes[i];
+    for(let k=0;k<8;k++){
+      crc=(crc>>>1)^((crc&1)?0xedb88320:0);
+    }
+  }
+  return (crc^0xffffffff)>>>0;
+}
+
+function writeUint32BE(view,offset,value){
+  view.setUint32(offset,value>>>0,false);
+}
+
+async function setPngDpiMetadata(blob,dpi=300){
+  const input=new Uint8Array(await blob.arrayBuffer());
+
+  // PNG signature
+  const sig=[137,80,78,71,13,10,26,10];
+  if(input.length<8 || sig.some((v,i)=>input[i]!==v)){
+    throw new Error("El archivo generado no es un PNG válido.");
+  }
+
+  // pixels per metre according to PNG pHYs specification
+  const ppm=Math.round(dpi/0.0254); // 300 DPI -> 11811 px/m
+
+  const type=new TextEncoder().encode("pHYs");
+  const data=new Uint8Array(9);
+  const dv=new DataView(data.buffer);
+  writeUint32BE(dv,0,ppm);
+  writeUint32BE(dv,4,ppm);
+  data[8]=1; // unit = metre
+
+  const crcInput=new Uint8Array(4+9);
+  crcInput.set(type,0);
+  crcInput.set(data,4);
+  const crc=pngCrc32(crcInput);
+
+  const chunk=new Uint8Array(4+4+9+4);
+  const chunkView=new DataView(chunk.buffer);
+  writeUint32BE(chunkView,0,9);
+  chunk.set(type,4);
+  chunk.set(data,8);
+  writeUint32BE(chunkView,17,crc);
+
+  // Rebuild PNG, replacing any existing pHYs chunk and inserting ours
+  // immediately after IHDR.
+  const parts=[input.slice(0,8)];
+  let pos=8;
+  let inserted=false;
+
+  while(pos+12<=input.length){
+    const len=((input[pos]<<24)>>>0) + (input[pos+1]<<16) + (input[pos+2]<<8) + input[pos+3];
+    const chunkEnd=pos+12+len;
+    if(chunkEnd>input.length) throw new Error("PNG corrupto al escribir metadata DPI.");
+
+    const name=String.fromCharCode(
+      input[pos+4],input[pos+5],input[pos+6],input[pos+7]
+    );
+
+    if(name!=="pHYs"){
+      parts.push(input.slice(pos,chunkEnd));
+    }
+
+    if(name==="IHDR" && !inserted){
+      parts.push(chunk);
+      inserted=true;
+    }
+
+    pos=chunkEnd;
+  }
+
+  if(!inserted){
+    throw new Error("No se encontró IHDR en el PNG.");
+  }
+
+  return new Blob(parts,{type:"image/png"});
+}
+
 async function generateActiveSheetPngBlob(){
   if(!state.objects.length){
     throw new Error("No hay diseños para generar.");
@@ -6209,12 +6293,17 @@ async function generateActiveSheetPngBlob(){
     hardThresholdCanvasAlpha(c,128);
   }
 
-  return await new Promise((resolve,reject)=>{
+  const rawBlob=await new Promise((resolve,reject)=>{
     c.toBlob(result=>{
       if(result) resolve(result);
       else reject(new Error("No se pudo generar el PNG."));
     },"image/png");
   });
+
+  // Canvas genera los píxeles correctos, pero algunos navegadores no escriben
+  // la resolución física. Insertamos pHYs=300 DPI para que Photoshop/RIP/etc.
+  // interpreten también el tamaño físico correctamente.
+  return await setPngDpiMetadata(rawBlob,300);
 }
 
 async function exportPng(){
