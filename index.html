@@ -223,7 +223,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:19px;padding:0 5px;border:1px solid #cbd1d8;border-bottom-width:2px;border-radius:4px;background:#fff;color:#39424e;font:600 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace}
 .stage-scroller.space-held{cursor:grab}
 .stage-scroller.space-held.panning{cursor:grabbing}
-.viewport-coordinates{position:absolute;left:10px;bottom:10px;z-index:20;background:#ffffffdc;border:1px solid #d7dce2;border-radius:6px;padding:4px 7px;font-size:9px;color:#66707b;pointer-events:none}
+.viewport-coordinates{position:absolute;left:14px;bottom:14px;z-index:20;background:#ffffffdc;border:1px solid #d7dce2;border-radius:6px;padding:4px 7px;font-size:9px;color:#66707b;pointer-events:none}
 
 
 #settingsPanel.active{
@@ -821,7 +821,159 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 @keyframes bixAiSweep{from{transform:translateX(-65%)}to{transform:translateX(65%)}}
 
 
-@media(max-width:1100px){.workspace{grid-template-columns:60px 240px minmax(360px,1fr)}.rightbar{display:none}.top-actions .variant-label{display:none}.top-actions #qualityBtn{display:none}}
+.mobile-only{display:none!important}
+.mobile-drawer-overlay{
+  display:none;position:fixed;inset:0;background:#0f172a66;z-index:85;
+  backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px)
+}
+.mobile-drawer-overlay.show{display:block}
+.mobile-bottom-nav{
+  display:none;position:fixed;left:0;right:0;bottom:0;z-index:80;
+  height:calc(56px + env(safe-area-inset-bottom,0px));
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));
+  background:#fff;border-top:1px solid #e5e8ec;
+  box-shadow:0 -8px 24px rgba(15,23,42,.08);
+  grid-template-columns:repeat(3,1fr);gap:4px;align-items:stretch
+}
+.mobile-bottom-nav button{
+  border:0;background:transparent;border-radius:9px;color:#475569;
+  font-size:10px;font-weight:700;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;min-height:44px;padding:4px 2px
+}
+.mobile-bottom-nav button span{font-size:16px;line-height:1}
+.mobile-bottom-nav button.active,.mobile-bottom-nav button:active{background:#f1f5f9;color:#111827}
+@keyframes propsNavPulse{
+  0%,100%{background:transparent;color:#475569;box-shadow:none;transform:scale(1)}
+  30%{background:#dbeafe;color:#1d4ed8;box-shadow:0 0 0 4px #2563eb2e;transform:scale(1.08)}
+  60%{background:#eff6ff;color:#1e40af;box-shadow:0 0 0 2px #2563eb1a;transform:scale(1.03)}
+}
+.mobile-bottom-nav button.props-hint{animation:propsNavPulse .6s ease 3}
+@keyframes objectPropsFlash{
+  0%,100%{box-shadow:0 0 0 2px #2563eb,0 0 0 4px rgba(37,99,235,.15)}
+  40%{box-shadow:0 0 0 3px #2563eb,0 0 0 12px rgba(37,99,235,.35)}
+}
+.design-object.props-hint-flash{animation:objectPropsFlash .65s ease 2}
+.mobile-drawer-close{
+  display:none;border:0;background:#f1f5f9;color:#334155;width:36px;height:36px;
+  border-radius:8px;font-size:22px;line-height:1;flex:0 0 auto
+}
+.panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.rightbar-mobile-head{display:none;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid #edf0f2}
+.rightbar-mobile-head b{font-size:14px}
+
+@media(max-width:1100px){
+  .workspace{grid-template-columns:60px 220px minmax(0,1fr) 260px}
+  .top-actions .variant-label{display:none}
+  .top-actions #qualityBtn{display:none}
+  .top-actions #saveBtn{display:none}
+}
+
+/* Tablet / phone: canvas-first + drawers + bottom nav */
+@media(max-width:900px){
+  :root{--mobile-nav-h:calc(56px + env(safe-area-inset-bottom,0px))}
+  .mobile-only{display:flex!important}
+  .mobile-bottom-nav{display:grid}
+  .workspace{
+    grid-template-columns:1fr;
+    height:calc(100% - 62px - var(--mobile-nav-h));
+  }
+  .leftbar,.sidepanel,.rightbar{
+    position:fixed;top:62px;bottom:var(--mobile-nav-h);z-index:90;
+    transition:transform .22s ease;will-change:transform;
+  }
+  .leftbar{
+    left:0;width:64px;transform:translateX(-110%);
+    box-shadow:8px 0 28px rgba(15,23,42,.18);
+  }
+  .sidepanel{
+    left:64px;width:min(300px,calc(100vw - 64px));
+    transform:translateX(calc(-100% - 64px));
+    box-shadow:8px 0 28px rgba(15,23,42,.16);
+    border-right:1px solid var(--line);
+  }
+  .rightbar{
+    display:flex!important;right:0;width:min(360px,92vw);
+    transform:translateX(110%);
+    box-shadow:-8px 0 28px rgba(15,23,42,.16);
+    border-left:1px solid var(--line);
+  }
+  body.drawer-left-open .leftbar,
+  body.drawer-left-open .sidepanel{transform:translateX(0)}
+  body.drawer-right-open .rightbar{transform:translateX(0)}
+  .mobile-drawer-close{display:grid;place-items:center}
+  .rightbar-mobile-head{display:flex}
+  .stage-toolbar{
+    height:auto;min-height:48px;padding:8px 12px;
+    gap:10px;overflow-x:auto;overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;align-items:center
+  }
+  .stage-toolbar .mini-btn{min-height:32px;padding:5px 10px}
+  .stage-toolbar .packing-toolbar{flex-shrink:0}
+  .stage-toolbar .packing-input-wrap{height:32px}
+  .color-help-wrap{flex-shrink:0;display:none}
+  .floating-shortcuts{display:none!important}
+  .top-actions #autoNestTopBtn{display:none}
+  .topbar{padding-right:8px}
+  .brand-sub{display:none}
+  .color-help-popover{position:fixed;left:12px;right:12px;top:auto;bottom:calc(var(--mobile-nav-h) + 10px);width:auto;max-height:50vh;overflow:auto}
+  .preview-scrollbar{display:none!important}
+  .viewport-coordinates{left:18px;bottom:18px}
+
+  /* Modales fullscreen (patrón builder original) */
+  .modal-backdrop{
+    padding:0;align-items:stretch;justify-content:stretch;
+  }
+  .modal-backdrop .modal,
+  .quality-modal,.processing-modal,.inspect-modal{
+    width:100vw!important;max-width:none!important;
+    height:100dvh!important;max-height:100dvh!important;
+    border-radius:0!important;box-shadow:none!important;
+  }
+  .quality-body{
+    grid-template-columns:1fr!important;min-height:0;flex:1;overflow:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .quality-preview{border-right:0!important;border-bottom:1px solid #d8dee6}
+  .modal-foot,.modal-action-row{
+    padding-bottom:max(10px,env(safe-area-inset-bottom,0px))!important;
+  }
+  .inspect-modal-backdrop{padding:0!important}
+}
+
+@media(max-width:767px){
+  .topbar{height:54px}
+  .leftbar,.sidepanel,.rightbar{top:54px}
+  .brand-mark{width:30px;height:30px;border-radius:8px}
+  .brand-title{font-size:14px}
+  .workspace{height:calc(100% - 54px - var(--mobile-nav-h));margin-top:0}
+  .top-actions .divider{display:none}
+  .top-actions #exportBtn{padding:7px 10px;font-size:12px}
+  .icon-btn{width:38px;min-height:38px}
+  .top-actions .mini-btn,.top-actions .ghost-btn{min-height:34px;padding:6px 10px}
+  .stage-toolbar{min-height:50px;padding:9px 12px}
+  .design-object.selected .resize-point{
+    width:18px;height:18px;margin:0;
+  }
+  .resize-point.tl{left:-9px;top:-9px}
+  .resize-point.tr{right:-9px;top:-9px}
+  .resize-point.bl{left:-9px;bottom:-9px}
+  .resize-point.br{right:-9px;bottom:-9px}
+  .rotation-point{width:20px;height:20px}
+  .color-help-btn{font-size:10px;padding:6px 8px}
+  .process-image-btn,.duplicate-primary-btn,.fill-selection-btn,.primary-btn.wide{
+    min-height:42px;
+  }
+  .num-stepper{height:40px}
+  .text-style-btn{width:40px;height:38px}
+}
+
+@media(max-width:480px){
+  .sidepanel{left:56px;width:min(280px,calc(100vw - 56px))}
+  .leftbar{width:56px;padding:8px 4px}
+  .tool-nav{height:52px;font-size:15px}
+  .tool-nav b{font-size:9px}
+  .mobile-bottom-nav button{font-size:9px}
+}
 
 
 .context-menu{position:fixed;display:none;z-index:9999;background:#fff;border:1px solid #d7dce2;border-radius:8px;box-shadow:0 10px 24px rgba(0,0,0,.15);min-width:220px;padding:6px 0}
@@ -864,12 +1016,13 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Iniciar de nuevo</b></button>
     </aside>
 
-    <section class="sidepanel">
+    <section class="sidepanel" id="sidepanel">
       <div class="panel-head">
         <div>
           <h2 id="panelTitle">Añadir imagen</h2>
           <p id="panelSubtitle">Sube tus diseños y colócalos en la hoja.</p>
         </div>
+        <button type="button" class="mobile-drawer-close" id="closeLeftDrawerBtn" aria-label="Cerrar panel">×</button>
       </div>
 
       <div id="uploadsPanel" class="panel-view active">
@@ -1016,7 +1169,11 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       </div>
     </main>
 
-    <aside class="rightbar">
+    <aside class="rightbar" id="rightbar">
+      <div class="rightbar-mobile-head">
+        <b>Propiedades</b>
+        <button type="button" class="mobile-drawer-close" id="closeRightDrawerBtn" aria-label="Cerrar propiedades">×</button>
+      </div>
       <div class="right-tabs">
         <button id="propertiesTabBtn" class="right-tab active" type="button">Propiedades</button>
         <button id="sheetsTabBtn" class="right-tab" type="button">Hojas <span id="sheetsCount" class="pill">1</span></button>
@@ -1156,6 +1313,13 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
     </aside>
   </div>
 
+  <div id="mobileDrawerOverlay" class="mobile-drawer-overlay" hidden></div>
+  <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Navegación móvil">
+    <button type="button" data-mobile-nav="files"><span>▣</span>Archivos</button>
+    <button type="button" data-mobile-nav="props"><span>☰</span>Props</button>
+    <button type="button" data-mobile-nav="nest"><span>✦</span>Organizar</button>
+  </nav>
+
   <div id="qualityModal" class="modal-backdrop hidden">
     <div class="modal quality-modal">
       <div class="modal-head dark">
@@ -1272,18 +1436,35 @@ Object.defineProperty(state,"objects",{
 const MIN_SHEET_HEIGHT=30;
 const MAX_SHEET_HEIGHT=310;
 const PX_PER_CM = 20;
+/** Si el archivo no trae DPI, se asume el default de pantalla/Photoshop (72). */
+const ASSUMED_SOURCE_DPI=72;
 const artboard = $("#artboard"), layer=$("#objectsLayer"), shell=$("#artboardShell");
 const fileInput=$("#fileInput");
 
 const ASSET_DB_NAME="bixstudio_assets_v1", ASSET_STORE="assets";
 function openAssetDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(ASSET_DB_NAME,1);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(ASSET_STORE))db.createObjectStore(ASSET_STORE,{keyPath:"id"})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
 async function persistAsset(asset){
- try{const db=await openAssetDB();await new Promise((resolve,reject)=>{const tx=db.transaction(ASSET_STORE,"readwrite");tx.objectStore(ASSET_STORE).put({id:asset.id,name:asset.name,blob:asset.file,w:asset.w,h:asset.h,dpiX:asset.dpiX,dpiY:asset.dpiY,dpiSource:asset.dpiSource,physicalWcm:asset.physicalWcm,physicalHcm:asset.physicalHcm,
+ try{const db=await openAssetDB();await new Promise((resolve,reject)=>{const tx=db.transaction(ASSET_STORE,"readwrite");tx.objectStore(ASSET_STORE).put({id:asset.id,name:asset.name,blob:asset.file,w:asset.w,h:asset.h,dpiX:asset.dpiX,dpiY:asset.dpiY,dpiSource:asset.dpiSource,dpiAssumed:!!asset.dpiAssumed,physicalWcm:asset.physicalWcm,physicalHcm:asset.physicalHcm,
         alphaCleaned:!!asset.alphaCleaned,
         alphaThreshold:Number.isFinite(asset.alphaThreshold)?asset.alphaThreshold:null,
         alphaBinary:!!asset.alphaBinary,
         autoTrimmed:!!asset.autoTrimmed,
         updatedAt:Date.now()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}catch(e){console.warn("No se pudo guardar localmente",e)}
+}
+function applyAssumedDpiIfMissing(asset){
+  if(!asset) return asset;
+  if(Number.isFinite(asset.dpiX) && asset.dpiX>0){
+    if(!Number.isFinite(asset.physicalWcm) && asset.w) asset.physicalWcm=asset.w/asset.dpiX*2.54;
+    if(!Number.isFinite(asset.physicalHcm) && asset.h) asset.physicalHcm=asset.h/(asset.dpiY||asset.dpiX)*2.54;
+    return asset;
+  }
+  asset.dpiX=ASSUMED_SOURCE_DPI;
+  asset.dpiY=ASSUMED_SOURCE_DPI;
+  asset.dpiAssumed=true;
+  asset.dpiSource=asset.dpiSource||"asumido-72";
+  asset.physicalWcm=asset.w/ASSUMED_SOURCE_DPI*2.54;
+  asset.physicalHcm=asset.h/ASSUMED_SOURCE_DPI*2.54;
+  return asset;
 }
 async function loadPersistedAssets(){
  try{
@@ -1292,12 +1473,12 @@ async function loadPersistedAssets(){
   db.close();
   for(const row of rows){
    if(state.assets.some(a=>a.id===row.id))continue;
-   state.assets.push({id:row.id,name:row.name,src:URL.createObjectURL(row.blob),w:row.w,h:row.h,file:row.blob,dpiX:row.dpiX||null,dpiY:row.dpiY||row.dpiX||null,dpiSource:row.dpiSource||null,physicalWcm:row.physicalWcm||null,physicalHcm:row.physicalHcm||null,
+   state.assets.push(applyAssumedDpiIfMissing({id:row.id,name:row.name,src:URL.createObjectURL(row.blob),w:row.w,h:row.h,file:row.blob,dpiX:row.dpiX||null,dpiY:row.dpiY||row.dpiX||null,dpiSource:row.dpiSource||null,dpiAssumed:!!row.dpiAssumed,physicalWcm:row.physicalWcm||null,physicalHcm:row.physicalHcm||null,
         alphaCleaned:!!row.alphaCleaned,
         alphaThreshold:Number.isFinite(row.alphaThreshold)?row.alphaThreshold:null,
         alphaBinary:row.alphaBinary===true,
         autoTrimmed:!!row.autoTrimmed,
-        updatedAt:row.updatedAt||0})
+        updatedAt:row.updatedAt||0}))
   }
   state.assets.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
   for(const a of state.assets){
@@ -1376,6 +1557,8 @@ async function readEmbeddedDpi(file){
           let x=view.getUint16(data+8,false),y=view.getUint16(data+10,false);
           if(units===1 && x&&y) return {x,y,source:"JPEG JFIF"};
           if(units===2 && x&&y) return {x:x*2.54,y:y*2.54,source:"JPEG JFIF"};
+          // units=0 = “sin unidad” en el spec, pero muchos archivos (y Photoshop) usan 72 aquí como PPI.
+          if(units===0 && x>0 && y>0) return {x,y,source:"JPEG JFIF"};
         }
         if(marker===0xE1 && len>=10 && readAscii(view,data,6)==="Exif\0\0"){
           const r=readTiffDpi(view,data+6);
@@ -2237,6 +2420,7 @@ function startDrag(e,o,resizing){
    inspectClick.id=dragObjectId;
    inspectClick.t=now;
    updateSelectionPanel();
+   if(isMobileLayout()) openMobileDrawer("right");
  };
  window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);
 }
@@ -2315,6 +2499,11 @@ function installStageMarqueeSelection(){
   stageScroller.addEventListener("pointerdown",e=>{
     if(e.button!==0 || spaceHeld) return;
     if(marqueeBlockedTarget(e.target)) return;
+    // Móvil: un dedo en el vacío mueve el lienzo (más útil que el marquee).
+    if(isMobileLayout() && !e.target.closest?.(".design-object")){
+      beginViewportPan(e);
+      return;
+    }
 
     const startPoint=stageLocalPoint(e.clientX,e.clientY);
     const originalIds=[...state.selectedIds];
@@ -2442,13 +2631,17 @@ async function addAsset(file){
   const url=URL.createObjectURL(file);
   try{
     const img=await loadImageFromSrc(url);
-    const dpiX=dpi?.x||null, dpiY=dpi?.y||dpiX;
+    const hasEmbedded=!!(dpi?.x);
+    const dpiX=hasEmbedded?dpi.x:ASSUMED_SOURCE_DPI;
+    const dpiY=hasEmbedded?(dpi.y||dpi.x):ASSUMED_SOURCE_DPI;
     const asset={
       id:"a"+Date.now()+Math.random().toString(36).slice(2),
       name:file.name,src:url,w:img.naturalWidth,h:img.naturalHeight,file,
-      dpiX,dpiY,dpiSource:dpi?.source||null,
-      physicalWcm:dpiX?img.naturalWidth/dpiX*2.54:null,
-      physicalHcm:dpiY?img.naturalHeight/dpiY*2.54:null,
+      dpiX,dpiY,
+      dpiSource:hasEmbedded?(dpi.source||null):"asumido-72",
+      dpiAssumed:!hasEmbedded,
+      physicalWcm:img.naturalWidth/dpiX*2.54,
+      physicalHcm:img.naturalHeight/dpiY*2.54,
       alphaCleaned:false,
       alphaThreshold:null,
       alphaBinary:false,
@@ -2460,12 +2653,10 @@ async function addAsset(file){
     renderAssets();
     const wcm=asset.physicalWcm, hcm=asset.physicalHcm;
     const trimTxt=trimInfo.trimmed?" · márgenes recortados":"";
-    if(dpiX && Number.isFinite(wcm) && Number.isFinite(hcm)){
-      toast(`${file.name}: ${Math.round(dpiX)} DPI · ${wcm.toFixed(2)} × ${hcm.toFixed(2)} cm${trimTxt}`);
-    }else if(trimInfo.trimmed){
-      toast(`${file.name}: márgenes transparentes recortados`);
+    if(asset.dpiAssumed){
+      toast(`${file.name}: sin DPI incrustado · se asume ${ASSUMED_SOURCE_DPI} DPI · ${wcm.toFixed(2)} × ${hcm.toFixed(2)} cm${trimTxt}`);
     }else{
-      toast(`${file.name}: el archivo no trae DPI incrustado`);
+      toast(`${file.name}: ${Math.round(dpiX)} DPI · ${wcm.toFixed(2)} × ${hcm.toFixed(2)} cm${trimTxt}`);
     }
   }catch(e){
     console.error(e);
@@ -2490,9 +2681,10 @@ function renderAssets(){
    const c=document.createElement("div");
    c.className="asset-card";
 
-   const meta=a.dpiX
-     ? `${Math.round(a.dpiX)} DPI · ${a.physicalWcm.toFixed(1)}×${a.physicalHcm.toFixed(1)} cm`
-     : "DPI no incrustado";
+   applyAssumedDpiIfMissing(a);
+   const meta=a.dpiAssumed
+     ? `${Math.round(a.dpiX)} DPI (asumido) · ${a.physicalWcm.toFixed(1)}×${a.physicalHcm.toFixed(1)} cm`
+     : `${Math.round(a.dpiX)} DPI · ${a.physicalWcm.toFixed(1)}×${a.physicalHcm.toFixed(1)} cm`;
 
    c.innerHTML=`<img src="${a.src}"><div class="name">${escapeHtml(a.name)}<br><span style="color:#7b8490">${meta}</span></div>`;
 
@@ -2966,7 +3158,7 @@ async function cloneAssetForTrim(source){
     id:"a"+Date.now()+Math.random().toString(36).slice(2),
     name:source.name,
     src,w:source.w,h:source.h,file,
-    dpiX:source.dpiX,dpiY:source.dpiY,dpiSource:source.dpiSource,
+    dpiX:source.dpiX,dpiY:source.dpiY,dpiSource:source.dpiSource,dpiAssumed:!!source.dpiAssumed,
     physicalWcm:Number.isFinite(source.physicalWcm)?source.physicalWcm:null,
     physicalHcm:Number.isFinite(source.physicalHcm)?source.physicalHcm:null,
     alphaCleaned:!!source.alphaCleaned,
@@ -2994,15 +3186,15 @@ async function insertAsset(a){
  }
  pushHistory();
  // Preserve the physical dimensions encoded in the file.
- // When a file has no DPI metadata, there is no original physical size in the file;
- // use 300 DPI only as a provisional working size and mark it as such.
- const dpiX=asset.dpiX||300,dpiY=asset.dpiY||dpiX;
+ // Without metadata, assume 72 DPI (screen/Photoshop default) — not print 300.
+ applyAssumedDpiIfMissing(asset);
+ const dpiX=asset.dpiX||ASSUMED_SOURCE_DPI,dpiY=asset.dpiY||dpiX;
  const printW=asset.physicalWcm || asset.w/dpiX*2.54;
  const printH=asset.physicalHcm || asset.h/dpiY*2.54;
  const o={
    id:uid(),type:"image",name:asset.name,assetId:asset.id,
    naturalW:asset.w,naturalH:asset.h,
-   sourceDpiX:asset.dpiX,sourceDpiY:asset.dpiY,dpiDefined:!!asset.dpiX,
+   sourceDpiX:asset.dpiX,sourceDpiY:asset.dpiY,dpiDefined:!asset.dpiAssumed,
    sourceWidthCm:asset.physicalWcm,sourceHeightCm:asset.physicalHcm,
    x:state.sheet.margin+0.05,y:state.sheet.margin+0.05,
    w:printW,h:printH,rot:0,flipX:false,
@@ -3015,6 +3207,7 @@ async function insertAsset(a){
  state.selectedId=o.id;state.selectedIds=[o.id];
  recalcActiveSheetHeight();
  renderAll();
+ hintPropertiesTab();
 }
 
 // =====================================================================
@@ -3669,6 +3862,7 @@ async function addText(text="bixprint"){
  recalcActiveSheetHeight();
  renderAll();
  showRightPanel("properties");
+ if(isMobileLayout()) openMobileDrawer("right");
  return o;
 }
 wireTextCreateControls();
@@ -4604,10 +4798,93 @@ function showRightPanel(which){
   $("#sheetsView").classList.toggle("hidden",props);
   $("#propertiesTabBtn").classList.toggle("active",props);
   $("#sheetsTabBtn").classList.toggle("active",!props);
+  const headTitle=document.querySelector(".rightbar-mobile-head b");
+  if(headTitle) headTitle.textContent=props?"Propiedades":"Hojas";
 }
 $("#propertiesTabBtn").onclick=()=>showRightPanel("properties");
 $("#sheetsTabBtn").onclick=()=>showRightPanel("sheets");
 $("#createSheetBtn").onclick=createBlankSheetFromUI;
+
+function isMobileLayout(){
+  return window.matchMedia("(max-width:900px)").matches;
+}
+function closeMobileDrawers(){
+  document.body.classList.remove("drawer-left-open","drawer-right-open");
+  const ov=$("#mobileDrawerOverlay");
+  if(ov){ ov.classList.remove("show"); ov.hidden=true; }
+  $$("#mobileBottomNav [data-mobile-nav]").forEach(b=>b.classList.remove("active"));
+}
+function openMobileDrawer(side){
+  if(!isMobileLayout()) return;
+  const leftOpen=document.body.classList.contains("drawer-left-open");
+  const rightOpen=document.body.classList.contains("drawer-right-open");
+  if(side==="left" && leftOpen) return;
+  if(side==="right" && rightOpen) return;
+  closeMobileDrawers();
+  const ov=$("#mobileDrawerOverlay");
+  if(side==="left"){
+    document.body.classList.add("drawer-left-open");
+    $("#mobileBottomNav [data-mobile-nav='files']")?.classList.add("active");
+  }else if(side==="right"){
+    document.body.classList.add("drawer-right-open");
+    $("#mobileBottomNav [data-mobile-nav='props']")?.classList.add("active");
+  }
+  if(ov){ ov.hidden=false; ov.classList.add("show"); }
+}
+/** Tras colocar un diseño: deja ver el lienzo y hace un flash en Props. */
+function hintPropertiesTab(){
+  showRightPanel("properties");
+  if(!isMobileLayout()) return;
+  closeMobileDrawers();
+  const btn=$("#mobileBottomNav [data-mobile-nav='props']");
+  if(btn){
+    btn.classList.remove("props-hint");
+    void btn.offsetWidth;
+    btn.classList.add("props-hint");
+    clearTimeout(hintPropertiesTab._btnT);
+    hintPropertiesTab._btnT=setTimeout(()=>btn.classList.remove("props-hint"),1900);
+  }
+  requestAnimationFrame(()=>{
+    const id=state.selectedId;
+    if(!id) return;
+    const el=layer.querySelector(`[data-id="${id}"]`);
+    if(!el) return;
+    el.classList.remove("props-hint-flash");
+    void el.offsetWidth;
+    el.classList.add("props-hint-flash");
+    clearTimeout(hintPropertiesTab._objT);
+    hintPropertiesTab._objT=setTimeout(()=>el.classList.remove("props-hint-flash"),1400);
+  });
+}
+function wireMobileChrome(){
+  const ov=$("#mobileDrawerOverlay");
+  ov?.addEventListener("click",closeMobileDrawers);
+  $("#closeLeftDrawerBtn")?.addEventListener("click",closeMobileDrawers);
+  $("#closeRightDrawerBtn")?.addEventListener("click",closeMobileDrawers);
+  $$("#mobileBottomNav [data-mobile-nav]").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      const action=btn.dataset.mobileNav;
+      if(action==="files"){
+        if(document.body.classList.contains("drawer-left-open")) closeMobileDrawers();
+        else{ setPanel("uploads"); openMobileDrawer("left"); }
+      }else if(action==="props"){
+        if(document.body.classList.contains("drawer-right-open")) closeMobileDrawers();
+        else{ showRightPanel("properties"); openMobileDrawer("right"); }
+      }else if(action==="nest"){
+        closeMobileDrawers();
+        $("#autoNestTopBtn")?.click();
+      }
+    });
+  });
+  window.addEventListener("resize",()=>{
+    if(!isMobileLayout()) closeMobileDrawers();
+  });
+  // Escape closes drawers on mobile.
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape" && isMobileLayout()) closeMobileDrawers();
+  });
+}
+wireMobileChrome();
 
 
 function setShowOutlines(on,{skipRender=false}={}){
@@ -4655,7 +4932,12 @@ function setPanel(name){
  $("#"+name+"Panel").classList.add("active");
  $("#panelTitle").textContent=map[name][0];
  $("#panelSubtitle").textContent=map[name][1];
- if(name==="text") void addText("bixprint");
+ if(name==="text"){
+   void addText("bixprint");
+   // En móvil addText abre el drawer de propiedades; no forzar el panel izquierdo.
+   return;
+ }
+ if(isMobileLayout()) openMobileDrawer("left");
 }
 $$(".tool-nav[data-panel]").forEach(b=>b.onclick=()=>setPanel(b.dataset.panel));
 
@@ -4793,7 +5075,7 @@ async function save(){
     }
     assets.push({
       id:a.id,name:a.name,w:a.w,h:a.h,dataUrl,
-      dpiX:a.dpiX,dpiY:a.dpiY,dpiSource:a.dpiSource,
+      dpiX:a.dpiX,dpiY:a.dpiY,dpiSource:a.dpiSource,dpiAssumed:!!a.dpiAssumed,
       physicalWcm:a.physicalWcm,physicalHcm:a.physicalHcm,
       alphaCleaned:!!a.alphaCleaned,
       alphaThreshold:Number.isFinite(a.alphaThreshold)?a.alphaThreshold:null,
@@ -5088,6 +5370,41 @@ function endPan(e){
 stageScroller.addEventListener("pointerup",endPan);
 stageScroller.addEventListener("pointercancel",endPan);
 stageScroller.addEventListener("contextmenu",e=>{ if(spaceHeld) e.preventDefault(); });
+
+// Pinch-to-zoom on touch devices (2 fingers on the stage).
+let pinchSession=null;
+function touchDistance(a,b){
+  const dx=a.clientX-b.clientX, dy=a.clientY-b.clientY;
+  return Math.hypot(dx,dy);
+}
+function touchMidpoint(a,b){
+  return {x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2};
+}
+stageScroller.addEventListener("touchstart",e=>{
+  if(e.touches.length===2){
+    e.preventDefault();
+    panSession=null;
+    stageScroller.classList.remove("panning");
+    pinchSession={
+      dist:touchDistance(e.touches[0],e.touches[1]),
+      zoom:state.zoom
+    };
+  }
+},{passive:false});
+stageScroller.addEventListener("touchmove",e=>{
+  if(e.touches.length===2 && pinchSession){
+    e.preventDefault();
+    const dist=touchDistance(e.touches[0],e.touches[1]);
+    if(dist<8) return;
+    const mid=touchMidpoint(e.touches[0],e.touches[1]);
+    const next=pinchSession.zoom*(dist/pinchSession.dist);
+    zoomAt(mid.x,mid.y,next);
+  }
+},{passive:false});
+stageScroller.addEventListener("touchend",e=>{
+  if(e.touches.length<2) pinchSession=null;
+});
+stageScroller.addEventListener("touchcancel",()=>{ pinchSession=null; });
 
 function cloneForPaste(o,offsetCm=.8){
   const n=JSON.parse(JSON.stringify(o));
