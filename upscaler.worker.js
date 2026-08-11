@@ -44,6 +44,17 @@ function tryImport(url){
   }
 }
 
+function resolveOrtBase(base){
+  const raw = (base && String(base)) || './ort/';
+  try{
+    let href = new URL(raw, self.location.href).href;
+    if (!href.endsWith('/')) href += '/';
+    return href;
+  }catch{
+    return raw.endsWith('/') ? raw : (raw + '/');
+  }
+}
+
 function loadOrt(preferGpu, overrideBase){
   if (ortInit) return ortInit;
   // Build the promise. If it rejects, clear `ortInit` so the next call
@@ -54,13 +65,11 @@ function loadOrt(preferGpu, overrideBase){
     //   2. each CDN base, preferred build first
     // Preferred = webgpu build when GPU is wanted, plain wasm build otherwise.
     const bases = [];
-    if (overrideBase){
-      bases.push(overrideBase.endsWith('/') ? overrideBase : overrideBase + '/');
-    }
-    for (const b of ORT_CDN_BASES) bases.push(b);
+    if (overrideBase) bases.push(resolveOrtBase(overrideBase));
+    for (const b of ORT_CDN_BASES) bases.push(resolveOrtBase(b));
 
     const filesPrimary   = preferGpu ? ['ort.webgpu.min.js', 'ort.min.js']
-                                     : ['ort.min.js', 'ort.webgpu.min.js'];
+                                     : ['ort.min.js'];
 
     const tried = [];   // [{ url, err }]
     for (const base of bases){

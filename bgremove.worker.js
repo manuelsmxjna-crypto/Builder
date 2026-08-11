@@ -44,16 +44,26 @@ function isMobileUa(){
   return /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
 }
 
+/** Absolute URL ending with / — critical for Workers + GitHub Pages. */
+function resolveOrtBase(base){
+  const raw = (base && String(base)) || './ort/';
+  try{
+    let href = new URL(raw, self.location.href).href;
+    if (!href.endsWith('/')) href += '/';
+    return href;
+  }catch{
+    return raw.endsWith('/') ? raw : (raw + '/');
+  }
+}
+
 function loadOrt(preferGpu, overrideBase){
   if (ortInit) return ortInit;
   ortInit = (async () => {
     const bases = [];
-    if (overrideBase){
-      bases.push(overrideBase.endsWith('/') ? overrideBase : overrideBase + '/');
-    }
-    for (const b of ORT_CDN_BASES) bases.push(b);
+    if (overrideBase) bases.push(resolveOrtBase(overrideBase));
+    for (const b of ORT_CDN_BASES) bases.push(resolveOrtBase(b));
 
-    // En low-memory / sin GPU: NUNCA cargar ort.webgpu (extra ~0.7MB JS + riesgo OOM).
+    // En low-memory / sin GPU: NUNCA cargar ort.webgpu (pide *.jsep.wasm distintos).
     const filesPrimary = preferGpu
       ? ['ort.webgpu.min.js', 'ort.min.js']
       : ['ort.min.js'];
@@ -148,6 +158,13 @@ function progress(id, stage, pct, extra){
 function friendlyOrtError(err){
   const raw = String((err && err.message) || err || '');
   const low = raw.toLowerCase();
+  // 00 61 73 6d = "\0asm"; 3c 21 44 4f = "<!DO" → el servidor devolvió HTML (404) en vez del .wasm
+  if (low.includes('magic word') || low.includes('3c 21 44 4f') || low.includes('expected magic')){
+    return new Error('No se encontraron los archivos WASM de la IA (404). Actualiza/publica la carpeta ort/ y recarga.');
+  }
+  if (low.includes('no available backend')){
+    return new Error('No se pudo iniciar el motor de IA (WASM). Verifica que ort/*.wasm estén publicados y recarga.');
+  }
   if (low.includes('bad_alloc') || low.includes('out of memory') || low.includes('oom') || low.includes('memory')){
     return new Error('Memoria insuficiente en este celular. Prueba una imagen más pequeña o usa un PC.');
   }
