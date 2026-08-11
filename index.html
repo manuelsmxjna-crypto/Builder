@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v4.1-inline-worker-fallback -->
+  <!-- SHAPE_NEST_VERSION: v4.1-inline-worker-fallback · SHOPIFY_STORAGE_V1 -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -6157,26 +6157,21 @@ async function drawExportImageExact(ctx,o,s,dpi=300){
   ctx.imageSmoothingEnabled=oldSmooth;
 }
 
-async function exportPng(){
-  if(!state.objects.length) return toast("No hay diseños para exportar.");
+async function generateActiveSheetPngBlob(){
+  if(!state.objects.length){
+    throw new Error("No hay diseños para generar.");
+  }
 
   const dpi=300;
   const pxPerCm=dpi/2.54;
-
-  // IMPORTANT:
-  // Do NOT globally shrink the sheet. 62 cm at 300 DPI = ~7323 px,
-  // so the old 7000 px cap altered every normal export.
   const exportW=Math.max(1,Math.round(state.sheet.w*pxPerCm));
   const exportH=Math.max(1,Math.round(state.sheet.h*pxPerCm));
 
-  // Browser canvas limits vary. We keep true 300 DPI and fail clearly
-  // instead of silently reducing the artwork.
   const MAX_CANVAS_DIM=32767;
-  const MAX_CANVAS_PIXELS=268_000_000; // conservative Chromium-class limit
+  const MAX_CANVAS_PIXELS=268_000_000;
 
   if(exportW>MAX_CANVAS_DIM || exportH>MAX_CANVAS_DIM || exportW*exportH>MAX_CANVAS_PIXELS){
-    toast("Esta Gang Sheet es demasiado grande para exportarla en un solo PNG a 300 DPI en el navegador. Divide el trabajo en otra hoja.");
-    return;
+    throw new Error("Esta Gang Sheet es demasiado grande para generar un PNG a 300 DPI en el navegador. Divide el trabajo en otra hoja.");
   }
 
   const c=document.createElement("canvas");
@@ -6184,6 +6179,8 @@ async function exportPng(){
   c.height=exportH;
 
   const ctx=c.getContext("2d",{willReadFrequently:true});
+  if(!ctx) throw new Error("No se pudo preparar el lienzo de exportación.");
+
   ctx.clearRect(0,0,c.width,c.height);
   ctx.imageSmoothingEnabled=true;
   ctx.imageSmoothingQuality="high";
@@ -6193,17 +6190,13 @@ async function exportPng(){
       try{
         await drawExportImageExact(ctx,o,pxPerCm,dpi);
       }catch(e){
-        console.warn("No se pudo renderizar una imagen al exportar",e);
+        console.warn("No se pudo renderizar una imagen al generar el archivo",e);
       }
       continue;
     }
-
-    // Text remains vector-like until rasterized onto the 300-DPI canvas.
     drawCanvasTextObject(ctx,o,pxPerCm);
   }
 
-  // Final alpha safety only when all raster images are known binary.
-  // This does NOT change RGB values, only alpha.
   const rasterAssets=state.objects
     .filter(o=>o.type==="image")
     .map(o=>assetById(o.assetId))
@@ -6216,26 +6209,38 @@ async function exportPng(){
     hardThresholdCanvasAlpha(c,128);
   }
 
-  c.toBlob(blob=>{
-    if(!blob){
-      toast("No se pudo generar el PNG.");
-      return;
-    }
+  return await new Promise((resolve,reject)=>{
+    c.toBlob(result=>{
+      if(result) resolve(result);
+      else reject(new Error("No se pudo generar el PNG."));
+    },"image/png");
+  });
+}
 
+async function exportPng(){
+  try{
+    const blob=await generateActiveSheetPngBlob();
     const a=document.createElement("a");
     a.href=URL.createObjectURL(blob);
     a.download=`${activeSheetRecord().name.replace(/\s+/g,"_")}_${state.sheet.w}x${state.sheet.h}cm_300dpi.png`;
     a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
     toast("PNG exportado a 300 DPI sin reducción global");
-  },"image/png");
+  }catch(e){
+    console.error(e);
+    toast(String(e?.message||e).slice(0,150));
+  }
 }
 
 // ============================================================
 // Shopify bridge · BixStudio dentro de iframe
+// PNG 300 DPI -> Supabase Storage -> Shopify cart
 // ============================================================
 const SHOPIFY_DTF_VARIANT_ID = 52961074610357;
 const SHOPIFY_PRICE_PER_CM = 2.00;
+const GANGSHEET_UPLOAD_URL = "https://qrpxaqvybfmpkkkgqaoe.supabase.co/functions/v1/rapid-function";
+
+let shopifyCartBusy=false;
 
 function shopifyBillableCm(){
   return Math.max(1,Math.ceil((+state.sheet.h||0)-1e-9));
@@ -6248,48 +6253,130 @@ function shopifyMoney(v){
 function updateShopifyCartUi(){
   const btn=$("#exportBtn"), chip=$("#shopifyPriceChip");
   if(!btn) return;
+
+  if(shopifyCartBusy) return;
+
   if(!state.objects.length){
     if(chip) chip.textContent="—";
     btn.textContent="🛒 Agregar al carrito";
+    btn.disabled=false;
     return;
   }
+
   const cm=shopifyBillableCm();
   const total=cm*SHOPIFY_PRICE_PER_CM;
   if(chip) chip.textContent=shopifyMoney(total);
   btn.textContent=`🛒 Agregar · ${shopifyMoney(total)}`;
+  btn.disabled=false;
 }
-function shopifyLineProperties(){
+
+function shopifyLineProperties(uploadInfo=null){
   const cm=shopifyBillableCm();
   const sheet=activeSheetRecord();
-  return {
+
+  const props={
     "Medida":`${state.sheet.w.toFixed(0)} × ${state.sheet.h.toFixed(1).replace(".0","")} cm`,
     "Largo facturado":`${cm} cm`,
     "Hoja":sheet?.name||"Gang Sheet",
     "_BixStudio":"Gang Sheet Builder"
   };
+
+  if(uploadInfo?.id) props["_Gang Sheet ID"]=String(uploadInfo.id);
+  if(uploadInfo?.path) props["_Gang Sheet Path"]=String(uploadInfo.path);
+
+  return props;
 }
-function addActiveSheetToShopifyCart(){
+
+async function uploadActiveGangSheet(blob){
+  const form=new FormData();
+
+  const safeSheetName=(activeSheetRecord()?.name||"Gang_Sheet")
+    .replace(/[^\w\-]+/g,"_")
+    .replace(/^_+|_+$/g,"");
+
+  const filename=
+    `${safeSheetName}_${state.sheet.w.toFixed(0)}x${state.sheet.h.toFixed(1)}cm_300dpi.png`;
+
+  form.append("file",blob,filename);
+
+  const response=await fetch(GANGSHEET_UPLOAD_URL,{
+    method:"POST",
+    body:form
+  });
+
+  let data={};
+  try{ data=await response.json(); }catch(_){}
+
+  if(!response.ok || !data?.ok){
+    throw new Error(
+      data?.error ||
+      `No se pudo guardar el archivo (HTTP ${response.status})`
+    );
+  }
+
+  if(!data.id){
+    throw new Error("Supabase guardó el archivo pero no devolvió su ID.");
+  }
+
+  return data;
+}
+
+async function addActiveSheetToShopifyCart(){
+  if(shopifyCartBusy) return;
+
   if(!state.objects.length){
     toast("Añade al menos un diseño antes de agregar al carrito.");
     return;
   }
-  const quantity=shopifyBillableCm();
-  const message={
-    type:"BIXSTUDIO_ADD_TO_CART",
-    variantId:SHOPIFY_DTF_VARIANT_ID,
-    quantity,
-    properties:shopifyLineProperties(),
-    total:quantity*SHOPIFY_PRICE_PER_CM
-  };
 
-  // Shopify page is the iframe parent. It owns the cart session.
-  if(window.parent && window.parent!==window){
-    window.parent.postMessage(message,"*");
-    toast(`Añadiendo ${quantity} cm al carrito…`);
-  }else{
+  if(!(window.parent && window.parent!==window)){
     toast("Abre BixStudio desde la página de BixPrint para agregar al carrito.");
+    return;
+  }
+
+  const btn=$("#exportBtn");
+  const quantity=shopifyBillableCm();
+
+  shopifyCartBusy=true;
+  if(btn){
+    btn.disabled=true;
+    btn.textContent="Preparando archivo…";
+  }
+
+  try{
+    toast("Generando archivo de impresión a 300 DPI…");
+    const blob=await generateActiveSheetPngBlob();
+
+    if(btn) btn.textContent="Subiendo archivo…";
+    toast(`Subiendo archivo · ${(blob.size/1024/1024).toFixed(1)} MB…`);
+
+    const uploadInfo=await uploadActiveGangSheet(blob);
+
+    if(btn) btn.textContent="Añadiendo al carrito…";
+    toast(`Archivo guardado · ${String(uploadInfo.id).slice(0,8)}…`);
+
+    window.parent.postMessage({
+      type:"BIXSTUDIO_ADD_TO_CART",
+      variantId:SHOPIFY_DTF_VARIANT_ID,
+      quantity,
+      properties:shopifyLineProperties(uploadInfo),
+      total:quantity*SHOPIFY_PRICE_PER_CM
+    },"*");
+
+    setTimeout(()=>{
+      if(!shopifyCartBusy) return;
+      shopifyCartBusy=false;
+      updateShopifyCartUi();
+    },20000);
+
+  }catch(e){
+    console.error("[BixStudio upload/cart]",e);
+    shopifyCartBusy=false;
+    updateShopifyCartUi();
+    toast(`No se pudo preparar el pedido: ${String(e?.message||e).slice(0,140)}`);
   }
 }
+
 $("#exportBtn").onclick=addActiveSheetToShopifyCart;
 
 const shopifySizeChip=$("#activeSheetSize");
@@ -6302,16 +6389,22 @@ if(shopifyObjectsLayer){
   new MutationObserver(updateShopifyCartUi)
     .observe(shopifyObjectsLayer,{childList:true});
 }
+
 window.addEventListener("message",e=>{
   const d=e.data||{};
+
   if(d.type==="BIXSTUDIO_CART_OK"){
-    toast(`✓ Añadido al carrito · ${d.quantity||shopifyBillableCm()} cm`);
+    shopifyCartBusy=false;
+    toast(`✓ Archivo guardado y añadido al carrito · ${d.quantity||shopifyBillableCm()} cm`);
+    updateShopifyCartUi();
   }else if(d.type==="BIXSTUDIO_CART_ERROR"){
-    toast(`No se pudo agregar al carrito: ${String(d.error||"Error de Shopify").slice(0,120)}`);
+    shopifyCartBusy=false;
+    updateShopifyCartUi();
+    toast(`El archivo se guardó, pero Shopify respondió: ${String(d.error||"Error de Shopify").slice(0,120)}`);
   }
 });
-setTimeout(updateShopifyCartUi,0);
 
+setTimeout(updateShopifyCartUi,0);
 
 
 // ----- Viewport dinámico: zoom + pan tipo editor -----
