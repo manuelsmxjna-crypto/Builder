@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v4.3.1 · INVERT_HORIZONTAL_ONLY · AUTONEST_OVERLAY · PREFIX_AI_NAMES · DPI_SANITY · AUTO_INSERT · SIZE_LAYERS · PNG_300DPI_ADOBE -->
+  <!-- SHAPE_NEST_VERSION: v4.3.11 · FAST_AUTONEST · ADAPTIVE_SEARCH_BUDGET · AUTONEST_4_ROTATIONS · INVALID_LAYOUT_MUST_REPACK · PNG_300DPI_ADOBE -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -935,7 +935,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   .workspace{grid-template-columns:60px 220px minmax(0,1fr) 260px}
   .top-actions .variant-label{display:none}
   .top-actions #qualityBtn{display:none}
-  .top-actions #saveBtn{display:none}
 }
 
 /* Tablet / phone: canvas-first + drawers + bottom nav */
@@ -1091,7 +1090,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       <label class="variant-label">Hoja activa <span id="activeSheetSize" class="sheet-size-chip">62 × 30 cm</span></label>
       <button class="ghost-btn" id="qualityBtn">✓ Revisar lienzo</button>
       <button class="autonest-top-btn" id="autoNestTopBtn">✦ Auto Organizar</button>
-      <button class="ghost-btn" id="saveBtn">Guardar</button>
       <span id="shopifyPriceChip" class="shopify-price-chip" title="Precio de la hoja activa">—</span>
 <button class="primary-btn shopify-cart-btn" id="exportBtn">🛒 Agregar al carrito</button>
     </div>
@@ -1176,7 +1174,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div class="unit-input"><input id="sheetHeight" type="number" value="30" min="30" max="310" step="0.1"><span>cm</span></div>
         </label>
         <label class="field">Margen
-          <div class="unit-input"><input id="sheetMargin" type="number" value="0.3" min="0" step="0.1"><span>cm</span></div>
+          <div class="unit-input"><input id="sheetMargin" type="number" value="0" min="0" step="0.1"><span>cm</span></div>
         </label>
         <label class="toggle-row"><input id="showResolution" type="checkbox" checked><span>Mostrar calidad de resolución</span></label>
         <label class="toggle-row"><input id="snapToggle" type="checkbox" checked><span>Snap a guías</span></label>
@@ -1192,7 +1190,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <button class="mini-btn" id="zoomOut">−</button>
           <span id="zoomLabel">100%</span>
           <button class="mini-btn" id="zoomIn">+</button>
-          <button class="mini-btn" id="fitBtn">Ajustar</button>
+          <button class="mini-btn" id="fitBtn" title="Centrar la mesa en pantalla">Centrar</button>
         </div>
 
         <div class="packing-toolbar">
@@ -1548,7 +1546,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const state = {
-  sheets:[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:.3},objects:[]}],
+  sheets:[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}],
   activeSheetIndex:0,
   zoom:1,
   viewport:{x:80,y:70},
@@ -1891,6 +1889,90 @@ async function findShapePlacementForObject(template,limitH=state.sheet.h,exclude
   }
   return best;
 }
+async function findExhaustiveCurrentSheetHole(template,excludeId=null){
+  ensureRotationModel(template);
+
+  const occ=await buildShapeNestOccupancy(state.sheet.h,excludeId);
+  const allow=!!$("#allowRotate")?.checked;
+  const rot0=((template.rot||0)%360+360)%360;
+  const rots=allow?[rot0,(rot0+90)%360]:[rot0];
+
+  let best=null;
+
+  for(const rot of [...new Set(rots)]){
+    const probeTemplate={...template,rot};
+    const shape=await shapeNestShapeForObject(probeTemplate);
+
+    if(shape.w>occ.gw || shape.h>occ.gh) continue;
+
+    // First use the normal shape-aware frontier search.
+    const fast=shapeNestFindSlotInOccupancy(shape,occ);
+    if(fast){
+      const left=occ.m+fast.x/SHAPE_NEST_GRID;
+      const top=occ.m+fast.y/SHAPE_NEST_GRID;
+      const probe=objectAtAABBTopLeft(probeTemplate,left,top);
+      const score=[fast.y+shape.h,fast.y,fast.x];
+      if(!best || compareNestScores(score,best.score)<0){
+        best={x:probe.x,y:probe.y,rot,score};
+      }
+      continue;
+    }
+
+    // Exhaustive scan of the CURRENT sheet only. This catches real holes that
+    // are enclosed by other artwork and therefore aren't found by frontier
+    // candidates. Row-major order prioritizes the highest available hole.
+    let foundForRot=null;
+    outer:
+    for(let gy=0;gy<=occ.gh-shape.h;gy++){
+      for(let gx=0;gx<=occ.gw-shape.w;gx++){
+        if(shapeNestGridCollides(shape,gx,gy,occ.grid,occ.gw,occ.gh)) continue;
+
+        const left=occ.m+gx/SHAPE_NEST_GRID;
+        const top=occ.m+gy/SHAPE_NEST_GRID;
+        const probe=objectAtAABBTopLeft(probeTemplate,left,top);
+
+        if(!objectInsidePrintableArea(probe,state.sheet.h)) continue;
+
+        foundForRot={
+          x:probe.x,
+          y:probe.y,
+          rot,
+          score:[gy+shape.h,gy,gx]
+        };
+        break outer;
+      }
+    }
+
+    if(foundForRot && (!best || compareNestScores(foundForRot.score,best.score)<0)){
+      best=foundForRot;
+    }
+  }
+
+  return best;
+}
+
+async function placeDuplicateHoleFirst(o,excludeId=null){
+  ensureRotationModel(o);
+
+  if(!objectCanEverFitSheet(o)){
+    toast("La copia es demasiado grande para el ancho útil de la Gang Sheet.");
+    return false;
+  }
+
+  // Duplicates/text copies MUST exhaust current empty space first.
+  const hole=await findExhaustiveCurrentSheetHole(o,excludeId);
+  if(hole){
+    o.x=hole.x;
+    o.y=hole.y;
+    o.rot=hole.rot;
+    return true;
+  }
+
+  // Only when the current sheet truly has no valid hole do we allow growth
+  // or a new Gang Sheet.
+  return await placeObjectWithShapeAutoGrowth(o,excludeId);
+}
+
 async function placeObjectWithShapeAutoGrowth(o,excludeId=null){
   ensureRotationModel(o);
   if(!objectCanEverFitSheet(o)){
@@ -2041,7 +2123,7 @@ function applySessionPayload(payload){
   state.sheets=payload.sheets.map((s,i)=>({
     id:s.id||("gs"+(i+1)),
     name:s.name||("Gang Sheet "+(i+1)),
-    sheet:{w:62,h:30,margin:.3,...(s.sheet||{})},
+    sheet:{w:62,h:30,margin:0,...(s.sheet||{})},
     objects:Array.isArray(s.objects)?s.objects.map(o=>({...o})):[]
   }));
   state.activeSheetIndex=Math.max(0,Math.min(payload.activeSheetIndex||0,state.sheets.length-1));
@@ -2068,7 +2150,7 @@ function applySessionPayload(payload){
   return true;
 }
 function resetToFreshSession(){
-  state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:.3},objects:[]}];
+  state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}];
   state.activeSheetIndex=0;
   state.nextSheetId=2;
   state.nextId=1;
@@ -2405,7 +2487,7 @@ function restore(raw){
     state.activeSheetIndex=Math.max(0,Math.min(d.activeSheetIndex||0,state.sheets.length-1));
     state.nextSheetId=d.nextSheetId||state.sheets.length+1;
   }else{
-    state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:d.sheet||{w:62,h:30,margin:.3},objects:d.objects||[]}];
+    state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:d.sheet||{w:62,h:30,margin:0},objects:d.objects||[]}];
     state.activeSheetIndex=0;
   }
   state.selectedId=null;
@@ -2424,6 +2506,28 @@ function syncSheetInputs(){
  const chip=$("#activeSheetSize");
  if(chip) chip.textContent=`${state.sheet.w.toFixed(0)} × ${state.sheet.h.toFixed(1).replace(".0","")} cm`;
 }
+
+function migrateLegacyDefaultMargin(){
+  const MIGRATION_KEY="bixstudio_margin_default_zero_v2";
+  try{
+    if(localStorage.getItem(MIGRATION_KEY)==="1") return;
+
+    let changed=false;
+    for(const record of state.sheets||[]){
+      if(record?.sheet && Math.abs((+record.sheet.margin||0)-0.3)<0.0001){
+        record.sheet.margin=0;
+        changed=true;
+      }
+    }
+
+    if(changed && state.sheets?.[state.activeSheetIndex]){
+      state.sheet=state.sheets[state.activeSheetIndex].sheet;
+    }
+
+    localStorage.setItem(MIGRATION_KEY,"1");
+  }catch{}
+}
+
 function cmToPx(v){return v*PX_PER_CM}
 function updateBoard(){
  artboard.style.width=cmToPx(state.sheet.w)+"px";
@@ -2600,6 +2704,95 @@ function rotatedAABB(o){
   const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
   const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
   return {x:minX,y:minY,w:maxX-minX,h:maxY-minY};
+}
+
+function printableSheetBounds(){
+  const m=Math.max(0,+state.sheet.margin||0);
+  return {
+    left:m,
+    top:m,
+    right:Math.max(m,state.sheet.w-m),
+    bottom:Math.max(m,state.sheet.h-m)
+  };
+}
+
+function objectInsideHardBounds(o,epsilon=0.0001){
+  const b=printableSheetBounds();
+  const pts=rotatedCorners(o);
+  return pts.every(p=>
+    p.x>=b.left-epsilon &&
+    p.x<=b.right+epsilon &&
+    p.y>=b.top-epsilon &&
+    p.y<=b.bottom+epsilon
+  );
+}
+
+function clampObjectPositionToHardBounds(o){
+  const b=printableSheetBounds();
+  const box=rotatedAABB(o);
+  const usableW=b.right-b.left;
+  const usableH=b.bottom-b.top;
+
+  // An object physically larger than the printable area cannot be fixed
+  // by translation alone. Leave size unchanged; resize operations reject it.
+  if(box.w>usableW+0.0001 || box.h>usableH+0.0001) return false;
+
+  let dx=0,dy=0;
+  if(box.x<b.left) dx=b.left-box.x;
+  else if(box.x+box.w>b.right) dx=b.right-(box.x+box.w);
+
+  if(box.y<b.top) dy=b.top-box.y;
+  else if(box.y+box.h>b.bottom) dy=b.bottom-(box.y+box.h);
+
+  o.x+=dx;
+  o.y+=dy;
+  return true;
+}
+
+function ensureSheetHeightForObject(o){
+  const m=Math.max(0,+state.sheet.margin||0);
+  const box=rotatedAABB(o);
+
+  // Width is hard-limited by the current sheet width (normally 62 cm)
+  // and by the printable margins. Never auto-expand width.
+  // Exact printable width:
+  // 62 cm sheet - (margin × 2). With margin 0, all 62 cm are usable.
+  const printableW=Math.max(0,state.sheet.w-(m*2));
+  if(box.w>printableW+0.0001){
+    return {ok:false,reason:"width",requiredWidth:box.w,availableWidth:printableW};
+  }
+
+  // If the rotated footprint is taller than the current printable height,
+  // expand ONLY the sheet length. Round up to the next 0.1 cm.
+  const currentPrintableH=Math.max(0,state.sheet.h-m*2);
+  if(box.h>currentPrintableH+0.0001){
+    const required=Math.ceil((box.h+m*2)*10)/10;
+
+    if(required>MAX_SHEET_HEIGHT+0.0001){
+      return {ok:false,reason:"height"};
+    }
+
+    state.sheet.h=Math.min(MAX_SHEET_HEIGHT,Math.max(state.sheet.h,required));
+    syncSheetInputs();
+    updateBoard();
+  }
+
+  return {ok:true};
+}
+
+
+function objectTransformSnapshot(o){
+  return {
+    x:o.x,y:o.y,w:o.w,h:o.h,rot:o.rot||0,
+    visualW:o.visualW,visualH:o.visualH,
+    baseW:o.baseW,baseH:o.baseH,
+    aspectRatio:o.aspectRatio,
+    fontSize:o.fontSize
+  };
+}
+
+function restoreObjectTransform(o,s){
+  Object.assign(o,s);
 }
 function pointToArtboardCm(clientX,clientY){
   const r=artboard.getBoundingClientRect();
@@ -3027,6 +3220,7 @@ function startResize(e,o,corner){
     fontSize:o.fontSize||72
   };
   const center={x:start.x+start.w/2,y:start.y+start.h/2};
+  let lastValid=objectTransformSnapshot(o);
 
   const movingSigns={
     tl:{x:-1,y:-1},
@@ -3035,7 +3229,6 @@ function startResize(e,o,corner){
     br:{x: 1,y: 1}
   }[corner];
 
-  // Opposite corner is fixed in world coordinates.
   const fixedLocal={
     x:-movingSigns.x*start.w/2,
     y:-movingSigns.y*start.h/2
@@ -3059,17 +3252,11 @@ function startResize(e,o,corner){
       newH=Math.max(.2,start.h*scale);
     }
 
-    // Vector from fixed corner to moving corner in LOCAL coordinates.
-    const localDelta={
-      x:movingSigns.x*newW,
-      y:movingSigns.y*newH
-    };
+    const localDelta={x:movingSigns.x*newW,y:movingSigns.y*newH};
     const worldDelta=rotateVector(localDelta.x,localDelta.y,start.rot);
-    const newCenter={
-      x:fixedWorld.x+worldDelta.x/2,
-      y:fixedWorld.y+worldDelta.y/2
-    };
+    const newCenter={x:fixedWorld.x+worldDelta.x/2,y:fixedWorld.y+worldDelta.y/2};
 
+    const before=objectTransformSnapshot(o);
     o.w=newW;
     o.h=newH;
     o.visualW=newW;
@@ -3079,19 +3266,25 @@ function startResize(e,o,corner){
     o.aspectRatio=newW/newH;
     o.x=newCenter.x-newW/2;
     o.y=newCenter.y-newH/2;
+
     if(o.type==="text"){
       o.fontSize=Math.max(8,Math.min(400,start.fontSize*(newW/Math.max(0.0001,start.w))));
       o.aspectLocked=true;
     }
 
-    recalcActiveSheetHeight();
+    // HARD BORDER: never accept a resize whose rotated pixels cross the sheet.
+    if(!objectInsideHardBounds(o)){
+      restoreObjectTransform(o,lastValid||before);
+    }else{
+      lastValid=objectTransformSnapshot(o);
+    }
+
     renderAll();
   };
 
   const up=()=>{
     window.removeEventListener("pointermove",move);
     window.removeEventListener("pointerup",up);
-    recalcActiveSheetHeight();
     updateDiagnostics();
     renderAll();
   };
@@ -3113,6 +3306,7 @@ function startRotate(e,o){
 
   pushHistory();
 
+  const before=objectTransformSnapshot(o);
   const centerWorld={x:o.x+o.w/2,y:o.y+o.h/2};
   const startPointer=pointToArtboardCm(e.clientX,e.clientY);
   const startAngle=Math.atan2(startPointer.y-centerWorld.y,startPointer.x-centerWorld.x)*180/Math.PI;
@@ -3123,14 +3317,42 @@ function startRotate(e,o){
     const a=Math.atan2(p.y-centerWorld.y,p.x-centerWorld.x)*180/Math.PI;
     let deg=original+(a-startAngle);
     if(ev.shiftKey) deg=Math.round(deg/15)*15;
+
+    // ROTATION PREVIEW:
+    // While the mouse is down we intentionally allow the rotated footprint
+    // to cross the hard border. Otherwise an object touching an edge cannot
+    // be rotated enough to see whether the new orientation would fit.
     o.rot=((deg%360)+360)%360;
-    recalcActiveSheetHeight();
     renderAll();
   };
 
   const up=()=>{
     window.removeEventListener("pointermove",move);
     window.removeEventListener("pointerup",up);
+
+    // On release the hard border becomes strict again.
+    // First, grow LENGTH only when the rotated footprint needs it.
+    const fit=ensureSheetHeightForObject(o);
+
+    if(!fit.ok){
+      restoreObjectTransform(o,before);
+      if(fit.reason==="width"){
+        const box=rotatedAABB(o);
+        const usable=Math.max(0,state.sheet.w-(Math.max(0,+state.sheet.margin||0)*2));
+        toast(`No se puede dejar así: supera el ancho útil de ${usable.toFixed(1)} cm`);
+      }else{
+        toast(`No se puede dejar así: supera el largo máximo de ${MAX_SHEET_HEIGHT} cm`);
+      }
+    }else{
+      // Preserve the chosen angle and move the artwork to the nearest legal
+      // position if the rotation pushed a corner outside the sheet.
+      const canFit=clampObjectPositionToHardBounds(o);
+      if(!canFit){
+        restoreObjectTransform(o,before);
+        toast("Esa rotación no cabe dentro de la mesa");
+      }
+    }
+
     updateDiagnostics();
     renderAll();
   };
@@ -3193,9 +3415,8 @@ function startDrag(e,o,resizing){
     o.y=Math.round(o.y*10)/10;
   }
 
-  // Width never changes automatically.
-  // Height follows the lowest rotated edge of every object.
-  recalcActiveSheetHeight();
+  // HARD BORDER: translation stops exactly at the printable edge.
+  clampObjectPositionToHardBounds(o);
 
   renderAll();
  };
@@ -3203,7 +3424,7 @@ function startDrag(e,o,resizing){
    window.removeEventListener("pointermove",move);
    window.removeEventListener("pointerup",up);
    if(moved){
-     recalcActiveSheetHeight();
+     clampObjectPositionToHardBounds(o);
      updateDiagnostics();
      renderAll();
      pushHistory();
@@ -3650,7 +3871,7 @@ function deleteSheet(index){
     state.sheets=[{
       id:"gs"+state.nextSheetId++,
       name:"Gang Sheet 1",
-      sheet:{w:62,h:MIN_SHEET_HEIGHT,margin:.3},
+      sheet:{w:62,h:MIN_SHEET_HEIGHT,margin:0},
       objects:[]
     }];
     state.activeSheetIndex=0;
@@ -3682,7 +3903,7 @@ function switchSheet(index){
   setTimeout(fitViewport,20);
 }
 function createNewSheet(){
-  const margin=state.sheet.margin;
+  const margin=0;
   const width=state.sheet.w;
   const id="gs"+state.nextSheetId;
   const sheet={id,name:`Gang Sheet ${state.nextSheetId}`,sheet:{w:width,h:MIN_SHEET_HEIGHT,margin},objects:[]};
@@ -5039,9 +5260,16 @@ function updateSelectionPanel(){
  const o=objById(state.selectedId),empty=$("#noSelection"),panel=$("#selectionPanel");
  if(!o){empty.classList.remove("hidden");panel.classList.add("hidden");return}
  empty.classList.add("hidden");panel.classList.remove("hidden");$("#selName").textContent=state.selectedIds.length>1?`${state.selectedIds.length} diseños seleccionados`:(o.name||o.text||"Diseño");
- [["objWidth","w"],["objHeight","h"],["objX","x"],["objY","y"],["objRotation","rot"]].forEach(([id,k])=>{
-   const el=$("#"+id); if(el) el.value=+(o[k]||0).toFixed(2);
- });
+ {
+   const visualBox=rotatedAABB(o);
+   const ww=$("#objWidth"), hh=$("#objHeight");
+   if(ww) ww.value=+(visualBox.w||0).toFixed(2);
+   if(hh) hh.value=+(visualBox.h||0).toFixed(2);
+
+   [["objX","x"],["objY","y"],["objRotation","rot"]].forEach(([id,k])=>{
+     const el=$("#"+id); if(el) el.value=+(o[k]||0).toFixed(2);
+   });
+ }
  ensureAspect(o);
  const isImage=o.type==="image";
  const isText=o.type==="text";
@@ -5091,33 +5319,77 @@ function updateSelectionPanel(){
  $("#dpiValue").textContent=dpi>=900?"VECTOR":dpi+" DPI";
  $("#dpiText").textContent=cls==="optimal"?"Resolución óptima":cls==="good"?"Buena resolución":cls==="bad"?"Mala resolución":"Resolución mínima";
 }
+function setObjectVisualDimension(o,axis,target){
+  target=Math.max(.1,+target||.1);
+  ensureAspect(o);
+  ensureRotationModel(o);
+
+  const rot=((+o.rot||0)%360+360)%360;
+  const q=Math.round(rot/90)%4;
+  const nearQuarter=Math.abs(rot-q*90)<0.001 ||
+    Math.abs(rot-(q*90+360))<0.001;
+
+  const cx=o.x+o.w/2;
+  const cy=o.y+o.h/2;
+
+  if(nearQuarter){
+    const swapped=(q%2)!==0;
+
+    if(axis==="width"){
+      if(swapped){
+        // At 90/270°, visual width is intrinsic height.
+        o.h=target;
+        if(o.aspectLocked) o.w=o.h*o.aspectRatio;
+        else o.aspectRatio=o.w/o.h;
+      }else{
+        o.w=target;
+        if(o.aspectLocked) o.h=o.w/o.aspectRatio;
+        else o.aspectRatio=o.w/o.h;
+      }
+    }else{
+      if(swapped){
+        // At 90/270°, visual height is intrinsic width.
+        o.w=target;
+        if(o.aspectLocked) o.h=o.w/o.aspectRatio;
+        else o.aspectRatio=o.w/o.h;
+      }else{
+        o.h=target;
+        if(o.aspectLocked) o.w=o.h*o.aspectRatio;
+        else o.aspectRatio=o.w/o.h;
+      }
+    }
+  }else{
+    // For non-90° rotations the visual AABB depends on both dimensions.
+    // Scale uniformly so the requested visible dimension is exact and
+    // the artwork doesn't deform unpredictably.
+    const box=rotatedAABB(o);
+    const current=axis==="width"?box.w:box.h;
+    const scale=target/Math.max(.0001,current);
+    o.w=Math.max(.1,o.w*scale);
+    o.h=Math.max(.1,o.h*scale);
+    o.aspectRatio=o.w/o.h;
+  }
+
+  o.visualW=o.w;
+  o.visualH=o.h;
+  o.baseW=o.w;
+  o.baseH=o.h;
+  o.x=cx-o.w/2;
+  o.y=cy-o.h/2;
+}
+
 ["objWidth","objHeight","objX","objY","objRotation"].forEach(id=>$("#"+id)?.addEventListener("change",e=>{
  const o=objById(state.selectedId);if(!o)return;
  ensureAspect(o);
+ const before=objectTransformSnapshot(o);
  pushHistory();
  const v=+e.target.value;
  if(id==="objWidth"){
    if(o.type==="text") scaleTextObjectToWidth(o,Math.max(.1,v));
-   else{
-     const cx=o.x+o.w/2,cy=o.y+o.h/2;
-     o.w=Math.max(.1,v);
-     if(o.aspectLocked) o.h=o.w/o.aspectRatio;
-     else o.aspectRatio=o.w/o.h;
-     o.visualW=o.w;o.visualH=o.h;
-     o.baseW=o.w;o.baseH=o.h;
-     o.x=cx-o.w/2;o.y=cy-o.h/2;
-   }
+   else setObjectVisualDimension(o,"width",v);
  }else if(id==="objHeight"){
    if(o.type==="text") scaleTextObjectToHeight(o,Math.max(.1,v));
-   else{
-     const cx=o.x+o.w/2,cy=o.y+o.h/2;
-     o.h=Math.max(.1,v);
-     if(o.aspectLocked) o.w=o.h*o.aspectRatio;
-     else o.aspectRatio=o.w/o.h;
-     o.visualW=o.w;o.visualH=o.h;
-     o.baseW=o.w;o.baseH=o.h;
-     o.x=cx-o.w/2;o.y=cy-o.h/2;
-   }
+   else setObjectVisualDimension(o,"height",v);
  }else if(id==="objRotation"){
    ensureRotationModel(o);
    o.rot=((v%360)+360)%360;
@@ -5125,7 +5397,47 @@ function updateSelectionPanel(){
    const map={objX:"x",objY:"y"};
    o[map[id]]=v;
  }
- renderAll()
+
+ // Keep the requested transform first.
+ // If it needs more LENGTH, grow the sheet automatically.
+ // Width never grows: it remains hard-limited by the sheet width/margins.
+ const fit=ensureSheetHeightForObject(o);
+
+ if(!fit.ok){
+   const attemptedBox=rotatedAABB(o);
+   const margin=Math.max(0,+state.sheet.margin||0);
+   const printableW=Math.max(0,state.sheet.w-(margin*2));
+
+   restoreObjectTransform(o,before);
+
+   if(fit.reason==="width"){
+     toast(`No cabe: huella real ${attemptedBox.w.toFixed(1)} cm · ancho útil ${printableW.toFixed(1)} cm`);
+   }else{
+     toast(`Ese tamaño supera el largo máximo de ${MAX_SHEET_HEIGHT} cm`);
+   }
+ }else{
+   // Now that the sheet is tall enough, relocate to the nearest legal
+   // position if the current position crosses any edge.
+   const canFitAnywhere=clampObjectPositionToHardBounds(o);
+
+   if(!canFitAnywhere){
+     restoreObjectTransform(o,before);
+     toast("Ese tamaño no cabe dentro de la mesa de trabajo");
+   }else{
+     clampObjectPositionToHardBounds(o);
+   }
+ }
+ renderAll();
+
+ // After resize/rotation/reposition, always show the REAL dimensions
+ // currently occupied on the artboard.
+ const current=objById(state.selectedId);
+ if(current){
+   const vb=rotatedAABB(current);
+   const ww=$("#objWidth"), hh=$("#objHeight");
+   if(ww) ww.value=+(vb.w||0).toFixed(2);
+   if(hh) hh.value=+(vb.h||0).toFixed(2);
+ }
 }));
 function readDuplicateQty(){
   const el=$("#duplicateQty");
@@ -5169,7 +5481,7 @@ function moveRotatedAABBTo(o,targetLeft=null,targetTop=null,targetRight=null){
   if(targetTop!==null) o.y += targetTop-box.y;
 }
 function finishToolbarTransform(o){
-  recalcActiveSheetHeight();
+  clampObjectPositionToHardBounds(o);
   updateDiagnostics();
   renderAll();
 }
@@ -5177,13 +5489,17 @@ function finishToolbarTransform(o){
 $("#rotateCCWBtn").onclick=()=>{
   const o=selectedPrimary(); if(!o)return;
   pushHistory();
+  const before=objectTransformSnapshot(o);
   o.rot=((o.rot||0)-90+360)%360;
+  if(!objectInsideHardBounds(o)){restoreObjectTransform(o,before);toast("No se puede girar fuera de la mesa");}
   finishToolbarTransform(o);
 };
 $("#rotateCWBtn").onclick=()=>{
   const o=selectedPrimary(); if(!o)return;
   pushHistory();
+  const before=objectTransformSnapshot(o);
   o.rot=((o.rot||0)+90)%360;
+  if(!objectInsideHardBounds(o)){restoreObjectTransform(o,before);toast("No se puede girar fuera de la mesa");}
   finishToolbarTransform(o);
 };
 $("#flipHorizontalBtn").onclick=()=>{
@@ -5451,7 +5767,8 @@ async function getAdaptiveNestMask(item,q,grid){
       }
     }
     let shape={data,w:mw,h:mh};
-    if(q===1) shape=shapeNestRotateMask(shape.data,shape.w,shape.h,1);
+    // q = number of quarter-turns: 0°, 90°, 180°, 270°
+    shape=shapeNestRotateMask(shape.data,shape.w,shape.h,q);
     let occupied=0;for(const v of shape.data) occupied+=v;
     return {...shape,occupied,key};
   })();
@@ -5471,22 +5788,20 @@ function currentNestUsedHeight(){
   }
   return Math.max(0,bottom-m);
 }
-const INLINE_NEST_WORKER_SOURCE="\n'use strict';\n\nlet cancelled=false;\n\nfunction postProgress(pct,label){\n  self.postMessage({type:'progress',pct,label});\n}\nfunction cmpScore(a,b){\n  for(let i=0;i<a.length;i++){\n    if(a[i]<b[i]) return -1;\n    if(a[i]>b[i]) return 1;\n  }\n  return 0;\n}\nfunction collides(shape,x,y,grid,gw,gh){\n  x|=0;y|=0;\n  if(x<0||y<0||x+shape.w>gw||y+shape.h>gh) return true;\n  const sd=shape.data;\n  for(let sy=0;sy<shape.h;sy++){\n    let si=sy*shape.w, gi=(y+sy)*gw+x;\n    for(let sx=0;sx<shape.w;sx++){\n      if(sd[si+sx] && grid[gi+sx]) return true;\n    }\n  }\n  return false;\n}\nfunction mark(shape,x,y,grid,gw,gh,gap){\n  // Small Chebyshev dilation at placement time; cheaper than storing expanded masks.\n  const sd=shape.data, r=Math.max(0,gap|0);\n  for(let sy=0;sy<shape.h;sy++){\n    for(let sx=0;sx<shape.w;sx++){\n      if(!sd[sy*shape.w+sx]) continue;\n      const gx=x+sx, gy=y+sy;\n      for(let yy=Math.max(0,gy-r);yy<=Math.min(gh-1,gy+r);yy++){\n        const row=yy*gw;\n        for(let xx=Math.max(0,gx-r);xx<=Math.min(gw-1,gx+r);xx++){\n          grid[row+xx]=1;\n        }\n      }\n    }\n  }\n}\nfunction compact(shape,x,y,grid,gw,gh){\n  if(collides(shape,x,y,grid,gw,gh)) return null;\n  let changed=true, guard=0;\n  while(changed && guard++<5){\n    changed=false;\n    while(x>0 && !collides(shape,x-1,y,grid,gw,gh)){x--;changed=true}\n    while(y>0 && !collides(shape,x,y-1,grid,gw,gh)){y--;changed=true}\n  }\n  return {x,y};\n}\nfunction bboxCandidates(shape,placed,gw,gh,gap){\n  const out=[{x:0,y:0}];\n  for(const p of placed){\n    out.push(\n      {x:p.x+p.w+gap,y:p.y},\n      {x:p.x,y:p.y+p.h+gap},\n      {x:Math.max(0,p.x-shape.w-gap),y:p.y},\n      {x:p.x,y:Math.max(0,p.y-shape.h-gap)}\n    );\n  }\n  return out;\n}\nfunction frontierCandidates(shape,grid,gw,searchH,placed,gap,quality){\n  const seen=new Set(), out=[];\n  const push=(x,y)=>{\n    x=Math.max(0,Math.min(gw-shape.w,x|0));\n    y=Math.max(0,Math.min(searchH-shape.h,y|0));\n    const k=x+'|'+y;\n    if(!seen.has(k)){seen.add(k);out.push({x,y})}\n  };\n  for(const p of bboxCandidates(shape,placed,gw,searchH,gap)) push(p.x,p.y);\n\n  // Adaptive frontier sampling. Mobile/large jobs use fewer candidates.\n  const stride = quality==='fast' ? 2 : 1;\n  const maxFrontier = quality==='fast' ? 550 : quality==='balanced' ? 1000 : 1600;\n  let added=0;\n  outer:\n  for(let y=0;y<searchH;y+=stride){\n    const row=y*gw;\n    for(let x=0;x<gw;x+=stride){\n      if(grid[row+x]) continue;\n      const left=x>0 && grid[row+x-1];\n      const up=y>0 && grid[(y-1)*gw+x];\n      if(!left && !up) continue;\n      push(x,y);\n      push(x-shape.w+1,y);\n      push(x,y-shape.h+1);\n      push(x-shape.w+1,y-shape.h+1);\n      added++;\n      if(added>=maxFrontier) break outer;\n    }\n  }\n  return out;\n}\nfunction bestSlot(shape,grid,gw,gh,placed,gap,quality){\n  const usedBottom=placed.length ? Math.max(...placed.map(p=>p.y+p.h)) : 0;\n  const searchH=Math.min(gh,Math.max(shape.h,usedBottom+shape.h+gap+2));\n  let starts=frontierCandidates(shape,grid,gw,searchH,placed,gap,quality);\n  if(!starts.length) starts=[{x:0,y:usedBottom+gap}];\n\n  let best=null;\n  const finals=new Set();\n  for(const st of starts){\n    if(cancelled) return null;\n    if(collides(shape,st.x,st.y,grid,gw,gh)) continue;\n    const c=compact(shape,st.x,st.y,grid,gw,gh);\n    if(!c) continue;\n    const key=c.x+'|'+c.y;\n    if(finals.has(key)) continue;\n    finals.add(key);\n    const usedH=Math.max(c.y+shape.h,usedBottom);\n    const score=[usedH,c.y,c.x,c.x+shape.w];\n    if(!best || cmpScore(score,best.score)<0) best={...c,score};\n  }\n  return best;\n}\nfunction layout(items,shapeMap,gw,gh,gap,mode,allowRotate,quality){\n  const sorted=[...items];\n  if(mode==='maxSide'){\n    sorted.sort((a,b)=>Math.max(b.baseW,b.baseH)-Math.max(a.baseW,a.baseH));\n  }else{\n    sorted.sort((a,b)=>(b.baseW*b.baseH)-(a.baseW*a.baseH));\n  }\n\n  const occupancy=new Uint8Array(gw*gh);\n  const placed=[];\n  let rotations=0,usedH=0,usedW=0,area=0;\n\n  for(let i=0;i<sorted.length;i++){\n    if(cancelled) return null;\n    const item=sorted[i];\n    const options=[{q:0,key:item.k0}];\n    if(allowRotate && item.k1 && item.k1!==item.k0) options.push({q:1,key:item.k1});\n\n    let best=null;\n    for(const opt of options){\n      const shape=shapeMap.get(opt.key);\n      if(!shape||shape.w>gw||shape.h>gh) continue;\n      const slot=bestSlot(shape,occupancy,gw,gh,placed,gap,quality);\n      if(!slot) continue;\n      const score=slot.score;\n      if(!best || cmpScore(score,best.score)<0) best={...slot,shape,q:opt.q};\n    }\n    if(!best) return null;\n\n    mark(best.shape,best.x,best.y,occupancy,gw,gh,gap);\n    const p={\n      id:item.id,\n      x:best.x,y:best.y,\n      w:best.shape.w,h:best.shape.h,\n      rotated:best.q===1\n    };\n    placed.push(p);\n    if(p.rotated) rotations++;\n    usedH=Math.max(usedH,p.y+p.h);\n    usedW=Math.max(usedW,p.x+p.w);\n    area+=best.shape.occupied||0;\n  }\n  const waste=Math.max(0,usedW*usedH-area);\n  return {placed,usedH,usedW,waste,rotations};\n}\nfunction better(a,b){\n  if(!b) return true;\n  if(a.usedH!==b.usedH) return a.usedH<b.usedH;\n  if(a.waste!==b.waste) return a.waste<b.waste;\n  if(a.rotations!==b.rotations) return a.rotations<b.rotations;\n  return a.usedW<b.usedW;\n}\n\nself.onmessage=(e)=>{\n  const msg=e.data||{};\n  if(msg.type==='cancel'){cancelled=true;return}\n  if(msg.type!=='run') return;\n  cancelled=false;\n\n  try{\n    const {items,shapes,gw,gh,gap,allowRotate,quality='balanced'}=msg;\n    const shapeMap=new Map();\n    for(const s of shapes){\n      shapeMap.set(s.key,{...s,data:new Uint8Array(s.data)});\n    }\n\n    // Only two pack orders. This is intentionally bounded.\n    const modes=items.length>90?['area']:['area','maxSide'];\n    let best=null;\n    for(let i=0;i<modes.length;i++){\n      if(cancelled) throw new Error('cancelled');\n      postProgress(Math.round((i/modes.length)*90),`Organizando ${i+1}/${modes.length}`);\n      const r=layout(items,shapeMap,gw,gh,gap,modes[i],allowRotate,quality);\n      if(r && better(r,best)) best=r;\n    }\n    if(cancelled) throw new Error('cancelled');\n    postProgress(100,'Listo');\n    self.postMessage({type:'done',ok:!!best,result:best});\n  }catch(err){\n    self.postMessage({type:'done',ok:false,error:String(err&&err.message||err)});\n  }\n};\n";
+const INLINE_NEST_WORKER_SOURCE="\n'use strict';\n\nlet cancelled=false;\n\nfunction postProgress(pct,label){\n  self.postMessage({type:'progress',pct,label});\n}\nfunction cmpScore(a,b){\n  for(let i=0;i<a.length;i++){\n    if(a[i]<b[i]) return -1;\n    if(a[i]>b[i]) return 1;\n  }\n  return 0;\n}\nfunction collides(shape,x,y,grid,gw,gh){\n  x|=0;y|=0;\n  if(x<0||y<0||x+shape.w>gw||y+shape.h>gh) return true;\n  const sd=shape.data;\n  for(let sy=0;sy<shape.h;sy++){\n    let si=sy*shape.w, gi=(y+sy)*gw+x;\n    for(let sx=0;sx<shape.w;sx++){\n      if(sd[si+sx] && grid[gi+sx]) return true;\n    }\n  }\n  return false;\n}\nfunction mark(shape,x,y,grid,gw,gh,gap){\n  // Small Chebyshev dilation at placement time; cheaper than storing expanded masks.\n  const sd=shape.data, r=Math.max(0,gap|0);\n  for(let sy=0;sy<shape.h;sy++){\n    for(let sx=0;sx<shape.w;sx++){\n      if(!sd[sy*shape.w+sx]) continue;\n      const gx=x+sx, gy=y+sy;\n      for(let yy=Math.max(0,gy-r);yy<=Math.min(gh-1,gy+r);yy++){\n        const row=yy*gw;\n        for(let xx=Math.max(0,gx-r);xx<=Math.min(gw-1,gx+r);xx++){\n          grid[row+xx]=1;\n        }\n      }\n    }\n  }\n}\nfunction compact(shape,x,y,grid,gw,gh){\n  if(collides(shape,x,y,grid,gw,gh)) return null;\n  let changed=true, guard=0;\n  while(changed && guard++<5){\n    changed=false;\n    while(x>0 && !collides(shape,x-1,y,grid,gw,gh)){x--;changed=true}\n    while(y>0 && !collides(shape,x,y-1,grid,gw,gh)){y--;changed=true}\n  }\n  return {x,y};\n}\nfunction bboxCandidates(shape,placed,gw,gh,gap){\n  const out=[{x:0,y:0}];\n  for(const p of placed){\n    out.push(\n      {x:p.x+p.w+gap,y:p.y},\n      {x:p.x,y:p.y+p.h+gap},\n      {x:Math.max(0,p.x-shape.w-gap),y:p.y},\n      {x:p.x,y:Math.max(0,p.y-shape.h-gap)}\n    );\n  }\n  return out;\n}\nfunction frontierCandidates(shape,grid,gw,searchH,placed,gap,quality){\n  const seen=new Set(), out=[];\n  const push=(x,y)=>{\n    x=Math.max(0,Math.min(gw-shape.w,x|0));\n    y=Math.max(0,Math.min(searchH-shape.h,y|0));\n    const k=x+'|'+y;\n    if(!seen.has(k)){seen.add(k);out.push({x,y})}\n  };\n  for(const p of bboxCandidates(shape,placed,gw,searchH,gap)) push(p.x,p.y);\n\n  // Adaptive frontier sampling. Mobile/large jobs use fewer candidates.\n  const stride = quality==='fast' ? 2 : 1;\n  const maxFrontier = quality==='fast' ? 420 : quality==='balanced' ? 760 : 1200;\n  let added=0;\n  outer:\n  for(let y=0;y<searchH;y+=stride){\n    const row=y*gw;\n    for(let x=0;x<gw;x+=stride){\n      if(grid[row+x]) continue;\n      const left=x>0 && grid[row+x-1];\n      const up=y>0 && grid[(y-1)*gw+x];\n      if(!left && !up) continue;\n      push(x,y);\n      push(x-shape.w+1,y);\n      push(x,y-shape.h+1);\n      push(x-shape.w+1,y-shape.h+1);\n      added++;\n      if(added>=maxFrontier) break outer;\n    }\n  }\n  return out;\n}\nfunction bestSlot(shape,grid,gw,gh,placed,gap,quality){\n  const usedBottom=placed.length ? Math.max(...placed.map(p=>p.y+p.h)) : 0;\n  const searchH=Math.min(gh,Math.max(shape.h,usedBottom+shape.h+gap+2));\n  let starts=frontierCandidates(shape,grid,gw,searchH,placed,gap,quality);\n  if(!starts.length) starts=[{x:0,y:usedBottom+gap}];\n\n  let best=null;\n  const finals=new Set();\n  for(const st of starts){\n    if(cancelled) return null;\n    if(collides(shape,st.x,st.y,grid,gw,gh)) continue;\n    const c=compact(shape,st.x,st.y,grid,gw,gh);\n    if(!c) continue;\n    const key=c.x+'|'+c.y;\n    if(finals.has(key)) continue;\n    finals.add(key);\n    const usedH=Math.max(c.y+shape.h,usedBottom);\n    const score=[usedH,c.y,c.x,c.x+shape.w];\n    if(!best || cmpScore(score,best.score)<0) best={...c,score};\n    if(c.x===0 && c.y===0) break;\n  }\n  return best;\n}\nfunction layout(items,shapeMap,gw,gh,gap,mode,allowRotate,quality){\n  const sorted=[...items];\n  if(mode==='maxSide'){\n    sorted.sort((a,b)=>Math.max(b.baseW,b.baseH)-Math.max(a.baseW,a.baseH));\n  }else if(mode==='width'){\n    sorted.sort((a,b)=>b.baseW-a.baseW || b.baseH-a.baseH);\n  }else if(mode==='height'){\n    sorted.sort((a,b)=>b.baseH-a.baseH || b.baseW-a.baseW);\n  }else{\n    sorted.sort((a,b)=>(b.baseW*b.baseH)-(a.baseW*a.baseH));\n  }\n\n  const occupancy=new Uint8Array(gw*gh);\n  const placed=[];\n  let rotations=0,usedH=0,usedW=0,area=0;\n\n  for(let i=0;i<sorted.length;i++){\n    if(cancelled) return null;\n    const item=sorted[i];\n    const options=[];\n    const seenKeys=new Set();\n    const qs=allowRotate?[0,1,2,3]:[0];\n    for(const q of qs){\n      const key=item['k'+q];\n      if(!key || seenKeys.has(key)) continue;\n      seenKeys.add(key);\n      options.push({q,key});\n    }\n\n    let best=null;\n    for(const opt of options){\n      const shape=shapeMap.get(opt.key);\n      if(!shape||shape.w>gw||shape.h>gh) continue;\n      const slot=bestSlot(shape,occupancy,gw,gh,placed,gap,quality);\n      if(!slot) continue;\n      const score=slot.score;\n      if(!best || cmpScore(score,best.score)<0) best={...slot,shape,q:opt.q};\n    }\n    if(!best) return null;\n\n    mark(best.shape,best.x,best.y,occupancy,gw,gh,gap);\n    const p={\n      id:item.id,\n      x:best.x,y:best.y,\n      w:best.shape.w,h:best.shape.h,\n      q:best.q,\n      rot:best.q*90\n    };\n    placed.push(p);\n    if(best.q!==0) rotations++;\n    usedH=Math.max(usedH,p.y+p.h);\n    usedW=Math.max(usedW,p.x+p.w);\n    area+=best.shape.occupied||0;\n  }\n  const waste=Math.max(0,usedW*usedH-area);\n  return {placed,usedH,usedW,waste,rotations};\n}\nfunction better(a,b){\n  if(!b) return true;\n  if(a.usedH!==b.usedH) return a.usedH<b.usedH;\n  if(a.waste!==b.waste) return a.waste<b.waste;\n  if(a.rotations!==b.rotations) return a.rotations<b.rotations;\n  return a.usedW<b.usedW;\n}\n\nself.onmessage=(e)=>{\n  const msg=e.data||{};\n  if(msg.type==='cancel'){cancelled=true;return}\n  if(msg.type!=='run') return;\n  cancelled=false;\n\n  try{\n    const {items,shapes,gw,gh,gap,allowRotate,quality='balanced'}=msg;\n    const shapeMap=new Map();\n    for(const s of shapes){\n      shapeMap.set(s.key,{...s,data:new Uint8Array(s.data)});\n    }\n\n    // Faster adaptive search budget.\n    const modes=items.length>70\n      ? ['area']\n      : items.length>18\n        ? ['area','maxSide']\n        : ['area','maxSide','width'];\n    let best=null;\n    for(let i=0;i<modes.length;i++){\n      if(cancelled) throw new Error('cancelled');\n      postProgress(Math.round((i/modes.length)*90),`Organizando ${i+1}/${modes.length}`);\n      const r=layout(items,shapeMap,gw,gh,gap,modes[i],allowRotate,quality);\n      if(r && better(r,best)) best=r;\n    }\n    if(cancelled) throw new Error('cancelled');\n    postProgress(100,'Listo');\n    self.postMessage({type:'done',ok:!!best,result:best});\n  }catch(err){\n    self.postMessage({type:'done',ok:false,error:String(err&&err.message||err)});\n  }\n};\n";
 let inlineNestWorkerUrl=null;
 function createNestWorker(){
-  // First try the normal external worker (best for cache/debug).
-  // If it fails to load, fall back to an inline Blob worker so the HTML
-  // remains self-contained and works on GitHub Pages/local servers.
-  try{
-    return new Worker("./nest.worker.js");
-  }catch(e){
-    console.warn("[ShapeNest] external worker create failed, using inline worker",e);
-  }
+  // Always use the worker embedded in this HTML.
+  // This guarantees Auto Organizar uses the same packing version as index.html
+  // and avoids an older cached/external nest.worker.js silently taking over.
   if(!inlineNestWorkerUrl){
-    inlineNestWorkerUrl=URL.createObjectURL(new Blob([INLINE_NEST_WORKER_SOURCE],{type:"text/javascript"}));
+    inlineNestWorkerUrl=URL.createObjectURL(
+      new Blob([INLINE_NEST_WORKER_SOURCE],{type:"text/javascript"})
+    );
   }
   return new Worker(inlineNestWorkerUrl);
 }
+
 function runNestWorker(payload,onProgress){
   return new Promise((resolve,reject)=>{
     let w;
@@ -5577,6 +5892,14 @@ async function autoNest(){
   const gw=Math.max(1,Math.floor(maxW*grid));
   const gh=Math.max(1,Math.floor(maxH*grid));
   const gapCells=Math.max(0,Math.round(gap*grid));
+
+  // IMPORTANT: a compact layout is not a "good" layout if artwork overlaps
+  // or sits outside the printable area. Refresh diagnostics immediately
+  // because manual resize/rotation may have changed the layout moments ago.
+  updateDiagnostics();
+  const currentHasOverlap=state.objects.some(o=>o.overlap);
+  const currentHasOffboard=state.objects.some(o=>o.offboard);
+  const currentLayoutInvalid=currentHasOverlap||currentHasOffboard;
   const currentH=currentNestUsedHeight();
 
   const items=state.objects.map(o=>{
@@ -5609,14 +5932,20 @@ async function autoNest(){
       shapeDefs.set(s0.key,s0);
       item.k0=s0.key;
       item.k1=s0.key;
+      item.k2=s0.key;
+      item.k3=s0.key;
 
-      if(allowRotate && Math.abs(item.baseW-item.baseH)>.001){
-        const s1=await getAdaptiveNestMask(item,1,grid);
-        shapeDefs.set(s1.key,s1);
-        item.k1=s1.key;
+      if(allowRotate){
+        // Irregular transparent artwork can pack differently at 180° even
+        // though its bounding box is identical, so build all 4 silhouettes.
+        for(let q=1;q<4;q++){
+          const sq=await getAdaptiveNestMask(item,q,grid);
+          shapeDefs.set(sq.key,sq);
+          item["k"+q]=sq.key;
+        }
       }
 
-      if(i%12===0) await new Promise(r=>requestAnimationFrame(r));
+      if(i%20===0) await new Promise(r=>requestAnimationFrame(r));
     }
 
     const shapes=[];
@@ -5645,10 +5974,20 @@ async function autoNest(){
 
     const proposedH=result.usedH/grid;
 
-    // Never make an already-good sheet worse.
-    if(currentH>0 && proposedH>=currentH-.05){
+    // Only preserve the current arrangement when it is actually VALID.
+    // If there is overlap/offboard artwork, Auto Organizar MUST repair it,
+    // even if the valid arrangement needs more length than the invalid one.
+    if(!currentLayoutInvalid && currentH>0 && proposedH>=currentH-.05){
       toast(`La distribución actual ya es igual o mejor · ${currentH.toFixed(1)} cm`);
       return;
+    }
+
+    if(currentLayoutInvalid){
+      toast(
+        currentHasOverlap
+          ? "Corrigiendo imágenes superpuestas…"
+          : "Corrigiendo diseños fuera de la mesa…"
+      );
     }
 
     pushHistory();
@@ -5661,30 +6000,35 @@ async function autoNest(){
       o.w=o.baseW;o.h=o.baseH;
       o.visualW=o.baseW;o.visualH=o.baseH;
       o.aspectRatio=o.baseW/o.baseH;
-      o.rot=p.rotated?90:0;
+      const q=Number.isFinite(p.q)?p.q:Math.round((p.rot||0)/90);
+      o.rot=((q*90)%360+360)%360;
 
       const left=margin+p.x/grid;
       const top=margin+p.y/grid;
-      if(p.rotated){
-        const pw=p.w/grid, ph=p.h/grid;
-        const cx=left+pw/2, cy=top+ph/2;
-        o.x=cx-o.w/2;o.y=cy-o.h/2;
-      }else{
-        o.x=left;o.y=top;
-      }
+
+      // For any quarter-turn, position by the packed AABB center so
+      // 90/180/270 all map correctly back to the DOM object model.
+      const pw=p.w/grid, ph=p.h/grid;
+      const cx=left+pw/2, cy=top+ph/2;
+      o.x=cx-o.w/2;
+      o.y=cy-o.h/2;
     }
 
     recalcActiveSheetHeight();
     updateDiagnostics();
 
-    if(state.objects.some(o=>o.overlap)){
-      undo();
-      toast("Auto Organizar cancelado porque el resultado tenía imágenes superpuestas.");
-      return;
-    }
+    const remainingOverlap=state.objects.some(o=>o.overlap);
+    const remainingOffboard=state.objects.some(o=>o.offboard);
 
     renderAll();
     setTimeout(fitViewport,20);
+
+    // A remaining diagnostic must never be reported as "optimal".
+    if(remainingOverlap){
+      toast("Auto Organizar terminó, pero aún detectó una superposición. Intenta nuevamente.");
+    }else if(remainingOffboard){
+      toast("Auto Organizar terminó, pero aún hay un diseño fuera de la mesa.");
+    }
     const saved=Math.max(0,currentH-proposedH);
     toast(`Auto Organizar listo · ${proposedH.toFixed(1)} cm${saved>.05?` · ahorrados ${saved.toFixed(1)} cm`:""}`);
   }catch(e){
@@ -6382,7 +6726,6 @@ async function save(){
   a.href=url;a.download="bixstudio-project.json";a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Proyecto guardado");
 }
-$("#saveBtn").onclick=save;
 
 function hardThresholdCanvasAlpha(canvas,threshold){
   const ctx=canvas.getContext("2d",{willReadFrequently:true});
@@ -7107,12 +7450,12 @@ async function pasteClipboard(count=1){
 
   const pasted=[];
   let failed=0;
-  toast(times>1?`Acomodando ${times} copia(s) por forma…`:'Buscando hueco por forma…');
+  toast(times>1?`Buscando huecos para ${times} copia(s)…`:'Buscando el mejor hueco disponible…');
 
   for(let t=0;t<times;t++){
     for(const src of state.clipboard){
       const n=cloneForPaste(src);
-      const placed=await placeObjectWithShapeAutoGrowth(n);
+      const placed=await placeDuplicateHoleFirst(n);
       if(!placed){failed++;continue;}
       state.objects.push(n);
       pasted.push(n);
@@ -7344,12 +7687,20 @@ document.addEventListener("visibilitychange",()=>{
   }
 });
 
+migrateLegacyDefaultMargin();
 syncSheetInputs();
 renderAll();
 showRightPanel("properties");
 (async()=>{
   await loadPersistedAssets();
   await offerSessionRestore();
+
+  // Session restore can bring back the old 0.3 cm default.
+  // Run the one-time migration AFTER restore, then refresh the UI.
+  migrateLegacyDefaultMargin();
+  syncSheetInputs();
+  renderAll();
+
   sessionSaveReady=true;
   scheduleSessionSave();
   requestAnimationFrame(()=>{
