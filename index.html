@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v4.1-inline-worker-fallback · SHOPIFY_STORAGE_V1 · PNG_PHYS_300DPI_VERIFIED · ORDER_DOWNLOAD_LINK_V1 -->
+  <!-- SHAPE_NEST_VERSION: v4.3.1 · INVERT_HORIZONTAL_ONLY · AUTONEST_OVERLAY · PREFIX_AI_NAMES · DPI_SANITY · AUTO_INSERT · SIZE_LAYERS · PNG_300DPI_ADOBE -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -50,7 +50,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .stage-wrap{display:flex;flex-direction:column;min-width:0;background:#eef0f3}.stage-toolbar{height:42px;border-bottom:1px solid #d9dde3;background:#f8f9fa;display:flex;align-items:center;justify-content:space-between;padding:0 10px}.stage-toolbar .left{display:flex;align-items:center;gap:6px;font-size:11px}.status-inline{display:flex;align-items:center;gap:5px;color:#69717c;font-size:9px}.dot{width:7px;height:7px;border-radius:50%}.dot.good{background:#16a34a}.dot.warn{background:#d97706}.dot.bad{background:#dc2626}
 .stage-scroller{flex:1;overflow:hidden;position:relative;background:#eef0f3;cursor:default;touch-action:none}.stage-scroller.pan-ready{cursor:grab}.stage-scroller.panning{cursor:grabbing}.artboard-shell{position:absolute;left:0;top:0;transform-origin:0 0;width:max-content;height:max-content;will-change:transform}.artboard{position:relative;background:#fff;box-shadow:0 3px 16px #11182724;width:1240px;height:600px;overflow:visible}.safe-area{position:absolute;pointer-events:none;border:1px dashed #a7afb9;inset:3px;z-index:10}.objects-layer{position:absolute;inset:0}
 .ruler{position:absolute;color:#7b8490;font-size:8px;pointer-events:none}.ruler-x{left:0;right:0;height:20px;top:-24px;border-bottom:1px solid #b9c0c8}.ruler-y{top:0;bottom:0;width:25px;left:-29px;border-right:1px solid #b9c0c8}
-.ruler-mark-x,.ruler-mark-y{position:absolute;background:#9ca3af}.ruler-mark-x{width:1px;height:5px;bottom:0}.ruler-mark-y{height:1px;width:5px;right:0}.ruler-label-x{position:absolute;bottom:6px;transform:translateX(-50%)}.ruler-label-y{position:absolute;right:7px;transform:translateY(-50%)}
+.ruler-mark-x,.ruler-mark-y{position:absolute;background:#9ca3af}.ruler-mark-x{width:1px;height:6px;bottom:0}.ruler-mark-y{height:1px;width:6px;right:0}.ruler-label-x,.ruler-label-y{font-size:11px;font-weight:800;color:#4b5563;line-height:1;text-shadow:0 1px 0 rgba(255,255,255,.9)}.ruler-label-x{position:absolute;bottom:7px;transform:translateX(-50%)}.ruler-label-y{position:absolute;right:8px;transform:translateY(-50%)}
 .design-object{
   position:absolute;
   transform-origin:center center;
@@ -761,7 +761,76 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   background:#fff;
   transition:width .16s ease;
 }
+
 .design-object.ai-processing{outline-color:#2563eb!important;box-shadow:0 0 0 2px #2563eb,0 0 0 5px rgba(37,99,235,.18)!important}
+
+/* Auto Organizar: feedback visible over the complete active artboard */
+.autonest-processing-overlay{
+  position:absolute;
+  inset:0;
+  z-index:120;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  background:rgba(15,23,42,.42);
+  backdrop-filter:blur(1.5px);
+  -webkit-backdrop-filter:blur(1.5px);
+  color:#fff;
+  pointer-events:all;
+}
+.autonest-processing-overlay.show{display:flex}
+.autonest-processing-overlay::before{
+  content:"";
+  position:absolute;
+  inset:-40%;
+  background:linear-gradient(
+    105deg,
+    transparent 34%,
+    rgba(255,255,255,.10) 44%,
+    rgba(255,255,255,.48) 50%,
+    rgba(255,255,255,.10) 56%,
+    transparent 66%
+  );
+  transform:translateX(-70%);
+  animation:bixAutoNestSweep 1.5s linear infinite;
+}
+.autonest-processing-card{
+  position:relative;
+  z-index:2;
+  min-width:190px;
+  padding:18px 22px;
+  border:1px solid rgba(255,255,255,.20);
+  border-radius:12px;
+  background:rgba(15,23,42,.82);
+  box-shadow:0 14px 36px rgba(0,0,0,.24);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:9px;
+  text-align:center;
+}
+.autonest-processing-spinner{
+  width:30px;
+  height:30px;
+  border:3px solid rgba(255,255,255,.25);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:bixAiSpin .75s linear infinite;
+}
+.autonest-processing-title{
+  font-size:12px;
+  font-weight:900;
+}
+.autonest-processing-sub{
+  font-size:9px;
+  color:#cbd5e1;
+}
+@keyframes bixAutoNestSweep{
+  from{transform:translateX(-70%)}
+  to{transform:translateX(70%)}
+}
+
 
 .inspect-modal-backdrop{z-index:160;padding:12px;background:#0b1220e8}
 .inspect-modal{
@@ -1184,6 +1253,13 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div id="artboard" class="artboard">
             <div id="safeArea" class="safe-area"></div>
             <div id="objectsLayer" class="objects-layer"></div>
+            <div id="autoNestProcessingOverlay" class="autonest-processing-overlay" aria-live="polite">
+              <div class="autonest-processing-card">
+                <div class="autonest-processing-spinner"></div>
+                <div class="autonest-processing-title">Organizando diseños…</div>
+                <div class="autonest-processing-sub">Buscando la mejor distribución</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2092,87 +2168,206 @@ function readTiffDpi(view,base){
     const little=readAscii(view,base,2)==="II";
     const u16=o=>view.getUint16(base+o,little);
     const u32=o=>view.getUint32(base+o,little);
+
     if(u16(2)!==42) return null;
-    const ifd=u32(4), count=u16(ifd);
-    let x=null,y=null,unit=2;
+
+    const ifd=u32(4);
+    if(base+ifd+2>view.byteLength) return null;
+
+    const count=u16(ifd);
+    let x=null,y=null,unit=1;
+
     const rational=off=>{
-      const num=u32(off),den=u32(off+4); return den?num/den:null;
+      if(base+off+8>view.byteLength) return null;
+      const num=u32(off),den=u32(off+4);
+      return den?num/den:null;
     };
+
     for(let i=0;i<count;i++){
-      const e=ifd+2+i*12, tag=u16(e), type=u16(e+2), cnt=u32(e+4), val=u32(e+8);
+      const e=ifd+2+i*12;
+      if(base+e+12>view.byteLength) break;
+
+      const tag=u16(e), type=u16(e+2), cnt=u32(e+4), val=u32(e+8);
+
       if((tag===0x011A||tag===0x011B) && type===5 && cnt>=1){
         const r=rational(val);
-        if(tag===0x011A)x=r; else y=r;
+        if(tag===0x011A)x=r;
+        else y=r;
       }else if(tag===0x0128 && type===3){
-        unit=little?view.getUint16(base+e+8,true):view.getUint16(base+e+8,false);
+        unit=view.getUint16(base+e+8,little);
       }
     }
+
     if(!x&&!y) return null;
-    x=x||y; y=y||x;
-    if(unit===3){x*=2.54;y*=2.54}
+    x=x||y;
+    y=y||x;
+
+    // EXIF ResolutionUnit: 2 = inch, 3 = centimetre.
+    // 1 = no absolute unit, so it must NOT be treated as DPI.
+    if(unit===3){
+      x*=2.54;
+      y*=2.54;
+    }else if(unit!==2){
+      return null;
+    }
+
     return {x,y,source:"EXIF"};
-  }catch{return null}
+  }catch{
+    return null;
+  }
 }
+
+function saneDpiCandidate(candidate){
+  if(!candidate) return null;
+
+  const x=Number(candidate.x);
+  const y=Number(candidate.y||candidate.x);
+
+  if(!Number.isFinite(x)||!Number.isFinite(y)||x<=0||y<=0) return null;
+
+  // Internet images sometimes contain nonsense such as 1 DPI, 0.1 DPI
+  // or gigantic density numbers. Photoshop commonly ignores these.
+  // BixStudio now does the same.
+  const MIN_REAL_DPI=24;
+  const MAX_REAL_DPI=2400;
+
+  if(x<MIN_REAL_DPI || y<MIN_REAL_DPI || x>MAX_REAL_DPI || y>MAX_REAL_DPI){
+    return null;
+  }
+
+  // X/Y density should not wildly disagree for ordinary artwork.
+  const ratio=x/y;
+  if(ratio<0.25 || ratio>4) return null;
+
+  return {...candidate,x,y};
+}
+
 async function readEmbeddedDpi(file){
   try{
     const buf=await file.arrayBuffer();
     const view=new DataView(buf);
 
-    // PNG pHYs: pixels per meter.
-    if(buf.byteLength>24 && view.getUint32(0)===0x89504e47){
+    // ----------------------------------------------------------
+    // PNG: prefer EXIF (what Photoshop tends to honour) over pHYs.
+    // ----------------------------------------------------------
+    if(buf.byteLength>24 && view.getUint32(0,false)===0x89504e47){
       let p=8;
+      let phys=null;
+      let exif=null;
+
       while(p+12<=buf.byteLength){
         const len=view.getUint32(p,false);
         const type=readAscii(view,p+4,4);
+        const data=p+8;
+        const end=p+12+len;
+
+        if(end>buf.byteLength) break;
+
         if(type==="pHYs" && len>=9){
-          const xppm=view.getUint32(p+8,false), yppm=view.getUint32(p+12,false), unit=view.getUint8(p+16);
-          if(unit===1 && xppm>0 && yppm>0) return {x:xppm*.0254,y:yppm*.0254,source:"PNG pHYs"};
+          const xppm=view.getUint32(data,false);
+          const yppm=view.getUint32(data+4,false);
+          const unit=view.getUint8(data+8);
+
+          if(unit===1 && xppm>0 && yppm>0){
+            phys=saneDpiCandidate({
+              x:xppm*.0254,
+              y:yppm*.0254,
+              source:"PNG pHYs"
+            });
+          }
+        }else if(type==="eXIf" && len>=8){
+          exif=saneDpiCandidate(readTiffDpi(view,data));
         }
-        p+=12+len;
+
+        p=end;
       }
+
+      if(exif) return exif;
+      if(phys) return phys;
     }
 
-    // JPEG JFIF / EXIF.
+    // ----------------------------------------------------------
+    // JPEG: prefer EXIF; JFIF units=0 is aspect ratio ONLY.
+    // The old code interpreted it as DPI, producing bogus values.
+    // ----------------------------------------------------------
     if(buf.byteLength>4 && view.getUint16(0,false)===0xFFD8){
       let p=2;
+      let jfif=null;
+      let exif=null;
+
       while(p+4<buf.byteLength){
-        if(view.getUint8(p)!==0xFF){p++;continue}
-        const marker=view.getUint8(p+1); p+=2;
+        if(view.getUint8(p)!==0xFF){
+          p++;
+          continue;
+        }
+
+        const marker=view.getUint8(p+1);
+        p+=2;
+
         if(marker===0xD9||marker===0xDA) break;
+        if(p+2>buf.byteLength) break;
+
         const len=view.getUint16(p,false);
         if(len<2||p+len>buf.byteLength) break;
+
         const data=p+2;
+
         if(marker===0xE0 && len>=16 && readAscii(view,data,5)==="JFIF\0"){
           const units=view.getUint8(data+7);
-          let x=view.getUint16(data+8,false),y=view.getUint16(data+10,false);
-          if(units===1 && x&&y) return {x,y,source:"JPEG JFIF"};
-          if(units===2 && x&&y) return {x:x*2.54,y:y*2.54,source:"JPEG JFIF"};
-          // units=0 = “sin unidad” en el spec, pero muchos archivos (y Photoshop) usan 72 aquí como PPI.
-          if(units===0 && x>0 && y>0) return {x,y,source:"JPEG JFIF"};
+          let x=view.getUint16(data+8,false);
+          let y=view.getUint16(data+10,false);
+
+          if(units===1 && x&&y){
+            jfif=saneDpiCandidate({x,y,source:"JPEG JFIF"});
+          }else if(units===2 && x&&y){
+            jfif=saneDpiCandidate({x:x*2.54,y:y*2.54,source:"JPEG JFIF"});
+          }
+          // units===0 intentionally ignored: it is NOT DPI.
         }
+
         if(marker===0xE1 && len>=10 && readAscii(view,data,6)==="Exif\0\0"){
-          const r=readTiffDpi(view,data+6);
-          if(r) return r;
+          const r=saneDpiCandidate(readTiffDpi(view,data+6));
+          if(r) exif=r;
         }
+
         p+=len;
       }
+
+      if(exif) return exif;
+      if(jfif) return jfif;
     }
 
-    // WEBP EXIF chunk, when present.
+    // ----------------------------------------------------------
+    // WEBP EXIF
+    // ----------------------------------------------------------
     if(buf.byteLength>16 && readAscii(view,0,4)==="RIFF" && readAscii(view,8,4)==="WEBP"){
       let p=12;
+
       while(p+8<=buf.byteLength){
-        const type=readAscii(view,p,4), len=view.getUint32(p+4,true), data=p+8;
+        const type=readAscii(view,p,4);
+        const len=view.getUint32(p+4,true);
+        const data=p+8;
+
+        if(data+len>buf.byteLength) break;
+
         if(type==="EXIF"){
           let base=data;
-          if(readAscii(view,data,6)==="Exif\0\0") base=data+6;
-          const r=readTiffDpi(view,base);
+          if(len>=6 && readAscii(view,data,6)==="Exif\0\0") base=data+6;
+
+          const r=saneDpiCandidate(readTiffDpi(view,base));
           if(r) return r;
         }
+
         p=data+len+(len%2);
       }
     }
-  }catch(e){console.warn("No se pudo leer DPI:",e)}
+
+  }catch(e){
+    console.warn("No se pudo leer DPI:",e);
+  }
+
+  // No trustworthy absolute physical resolution.
+  // BixStudio follows Photoshop's screen-image convention: 72 PPI.
   return null;
 }
 
@@ -2238,7 +2433,19 @@ function updateBoard(){
  buildRulers();
  const sizeChip=$("#activeSheetSize"); if(sizeChip) sizeChip.textContent=`${state.sheet.w.toFixed(0)} × ${state.sheet.h.toFixed(1).replace(".0","")} cm`;
 }
+function clampViewport(){
+  const r=viewportPanRange();
+
+  if(Number.isFinite(r.minX) && Number.isFinite(r.maxX)){
+    state.viewport.x=Math.max(r.minX,Math.min(r.maxX,state.viewport.x));
+  }
+  if(Number.isFinite(r.minY) && Number.isFinite(r.maxY)){
+    state.viewport.y=Math.max(r.minY,Math.min(r.maxY,state.viewport.y));
+  }
+}
+
 function applyViewport(){
+ clampViewport();
  // Use layout zoom instead of scaling the whole artboard as a composited texture.
  // Chrome/Edge render raster images more sharply this way.
  shell.style.transform="none";
@@ -2287,8 +2494,9 @@ function syncPanSliders(){
   hx.style.width=xThumb+"px";
   hy.style.height=yThumb+"px";
 
-  const xn=(state.viewport.x-r.minX)/Math.max(.0001,r.maxX-r.minX);
-  // Vertical scrollbar follows browser convention: thumb down => content up.
+  // Horizontal bar is intentionally inverted: thumb right => artboard left.
+  const xn=(r.maxX-state.viewport.x)/Math.max(.0001,r.maxX-r.minX);
+  // Restore the previous vertical behavior: thumb down => content up.
   const yn=(r.maxY-state.viewport.y)/Math.max(.0001,r.maxY-r.minY);
 
   hx.style.left=Math.max(0,Math.min(tx.clientWidth-xThumb,xn*(tx.clientWidth-xThumb)))+"px";
@@ -3249,52 +3457,152 @@ async function addAsset(file){
     const wcm=asset.physicalWcm, hcm=asset.physicalHcm;
     const trimTxt=trimInfo.trimmed?" · márgenes recortados":"";
     if(asset.dpiAssumed){
-      toast(`${file.name}: sin DPI incrustado · se asume ${ASSUMED_SOURCE_DPI} DPI · ${wcm.toFixed(2)} × ${hcm.toFixed(2)} cm${trimTxt}`);
+      toast(`${file.name}: DPI físico no confiable · se asume ${ASSUMED_SOURCE_DPI} DPI · ${wcm.toFixed(2)} × ${hcm.toFixed(2)} cm${trimTxt}`);
     }else{
       toast(`${file.name}: ${Math.round(dpiX)} DPI · ${wcm.toFixed(2)} × ${hcm.toFixed(2)} cm${trimTxt}`);
     }
+    return asset;
   }catch(e){
     console.error(e);
     try{URL.revokeObjectURL(url)}catch{}
     toast(`No se pudo cargar ${file.name}`);
+    return null;
   }
 }
-fileInput.addEventListener("change",()=>[...fileInput.files].forEach(addAsset));
+async function importAndInsertFiles(files){
+  const images=[...files].filter(f=>f.type.startsWith("image/") || /\.svg$/i.test(f.name||""));
+
+  for(const file of images){
+    const asset=await addAsset(file);
+    if(asset){
+      await insertAsset(asset);
+    }
+  }
+
+  // Allow choosing the same file again later.
+  try{fileInput.value=""}catch{}
+}
+
+fileInput.addEventListener("change",async()=>{
+  await importAndInsertFiles(fileInput.files);
+});
+
 $(".upload-zone").addEventListener("dragover",e=>e.preventDefault());
-$(".upload-zone").addEventListener("drop",e=>{e.preventDefault();[...e.dataTransfer.files].filter(f=>f.type.startsWith("image/")).forEach(addAsset)});
-function assetInstanceCount(assetId){
+$(".upload-zone").addEventListener("drop",async e=>{
+  e.preventDefault();
+  await importAndInsertFiles(e.dataTransfer.files);
+});
+function objectSizeKey(o){
+  return `${(+o.w||0).toFixed(2)}×${(+o.h||0).toFixed(2)}`;
+}
+
+function assetSizeGroups(assetId){
+  const groups=new Map();
+
+  for(const o of state.objects){
+    if(o.type!=="image" || o.assetId!==assetId) continue;
+
+    const key=objectSizeKey(o);
+    let g=groups.get(key);
+
+    if(!g){
+      g={
+        key,
+        w:+o.w||0,
+        h:+o.h||0,
+        count:0
+      };
+      groups.set(key,g);
+    }
+
+    g.count++;
+  }
+
+  return [...groups.values()].sort((a,b)=>
+    (b.w*b.h)-(a.w*a.h) || a.key.localeCompare(b.key)
+  );
+}
+
+function assetInstanceCount(assetId,w=null,h=null){
   return state.objects.reduce((count,o)=>{
-    return count + (o.type==="image" && o.assetId===assetId ? 1 : 0);
+    if(o.type!=="image" || o.assetId!==assetId) return count;
+
+    if(Number.isFinite(w) && Number.isFinite(h)){
+      const sameW=Math.abs((+o.w||0)-w)<0.005;
+      const sameH=Math.abs((+o.h||0)-h)<0.005;
+      return count + (sameW && sameH ? 1 : 0);
+    }
+
+    return count+1;
   },0);
 }
 
+function renderAssetCard(grid,a,sizeGroup=null){
+  const c=document.createElement("div");
+  c.className="asset-card";
+
+  applyAssumedDpiIfMissing(a);
+
+  const baseMeta=a.dpiAssumed
+    ? `${Math.round(a.dpiX)} DPI (asumido) · ${a.physicalWcm.toFixed(1)}×${a.physicalHcm.toFixed(1)} cm`
+    : `${Math.round(a.dpiX)} DPI · ${a.physicalWcm.toFixed(1)}×${a.physicalHcm.toFixed(1)} cm`;
+
+  const sizeMeta=sizeGroup
+    ? `Uso: ${sizeGroup.w.toFixed(2)} × ${sizeGroup.h.toFixed(2)} cm`
+    : baseMeta;
+
+  c.innerHTML=`<img src="${a.src}"><div class="name">${escapeHtml(a.name)}<br><span style="color:#7b8490">${sizeMeta}</span></div>`;
+
+  const count=sizeGroup ? sizeGroup.count : 0;
+
+  if(count>0){
+    const badge=document.createElement("span");
+    badge.className="asset-count-badge";
+    badge.textContent=count;
+    badge.title=`${count} imagen(es) de ${sizeGroup.w.toFixed(2)} × ${sizeGroup.h.toFixed(2)} cm`;
+    c.appendChild(badge);
+  }
+
+  c.onclick=()=>insertAsset(
+    a,
+    sizeGroup ? {w:sizeGroup.w,h:sizeGroup.h} : null
+  );
+
+  grid.appendChild(c);
+}
+
 function renderAssets(){
- const q=$("#searchFiles").value.toLowerCase(),grid=$("#assetGrid");grid.innerHTML="";
- const arr=state.assets.filter(a=>a.name.toLowerCase().includes(q));$("#assetCount").textContent=arr.length+" archivos";
+  const q=$("#searchFiles").value.toLowerCase();
+  const grid=$("#assetGrid");
+  grid.innerHTML="";
 
- arr.forEach(a=>{
-   const c=document.createElement("div");
-   c.className="asset-card";
+  const arr=state.assets.filter(a=>a.name.toLowerCase().includes(q));
 
-   applyAssumedDpiIfMissing(a);
-   const meta=a.dpiAssumed
-     ? `${Math.round(a.dpiX)} DPI (asumido) · ${a.physicalWcm.toFixed(1)}×${a.physicalHcm.toFixed(1)} cm`
-     : `${Math.round(a.dpiX)} DPI · ${a.physicalWcm.toFixed(1)}×${a.physicalHcm.toFixed(1)} cm`;
+  let visibleLayers=0;
 
-   c.innerHTML=`<img src="${a.src}"><div class="name">${escapeHtml(a.name)}<br><span style="color:#7b8490">${meta}</span></div>`;
+  arr.forEach(a=>{
+    const groups=assetSizeGroups(a.id);
 
-   const count=assetInstanceCount(a.id);
-   if(count>0){
-     const badge=document.createElement("span");
-     badge.className="asset-count-badge";
-     badge.textContent=count;
-     badge.title=`${count} en la hoja activa`;
-     c.appendChild(badge);
-   }
+    if(groups.length){
+      // One visible "layer" per design + exact physical size.
+      groups.forEach(g=>{
+        renderAssetCard(grid,a,g);
+        visibleLayers++;
+      });
+    }else{
+      // Newly uploaded / unused artwork still appears once.
+      renderAssetCard(grid,a,null);
+      visibleLayers++;
+    }
+  });
 
-   c.onclick=()=>insertAsset(a);
-   grid.appendChild(c);
- });
+  const label=$("#assetCount");
+  if(label){
+    label.textContent=
+      visibleLayers===arr.length
+        ? `${arr.length} archivos`
+        : `${arr.length} diseños · ${visibleLayers} tamaños`;
+  }
 }
 $("#searchFiles").addEventListener("input",renderAssets);
 
@@ -3766,7 +4074,7 @@ async function cloneAssetForTrim(source){
   await ensureAssetAutoTrimmed(clone);
   return clone;
 }
-async function insertAsset(a){
+async function insertAsset(a,sizeOverride=null){
  let asset=a;
  // Trim transparent margins before placing (covers older library assets too).
  if(!asset.autoTrimmed){
@@ -3785,8 +4093,10 @@ async function insertAsset(a){
  // Without metadata, assume 72 DPI (screen/Photoshop default) — not print 300.
  applyAssumedDpiIfMissing(asset);
  const dpiX=asset.dpiX||ASSUMED_SOURCE_DPI,dpiY=asset.dpiY||dpiX;
- const printW=asset.physicalWcm || asset.w/dpiX*2.54;
- const printH=asset.physicalHcm || asset.h/dpiY*2.54;
+ const naturalPrintW=asset.physicalWcm || asset.w/dpiX*2.54;
+ const naturalPrintH=asset.physicalHcm || asset.h/dpiY*2.54;
+ const printW=Number.isFinite(sizeOverride?.w)?sizeOverride.w:naturalPrintW;
+ const printH=Number.isFinite(sizeOverride?.h)?sizeOverride.h:naturalPrintH;
  const o={
    id:uid(),type:"image",name:asset.name,assetId:asset.id,
    naturalW:asset.w,naturalH:asset.h,
@@ -4065,7 +4375,18 @@ function trimTransparentRgba(rgba,width,height,{alphaMin=1,pad=1}={}){
 }
 async function createProcessedAsset(base,blob,w,h,nameSuffix,physicalWcm,physicalHcm,flags={}){
  const dpiX=physicalWcm?w/(physicalWcm/2.54):null,dpiY=physicalHcm?h/(physicalHcm/2.54):dpiX;
- const a={id:"a"+Date.now()+Math.random().toString(36).slice(2),name:base.name.replace(/\.[^.]+$/,"")+nameSuffix+".png",src:URL.createObjectURL(blob),w,h,file:blob,dpiX,dpiY,dpiSource:"BixStudio",physicalWcm,physicalHcm,alphaCleaned:!!flags.alphaBinary,alphaThreshold:flags.alphaBinary?128:null,alphaBinary:!!flags.alphaBinary,autoTrimmed:!!flags.autoTrimmed,updatedAt:Date.now()};
+ const originalBase=base.name.replace(/\.[^.]+$/,"");
+ let processedName=originalBase+nameSuffix+".png";
+
+ // For the two most common AI operations, put the identifier first
+ // so processed artwork is immediately recognizable in lists/downloads.
+ if(nameSuffix==="_IA"){
+   processedName="IA_"+originalBase+".png";
+ }else if(nameSuffix==="_sin_fondo"){
+   processedName="SIN_FONDO_"+originalBase+".png";
+ }
+
+ const a={id:"a"+Date.now()+Math.random().toString(36).slice(2),name:processedName,src:URL.createObjectURL(blob),w,h,file:blob,dpiX,dpiY,dpiSource:"BixStudio",physicalWcm,physicalHcm,alphaCleaned:!!flags.alphaBinary,alphaThreshold:flags.alphaBinary?128:null,alphaBinary:!!flags.alphaBinary,autoTrimmed:!!flags.autoTrimmed,updatedAt:Date.now()};
  state.assets.unshift(a);await persistAsset(a);renderAssets();return a;
 }
 function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
@@ -5219,6 +5540,28 @@ function runNestWorker(payload,onProgress){
   });
 }
 
+function showAutoNestProcessing(){
+  const overlay=$("#autoNestProcessingOverlay");
+  if(overlay) overlay.classList.add("show");
+
+  const btn=$("#autoNestTopBtn");
+  if(btn){
+    btn.dataset.originalText=btn.textContent;
+    btn.textContent="⏳ Organizando…";
+  }
+}
+
+function hideAutoNestProcessing(){
+  const overlay=$("#autoNestProcessingOverlay");
+  if(overlay) overlay.classList.remove("show");
+
+  const btn=$("#autoNestTopBtn");
+  if(btn){
+    btn.textContent=btn.dataset.originalText||"✦ Auto Organizar";
+    delete btn.dataset.originalText;
+  }
+}
+
 async function autoNest(){
   if(autoNestRunning) return toast("Ya se está organizando…");
   if(!state.objects.length) return toast("No hay diseños para organizar.");
@@ -5248,6 +5591,10 @@ async function autoNest(){
   autoNestRunning=true;
   const btn=$("#autoNestTopBtn");
   if(btn) btn.disabled=true;
+
+  showAutoNestProcessing();
+  // Give the browser a chance to paint the overlay before the heavier work starts.
+  await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
 
   try{
     toast(profile.mobile
@@ -5347,6 +5694,7 @@ async function autoNest(){
     else toast(`Auto Organizar: ${msg.slice(0,160) || "error desconocido"}`);
   }finally{
     autoNestRunning=false;
+    hideAutoNestProcessing();
     if(btn) btn.disabled=false;
   }
 }
@@ -5948,7 +6296,7 @@ function bindPreviewScrollbar(axis){
       let px=clientPos-tr.left-(centerOnPointer?th.width/2:dragOffset);
       px=Math.max(0,Math.min(usable,px));
       const n=px/usable;
-      state.viewport.x=r.minX+n*(r.maxX-r.minX);
+      state.viewport.x=r.maxX-n*(r.maxX-r.minX);
     }else{
       const usable=Math.max(1,tr.height-th.height);
       let py=clientPos-tr.top-(centerOnPointer?th.height/2:dragOffset);
@@ -5982,9 +6330,10 @@ function bindPreviewScrollbar(axis){
     const delta=axis==="x"?$("#stageScroller").clientWidth*.28:$("#stageScroller").clientHeight*.28;
     const th=thumb.getBoundingClientRect();
     if(axis==="x"){
+      // Inverted horizontal control: click left moves artboard right; right moves it left.
       state.viewport.x += e.clientX<th.left ? delta : -delta;
     }else{
-      // Browser convention: click above thumb reveals content above; below reveals content below.
+      // Direct control: click above moves the artboard up; below moves it down.
       state.viewport.y += e.clientY<th.top ? -delta : delta;
     }
     const r=viewportPanRange();
@@ -6184,19 +6533,101 @@ function pngWriteU32(bytes,offset,value){
   bytes[offset+3]=value&255;
 }
 
-function makePngPhysChunk(dpi=300){
-  const ppm=Math.round(dpi/0.0254); // 300 DPI = 11811 px/m
-  const chunk=new Uint8Array(21);
+function pngMakeChunk(typeText,data){
+  const type=new TextEncoder().encode(typeText);
+  const chunk=new Uint8Array(12+data.length);
 
-  pngWriteU32(chunk,0,9);
-  chunk.set([0x70,0x48,0x59,0x73],4); // "pHYs"
-  pngWriteU32(chunk,8,ppm);           // X pixels/metre
-  pngWriteU32(chunk,12,ppm);          // Y pixels/metre
-  chunk[16]=1;                        // unit specifier: metre
+  pngWriteU32(chunk,0,data.length);
+  chunk.set(type,4);
+  chunk.set(data,8);
 
-  const crcData=chunk.slice(4,17);
-  pngWriteU32(chunk,17,pngCrc32(crcData));
+  const crcData=new Uint8Array(type.length+data.length);
+  crcData.set(type,0);
+  crcData.set(data,type.length);
+
+  pngWriteU32(chunk,8+data.length,pngCrc32(crcData));
   return chunk;
+}
+
+function makePngPhysChunk(dpi=300){
+  const ppm=Math.round(dpi/0.0254);
+  const data=new Uint8Array(9);
+
+  pngWriteU32(data,0,ppm);
+  pngWriteU32(data,4,ppm);
+  data[8]=1;
+
+  return pngMakeChunk("pHYs",data);
+}
+
+function makePngExifChunk(dpi=300){
+  const data=new Uint8Array(66);
+  const v=new DataView(data.buffer);
+
+  data[0]=0x49;
+  data[1]=0x49;
+  v.setUint16(2,42,true);
+  v.setUint32(4,8,true);
+  v.setUint16(8,3,true);
+
+  let e=10;
+
+  v.setUint16(e,0x011A,true);
+  v.setUint16(e+2,5,true);
+  v.setUint32(e+4,1,true);
+  v.setUint32(e+8,50,true);
+  e+=12;
+
+  v.setUint16(e,0x011B,true);
+  v.setUint16(e+2,5,true);
+  v.setUint32(e+4,1,true);
+  v.setUint32(e+8,58,true);
+  e+=12;
+
+  v.setUint16(e,0x0128,true);
+  v.setUint16(e+2,3,true);
+  v.setUint32(e+4,1,true);
+  v.setUint16(e+8,2,true);
+  v.setUint16(e+10,0,true);
+  e+=12;
+
+  v.setUint32(e,0,true);
+
+  v.setUint32(50,Math.round(dpi),true);
+  v.setUint32(54,1,true);
+  v.setUint32(58,Math.round(dpi),true);
+  v.setUint32(62,1,true);
+
+  return pngMakeChunk("eXIf",data);
+}
+
+function makePngAdobeXmpChunk(dpi=300){
+  const xml=`<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+   xmlns:tiff="http://ns.adobe.com/tiff/1.0/"
+   tiff:XResolution="${dpi}/1"
+   tiff:YResolution="${dpi}/1"
+   tiff:ResolutionUnit="2"/>
+ </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
+
+  const keyword=new TextEncoder().encode("XML:com.adobe.xmp");
+  const xmlBytes=new TextEncoder().encode(xml);
+  const data=new Uint8Array(keyword.length+5+xmlBytes.length);
+
+  let p=0;
+  data.set(keyword,p); p+=keyword.length;
+  data[p++]=0;
+  data[p++]=0;
+  data[p++]=0;
+  data[p++]=0;
+  data[p++]=0;
+  data.set(xmlBytes,p);
+
+  return pngMakeChunk("iTXt",data);
 }
 
 async function forcePngDpi(blob,dpi=300){
@@ -6207,59 +6638,77 @@ async function forcePngDpi(blob,dpi=300){
     throw new Error("El PNG generado no es válido.");
   }
 
-  const output=[png.slice(0,8)];
   const phys=makePngPhysChunk(dpi);
+  const exif=makePngExifChunk(dpi);
+  const xmp=makePngAdobeXmpChunk(dpi);
+
+  const output=[png.slice(0,8)];
   let pos=8;
   let inserted=false;
 
   while(pos+12<=png.length){
     const len=pngU32(png,pos);
     const chunkEnd=pos+12+len;
-    if(chunkEnd>png.length) throw new Error("PNG incompleto al fijar 300 DPI.");
+
+    if(chunkEnd>png.length){
+      throw new Error("PNG incompleto al fijar la resolución.");
+    }
 
     const type=String.fromCharCode(
       png[pos+4],png[pos+5],png[pos+6],png[pos+7]
     );
 
-    // Remove any density chunk generated by the browser.
-    if(type!=="pHYs"){
+    if(type!=="pHYs" && type!=="eXIf"){
       output.push(png.slice(pos,chunkEnd));
     }
 
-    // PNG requires pHYs before IDAT; directly after IHDR is ideal.
     if(type==="IHDR" && !inserted){
       output.push(phys);
+      output.push(exif);
+      output.push(xmp);
       inserted=true;
     }
 
     pos=chunkEnd;
   }
 
-  if(!inserted) throw new Error("No se pudo insertar la resolución en el PNG.");
+  if(!inserted){
+    throw new Error("No se pudo insertar metadata de resolución.");
+  }
 
   const result=new Blob(output,{type:"image/png"});
 
-  // Verify the actual bytes that will be uploaded/downloaded.
   const check=new Uint8Array(await result.arrayBuffer());
-  let p=8, found=false;
   const expected=Math.round(dpi/0.0254);
+
+  let p=8;
+  let physOk=false;
+  let exifOk=false;
 
   while(p+12<=check.length){
     const len=pngU32(check,p);
     const type=String.fromCharCode(
       check[p+4],check[p+5],check[p+6],check[p+7]
     );
-    if(type==="pHYs"){
+
+    if(type==="pHYs" && len===9){
       const x=pngU32(check,p+8);
       const y=pngU32(check,p+12);
       const unit=check[p+16];
-      if(x===expected && y===expected && unit===1) found=true;
-      break;
+      physOk=(x===expected && y===expected && unit===1);
     }
+
+    if(type==="eXIf"){
+      exifOk=true;
+    }
+
     p+=12+len;
   }
 
-  if(!found) throw new Error("Falló la verificación interna de metadata 300 DPI.");
+  if(!physOk || !exifOk){
+    throw new Error("Falló la verificación de metadata 300 DPI.");
+  }
+
   return result;
 }
 
