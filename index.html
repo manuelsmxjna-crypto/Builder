@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v4.3.11 · FAST_AUTONEST · ADAPTIVE_SEARCH_BUDGET · AUTONEST_4_ROTATIONS · INVALID_LAYOUT_MUST_REPACK · PNG_300DPI_ADOBE -->
+  <!-- SHAPE_NEST_VERSION: v4.3.12 · FAST_AUTONEST · ADAPTIVE_SEARCH_BUDGET · AUTONEST_4_ROTATIONS · INVALID_LAYOUT_MUST_REPACK · PNG_300DPI_ADOBE -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -7191,9 +7191,23 @@ function shopifyLineProperties(uploadInfo=null){
   return props;
 }
 
-async function uploadActiveGangSheet(blob){
-  const form=new FormData();
+const GANGSHEET_UPLOAD_TIMEOUT_MS = 120000;
+const GANGSHEET_UPLOAD_MAX_ATTEMPTS = 3;
 
+function waitMs(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+
+function gangSheetExportEstimate(){
+  const dpi=300;
+  const pxPerCm=dpi/2.54;
+  const w=Math.max(1,Math.round(state.sheet.w*pxPerCm));
+  const h=Math.max(1,Math.round(state.sheet.h*pxPerCm));
+  const pixels=w*h;
+  return {w,h,pixels,rgbaMB:pixels*4/1024/1024};
+}
+
+async function uploadActiveGangSheet(blob,{onAttempt}={}){
   const safeSheetName=(activeSheetRecord()?.name||"Gang_Sheet")
     .replace(/[^\w\-]+/g,"_")
     .replace(/^_+|_+$/g,"");
@@ -7201,28 +7215,62 @@ async function uploadActiveGangSheet(blob){
   const filename=
     `${safeSheetName}_${state.sheet.w.toFixed(0)}x${state.sheet.h.toFixed(1)}cm_300dpi.png`;
 
-  form.append("file",blob,filename);
+  let lastError=null;
 
-  const response=await fetch(GANGSHEET_UPLOAD_URL,{
-    method:"POST",
-    body:form
-  });
+  for(let attempt=1;attempt<=GANGSHEET_UPLOAD_MAX_ATTEMPTS;attempt++){
+    if(onAttempt) onAttempt(attempt,GANGSHEET_UPLOAD_MAX_ATTEMPTS);
 
-  let data={};
-  try{ data=await response.json(); }catch(_){}
+    const form=new FormData();
+    form.append("file",blob,filename);
 
-  if(!response.ok || !data?.ok){
-    throw new Error(
-      data?.error ||
-      `No se pudo guardar el archivo (HTTP ${response.status})`
-    );
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),GANGSHEET_UPLOAD_TIMEOUT_MS);
+
+    try{
+      const response=await fetch(GANGSHEET_UPLOAD_URL,{
+        method:"POST",
+        body:form,
+        signal:controller.signal,
+        cache:"no-store"
+      });
+
+      let data={};
+      try{ data=await response.json(); }catch(_){}
+
+      if(!response.ok || !data?.ok){
+        const message=data?.error || `No se pudo guardar el archivo (HTTP ${response.status})`;
+        const err=new Error(message);
+        // 4xx normally means retrying the same request will not help.
+        if(response.status>=400 && response.status<500 && response.status!==408 && response.status!==429){
+          err.noRetry=true;
+        }
+        throw err;
+      }
+
+      if(!data.id){
+        const err=new Error("Supabase guardó el archivo pero no devolvió su ID.");
+        err.noRetry=true;
+        throw err;
+      }
+
+      return data;
+    }catch(e){
+      if(e?.name==="AbortError"){
+        lastError=new Error("La subida tardó más de 2 minutos y se canceló.");
+      }else if(e instanceof TypeError){
+        lastError=new Error("No se pudo conectar con el servidor de archivos. Revisa tu conexión a internet.");
+      }else{
+        lastError=e instanceof Error?e:new Error(String(e));
+      }
+
+      if(e?.noRetry || attempt>=GANGSHEET_UPLOAD_MAX_ATTEMPTS) break;
+      await waitMs(900*attempt);
+    }finally{
+      clearTimeout(timer);
+    }
   }
 
-  if(!data.id){
-    throw new Error("Supabase guardó el archivo pero no devolvió su ID.");
-  }
-
-  return data;
+  throw lastError||new Error("No se pudo subir el archivo.");
 }
 
 async function addActiveSheetToShopifyCart(){
@@ -7248,13 +7296,32 @@ async function addActiveSheetToShopifyCart(){
   }
 
   try{
-    toast("Generando PNG y fijando metadata a 300 DPI…");
+    const estimate=gangSheetExportEstimate();
+    if(btn) btn.textContent="Generando PNG 300 DPI…";
+    toast(`Generando archivo · ${estimate.w.toLocaleString()} × ${estimate.h.toLocaleString()} px…`);
+
+    // Give the browser one paint before the expensive 300-DPI render starts,
+    // so customers see the real stage instead of a frozen-looking button.
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+
+    const startedAt=performance.now();
     const blob=await generateActiveSheetPngBlob();
+    const generationSeconds=Math.max(.1,(performance.now()-startedAt)/1000);
+    const sizeMB=blob.size/1024/1024;
 
-    if(btn) btn.textContent="Subiendo archivo…";
-    toast(`Subiendo archivo · ${(blob.size/1024/1024).toFixed(1)} MB…`);
+    if(btn) btn.textContent="Archivo listo · subiendo…";
+    toast(`PNG listo · ${sizeMB.toFixed(1)} MB · generado en ${generationSeconds.toFixed(1)} s`);
 
-    const uploadInfo=await uploadActiveGangSheet(blob);
+    const uploadInfo=await uploadActiveGangSheet(blob,{
+      onAttempt:(attempt,maxAttempts)=>{
+        if(btn) btn.textContent=attempt===1
+          ? `Subiendo ${sizeMB.toFixed(1)} MB…`
+          : `Reintentando subida ${attempt}/${maxAttempts}…`;
+        toast(attempt===1
+          ? `Subiendo archivo · ${sizeMB.toFixed(1)} MB…`
+          : `La subida no terminó. Reintentando ${attempt}/${maxAttempts}…`);
+      }
+    });
 
     if(btn) btn.textContent="Añadiendo al carrito…";
     toast(`Archivo guardado · ${String(uploadInfo.id).slice(0,8)}…`);
