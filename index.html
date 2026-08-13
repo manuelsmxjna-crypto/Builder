@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v4.3.12 · FAST_AUTONEST · ADAPTIVE_SEARCH_BUDGET · AUTONEST_4_ROTATIONS · INVALID_LAYOUT_MUST_REPACK · PNG_300DPI_ADOBE -->
+  <!-- SHAPE_NEST_VERSION: v4.4.0 · CLOUD_RUN_SERVER_RENDER · MULTI_SHEET_ORDER_UPLOAD · ROBUST_SOURCE_UPLOAD · FAST_AUTONEST · AUTONEST_4_ROTATIONS · PNG_300DPI_ADOBE -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -7142,24 +7142,42 @@ async function exportPng(){
 const SHOPIFY_DTF_VARIANT_ID = 52961074610357;
 const SHOPIFY_PRICE_PER_CM = 2.00;
 const GANGSHEET_UPLOAD_URL = "https://qrpxaqvybfmpkkkgqaoe.supabase.co/functions/v1/rapid-function";
+const BIX_RENDERER_URL = "https://bixstudio-renderer-318403647962.us-central1.run.app";
 
 let shopifyCartBusy=false;
 
-function shopifyBillableCm(){
-  return Math.max(1,Math.ceil((+state.sheet.h||0)-1e-9));
+function shopifyBillableCmForSheet(record){
+  if(!record?.objects?.length) return 0;
+  return Math.max(1,Math.ceil((+record.sheet?.h||0)-1e-9));
 }
+
+function shopifyOrderSheets(){
+  return state.sheets
+    .map((record,index)=>({record,index}))
+    .filter(({record})=>Array.isArray(record.objects) && record.objects.length>0);
+}
+
+function shopifyBillableCm(){
+  return shopifyOrderSheets().reduce(
+    (sum,{record})=>sum+shopifyBillableCmForSheet(record),
+    0
+  );
+}
+
 function shopifyMoney(v){
   return new Intl.NumberFormat("es-MX",{
     style:"currency",currency:"MXN",minimumFractionDigits:0,maximumFractionDigits:2
   }).format(v);
 }
+
 function updateShopifyCartUi(){
   const btn=$("#exportBtn"), chip=$("#shopifyPriceChip");
   if(!btn) return;
 
   if(shopifyCartBusy) return;
 
-  if(!state.objects.length){
+  const orderSheets=shopifyOrderSheets();
+  if(!orderSheets.length){
     if(chip) chip.textContent="—";
     btn.textContent="🛒 Agregar al carrito";
     btn.disabled=false;
@@ -7169,25 +7187,44 @@ function updateShopifyCartUi(){
   const cm=shopifyBillableCm();
   const total=cm*SHOPIFY_PRICE_PER_CM;
   if(chip) chip.textContent=shopifyMoney(total);
-  btn.textContent=`🛒 Agregar · ${shopifyMoney(total)}`;
+
+  const sheetLabel=orderSheets.length>1 ? ` · ${orderSheets.length} hojas` : "";
+  btn.textContent=`🛒 Agregar · ${shopifyMoney(total)}${sheetLabel}`;
   btn.disabled=false;
 }
 
-function shopifyLineProperties(uploadInfo=null){
-  const cm=shopifyBillableCm();
-  const sheet=activeSheetRecord();
+function shopifyLineProperties(uploadInfos=[]){
+  const orderSheets=shopifyOrderSheets();
+  const totalCm=orderSheets.reduce(
+    (sum,{record})=>sum+shopifyBillableCmForSheet(record),
+    0
+  );
 
   const props={
-    "Medida":`${state.sheet.w.toFixed(0)} × ${state.sheet.h.toFixed(1).replace(".0","")} cm`,
-    "Largo facturado":`${cm} cm`,
-    "Hoja":sheet?.name||"Gang Sheet",
+    "Hojas":String(orderSheets.length),
+    "Largo facturado":`${totalCm} cm`,
     "_BixStudio":"Gang Sheet Builder"
   };
 
-  if(uploadInfo?.id) props["_Gang Sheet ID"]=String(uploadInfo.id);
-  if(uploadInfo?.path) props["_Gang Sheet Path"]=String(uploadInfo.path);
-  if(uploadInfo?.downloadUrl) props["_Archivo de impresión"]=String(uploadInfo.downloadUrl);
+  const medidas=[];
 
+  orderSheets.forEach(({record},i)=>{
+    const n=i+1;
+    const info=uploadInfos[i]||null;
+    const cm=shopifyBillableCmForSheet(record);
+    const medida=`${record.sheet.w.toFixed(0)} × ${record.sheet.h.toFixed(1).replace(".0","")} cm`;
+
+    medidas.push(`${record.name}: ${medida} (${cm} cm)`);
+
+    // Keep every print file attached to the same Shopify line item.
+    // Leading "_" keeps technical properties hidden in themes that follow
+    // Shopify's private-line-property convention.
+    if(info?.id) props[`_Gang Sheet ${n} ID`]=String(info.id);
+    if(info?.path) props[`_Gang Sheet ${n} Path`]=String(info.path);
+    if(info?.downloadUrl) props[`_Archivo Hoja ${n}`]=String(info.downloadUrl);
+  });
+
+  props["Medidas"]=medidas.join(" | ");
   return props;
 }
 
@@ -7198,22 +7235,26 @@ function waitMs(ms){
   return new Promise(resolve=>setTimeout(resolve,ms));
 }
 
-function gangSheetExportEstimate(){
+function gangSheetExportEstimateForRecord(record){
   const dpi=300;
   const pxPerCm=dpi/2.54;
-  const w=Math.max(1,Math.round(state.sheet.w*pxPerCm));
-  const h=Math.max(1,Math.round(state.sheet.h*pxPerCm));
+  const w=Math.max(1,Math.round(record.sheet.w*pxPerCm));
+  const h=Math.max(1,Math.round(record.sheet.h*pxPerCm));
   const pixels=w*h;
   return {w,h,pixels,rgbaMB:pixels*4/1024/1024};
 }
 
-async function uploadActiveGangSheet(blob,{onAttempt}={}){
-  const safeSheetName=(activeSheetRecord()?.name||"Gang_Sheet")
+function gangSheetExportEstimate(){
+  return gangSheetExportEstimateForRecord(activeSheetRecord());
+}
+
+async function uploadGangSheet(blob,record,{onAttempt}={}){
+  const safeSheetName=(record?.name||"Gang_Sheet")
     .replace(/[^\w\-]+/g,"_")
     .replace(/^_+|_+$/g,"");
 
   const filename=
-    `${safeSheetName}_${state.sheet.w.toFixed(0)}x${state.sheet.h.toFixed(1)}cm_300dpi.png`;
+    `${safeSheetName}_${record.sheet.w.toFixed(0)}x${record.sheet.h.toFixed(1)}cm_300dpi.png`;
 
   let lastError=null;
 
@@ -7240,7 +7281,7 @@ async function uploadActiveGangSheet(blob,{onAttempt}={}){
       if(!response.ok || !data?.ok){
         const message=data?.error || `No se pudo guardar el archivo (HTTP ${response.status})`;
         const err=new Error(message);
-        // 4xx normally means retrying the same request will not help.
+
         if(response.status>=400 && response.status<500 && response.status!==408 && response.status!==429){
           err.noRetry=true;
         }
@@ -7273,65 +7314,227 @@ async function uploadActiveGangSheet(blob,{onAttempt}={}){
   throw lastError||new Error("No se pudo subir el archivo.");
 }
 
+// Compatibility alias for any older internal call.
+async function uploadActiveGangSheet(blob,options={}){
+  return uploadGangSheet(blob,activeSheetRecord(),options);
+}
+
+
+function safeUploadName(name,fallback="asset.png"){
+  const raw=String(name||fallback).trim()||fallback;
+  const dot=raw.lastIndexOf(".");
+  const base=(dot>0?raw.slice(0,dot):raw)
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-zA-Z0-9_-]+/g,"_")
+    .replace(/^_+|_+$/g,"") || "asset";
+  const ext=(dot>0?raw.slice(dot+1):"png").replace(/[^a-zA-Z0-9]+/g,"")||"png";
+  return `${base}.${ext}`;
+}
+
+async function uploadRenderSourceBlob(blob,name,{onAttempt}={}){
+  let lastError=null;
+  const filename=`SRC_${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safeUploadName(name)}`;
+
+  for(let attempt=1;attempt<=GANGSHEET_UPLOAD_MAX_ATTEMPTS;attempt++){
+    if(onAttempt) onAttempt(attempt,GANGSHEET_UPLOAD_MAX_ATTEMPTS);
+    const form=new FormData();
+    form.append("file",blob,filename);
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),GANGSHEET_UPLOAD_TIMEOUT_MS);
+
+    try{
+      const response=await fetch(GANGSHEET_UPLOAD_URL,{method:"POST",body:form,signal:controller.signal,cache:"no-store"});
+      let data={};
+      try{ data=await response.json(); }catch(_){ }
+      if(!response.ok || !data?.ok){
+        const err=new Error(data?.error||`No se pudo subir el recurso (HTTP ${response.status})`);
+        if(response.status>=400&&response.status<500&&response.status!==408&&response.status!==429) err.noRetry=true;
+        throw err;
+      }
+      if(!data.downloadUrl) throw Object.assign(new Error("El servidor guardó el recurso pero no devolvió una URL de descarga."),{noRetry:true});
+      return data;
+    }catch(e){
+      if(e?.name==="AbortError") lastError=new Error("La subida de un recurso tardó demasiado y se canceló.");
+      else if(e instanceof TypeError) lastError=new Error("No se pudo conectar al servidor de archivos.");
+      else lastError=e instanceof Error?e:new Error(String(e));
+      if(e?.noRetry || attempt>=GANGSHEET_UPLOAD_MAX_ATTEMPTS) break;
+      await waitMs(700*attempt);
+    }finally{ clearTimeout(timer); }
+  }
+  throw lastError||new Error("No se pudo subir un recurso del diseño.");
+}
+
+async function ensureAssetUploadedForRenderer(asset){
+  if(!asset) throw new Error("No se encontró una imagen del diseño.");
+  if(asset._renderUpload?.downloadUrl) return asset._renderUpload;
+
+  let blob=asset.file instanceof Blob ? asset.file : null;
+  if(!blob && asset.src){
+    const r=await fetch(asset.src);
+    if(!r.ok) throw new Error(`No se pudo leer ${asset.name||"una imagen"}.`);
+    blob=await r.blob();
+  }
+  if(!blob) throw new Error(`No se pudo preparar ${asset.name||"una imagen"}.`);
+
+  const info=await uploadRenderSourceBlob(blob,asset.name||"imagen.png");
+  asset._renderUpload=info;
+  return info;
+}
+
+async function renderTextObjectSourceBlob(o){
+  await ensureTextFontLoaded(o);
+  const dpi=300, s=dpi/2.54;
+  const w=Math.max(1,Math.round((+o.w||1)*s));
+  const h=Math.max(1,Math.round((+o.h||1)*s));
+  const c=document.createElement("canvas");
+  c.width=w;c.height=h;
+  const ctx=c.getContext("2d");
+  if(!ctx) throw new Error("No se pudo preparar un texto para el servidor.");
+  ctx.clearRect(0,0,w,h);
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality="high";
+  const local={...o,x:0,y:0,w:+o.w||1,h:+o.h||1,rot:0,flipX:false,flipY:false};
+  drawCanvasTextObject(ctx,local,s);
+  const blob=await new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("No se pudo rasterizar un texto.")),"image/png"));
+  return await forcePngDpi(blob,300);
+}
+
+async function prepareSheetForCloudRenderer(record,{onProgress}={}){
+  const objects=[];
+  const list=record.objects||[];
+  for(let i=0;i<list.length;i++){
+    const o=list[i];
+    if(onProgress) onProgress(i+1,list.length,o);
+    let uploadInfo;
+    if(o.type==="image"){
+      uploadInfo=await ensureAssetUploadedForRenderer(assetById(o.assetId));
+    }else if(o.type==="text"){
+      const blob=await renderTextObjectSourceBlob(o);
+      uploadInfo=await uploadRenderSourceBlob(blob,`texto_${record.id}_${o.id}.png`);
+    }else continue;
+
+    objects.push({
+      id:o.id,
+      url:uploadInfo.downloadUrl,
+      x:+o.x||0,
+      y:+o.y||0,
+      width:+o.w||1,
+      height:+o.h||1,
+      rotation:+o.rot||0,
+      flipX:!!o.flipX,
+      flipY:!!o.flipY
+    });
+  }
+
+  return {
+    sheet:{
+      id:record.id,
+      name:record.name,
+      widthCm:+record.sheet.w,
+      heightCm:+record.sheet.h,
+      dpi:300
+    },
+    objects
+  };
+}
+
+async function renderSheetOnCloud(record,{onProgress}={}){
+  const payload=await prepareSheetForCloudRenderer(record,{onProgress});
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15*60*1000);
+  try{
+    const response=await fetch(`${BIX_RENDERER_URL}/render-sheet`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(payload),
+      signal:controller.signal,
+      cache:"no-store"
+    });
+    let data={};
+    try{ data=await response.json(); }catch(_){ }
+    if(!response.ok || !data?.ok){
+      throw new Error(data?.error||`Cloud Run no pudo generar la hoja (HTTP ${response.status}).`);
+    }
+    if(!data.id || !data.downloadUrl){
+      throw new Error("Cloud Run generó la hoja pero no devolvió la referencia del archivo final.");
+    }
+    return data;
+  }catch(e){
+    if(e?.name==="AbortError") throw new Error("El render del servidor tardó más de 15 minutos.");
+    throw e;
+  }finally{ clearTimeout(timer); }
+}
+
+async function generateSheetRecordPngBlob(index){
+  const previousIndex=state.activeSheetIndex;
+  const previousSelectedId=state.selectedId;
+  const previousSelectedIds=[...(state.selectedIds||[])];
+
+  try{
+    // The exporter reads through state.sheet/state.objects getters.
+    // Point them at the requested sheet without repainting the editor.
+    state.activeSheetIndex=index;
+    state.selectedId=null;
+    state.selectedIds=[];
+    return await generateActiveSheetPngBlob();
+  }finally{
+    state.activeSheetIndex=previousIndex;
+    state.selectedId=previousSelectedId;
+    state.selectedIds=previousSelectedIds;
+  }
+}
+
 async function addActiveSheetToShopifyCart(){
   if(shopifyCartBusy) return;
 
-  if(!state.objects.length){
+  const orderSheets=shopifyOrderSheets();
+  if(!orderSheets.length){
     toast("Añade al menos un diseño antes de agregar al carrito.");
     return;
   }
-
   if(!(window.parent && window.parent!==window)){
     toast("Abre BixStudio desde la página de BixPrint para agregar al carrito.");
     return;
   }
 
   const btn=$("#exportBtn");
-  const quantity=shopifyBillableCm();
-
+  const quantity=orderSheets.reduce((sum,{record})=>sum+shopifyBillableCmForSheet(record),0);
   shopifyCartBusy=true;
   if(btn){
     btn.disabled=true;
-    btn.textContent="Preparando archivo…";
+    btn.textContent=orderSheets.length>1?`Preparando ${orderSheets.length} hojas…`:"Preparando recursos…";
   }
 
+  const uploads=[];
   try{
-    const estimate=gangSheetExportEstimate();
-    if(btn) btn.textContent="Generando PNG 300 DPI…";
-    toast(`Generando archivo · ${estimate.w.toLocaleString()} × ${estimate.h.toLocaleString()} px…`);
+    for(let pos=0;pos<orderSheets.length;pos++){
+      const {record}=orderSheets[pos];
+      const sheetNo=pos+1,totalSheets=orderSheets.length;
 
-    // Give the browser one paint before the expensive 300-DPI render starts,
-    // so customers see the real stage instead of a frozen-looking button.
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+      if(btn) btn.textContent=totalSheets>1?`Preparando hoja ${sheetNo}/${totalSheets}…`:"Preparando recursos…";
+      toast(totalSheets>1?`Preparando ${record.name} para el servidor…`:"Preparando diseños para el servidor…");
 
-    const startedAt=performance.now();
-    const blob=await generateActiveSheetPngBlob();
-    const generationSeconds=Math.max(.1,(performance.now()-startedAt)/1000);
-    const sizeMB=blob.size/1024/1024;
+      const uploadInfo=await renderSheetOnCloud(record,{
+        onProgress:(current,total)=>{
+          if(btn) btn.textContent=totalSheets>1
+            ? `Preparando hoja ${sheetNo}/${totalSheets}…`
+            : "Preparando recursos…";
+          // Deliberately do not expose 1/N counters to customers.
+        }
+      });
 
-    if(btn) btn.textContent="Archivo listo · subiendo…";
-    toast(`PNG listo · ${sizeMB.toFixed(1)} MB · generado en ${generationSeconds.toFixed(1)} s`);
+      uploads.push(uploadInfo);
+      toast(totalSheets>1?`✓ ${record.name} generada en servidor`:`✓ Archivo generado y guardado`);
+    }
 
-    const uploadInfo=await uploadActiveGangSheet(blob,{
-      onAttempt:(attempt,maxAttempts)=>{
-        if(btn) btn.textContent=attempt===1
-          ? `Subiendo ${sizeMB.toFixed(1)} MB…`
-          : `Reintentando subida ${attempt}/${maxAttempts}…`;
-        toast(attempt===1
-          ? `Subiendo archivo · ${sizeMB.toFixed(1)} MB…`
-          : `La subida no terminó. Reintentando ${attempt}/${maxAttempts}…`);
-      }
-    });
-
-    if(btn) btn.textContent="Añadiendo al carrito…";
-    toast(`Archivo guardado · ${String(uploadInfo.id).slice(0,8)}…`);
-
+    if(btn) btn.textContent="Añadiendo pedido al carrito…";
     window.parent.postMessage({
       type:"BIXSTUDIO_ADD_TO_CART",
       variantId:SHOPIFY_DTF_VARIANT_ID,
       quantity,
-      properties:shopifyLineProperties(uploadInfo),
-      total:quantity*SHOPIFY_PRICE_PER_CM
+      properties:shopifyLineProperties(uploads),
+      total:quantity*SHOPIFY_PRICE_PER_CM,
+      sheetCount:orderSheets.length
     },"*");
 
     setTimeout(()=>{
@@ -7339,12 +7542,13 @@ async function addActiveSheetToShopifyCart(){
       shopifyCartBusy=false;
       updateShopifyCartUi();
     },20000);
-
   }catch(e){
-    console.error("[BixStudio upload/cart]",e);
+    console.error("[BixStudio cloud render/cart]",e);
     shopifyCartBusy=false;
     updateShopifyCartUi();
-    toast(`No se pudo preparar el pedido: ${String(e?.message||e).slice(0,140)}`);
+    const completed=uploads.length;
+    const prefix=completed?`Se generaron ${completed} de ${orderSheets.length} hojas, pero el pedido no se añadió al carrito. `:"";
+    toast(`${prefix}No se pudo preparar el pedido: ${String(e?.message||e).slice(0,135)}`);
   }
 }
 
@@ -7366,7 +7570,8 @@ window.addEventListener("message",e=>{
 
   if(d.type==="BIXSTUDIO_CART_OK"){
     shopifyCartBusy=false;
-    toast(`✓ Archivo guardado y añadido al carrito · ${d.quantity||shopifyBillableCm()} cm`);
+    const count=shopifyOrderSheets().length;
+    toast(`✓ ${count>1?`${count} hojas guardadas y añadidas`:"Archivo guardado y añadido"} al carrito · ${d.quantity||shopifyBillableCm()} cm`);
     updateShopifyCartUi();
   }else if(d.type==="BIXSTUDIO_CART_ERROR"){
     shopifyCartBusy=false;
