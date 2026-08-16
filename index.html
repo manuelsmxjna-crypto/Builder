@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v5.2.2 · BIXNEST_V3_PRODUCTION · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
+  <!-- SHAPE_NEST_VERSION: v5.4.0 · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -46,7 +46,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .panel-view{display:none;padding:13px;overflow:auto;flex:1}.panel-view.active{display:block}.upload-zone{height:128px;border:1.5px dashed #b8c0ca;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#374151;background:#fafbfc}.upload-zone:hover{background:#f4f6f8;border-color:#6b7280}.upload-icon{font-size:22px}.upload-zone span{font-size:10px;color:#8a919c}
 .panel-row{margin:12px 0}.text-input{width:100%;border:1px solid #d6dce3;border-radius:7px;padding:8px 10px;outline:none;background:#fff}.text-input:focus{border-color:#6b7280;box-shadow:0 0 0 2px #1118270c}.textarea{min-height:90px;resize:vertical}
 .library-head{font-size:11px;font-weight:700;display:flex;justify-content:space-between;color:#555f6b;margin:7px 0}.asset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.asset-card{border:1px solid #e0e4e8;border-radius:8px;background:#f7f8fa;aspect-ratio:1;position:relative;overflow:hidden;cursor:pointer}.asset-card img{width:100%;height:100%;object-fit:contain}.asset-card .name{position:absolute;left:0;right:0;bottom:0;background:#fffdf5e8;border-top:1px solid #e7eaee;font-size:9px;padding:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.field{display:block;font-size:11px;color:#535d69;margin-bottom:13px}.field>input[type=range]{width:100%;margin-top:8px}.field>input[type=color]{display:block;margin-top:7px;width:100%;height:36px;border:1px solid #d6dce3;border-radius:7px;padding:3px;background:#fff}.unit-input{margin-top:5px;display:flex;align-items:center;border:1px solid #d6dce3;border-radius:7px;overflow:hidden;background:#fff}.unit-input input{min-width:0;width:100%;border:0;padding:7px 9px;outline:0}.unit-input span{padding:0 8px;color:#7a838d;font-size:11px}.toggle-row{display:flex;gap:8px;align-items:center;font-size:12px;margin:12px 0}.info-card{background:#f6f7f9;border:1px solid #e1e5e9;border-radius:8px;padding:11px;margin-bottom:14px}.info-card b{font-size:13px}.info-card p{font-size:11px;line-height:1.45;color:#67717e;margin:5px 0 0}
+.field{display:block;font-size:11px;color:#535d69;margin-bottom:13px}.field>input[type=range]{width:100%;margin-top:8px}.field>input[type=color]{display:block;margin-top:7px;width:100%;height:36px;border:1px solid #d6dce3;border-radius:7px;padding:3px;background:#fff}.unit-input{margin-top:5px;display:flex;align-items:center;border:1px solid #d6dce3;border-radius:7px;overflow:hidden;background:#fff}.unit-input input{min-width:0;width:100%;border:0;padding:7px 9px;outline:0}.unit-input input[readonly]{background:#f8fafc;color:#64748b;cursor:not-allowed;font-weight:800}.unit-input span{padding:0 8px;color:#7a838d;font-size:11px}.toggle-row{display:flex;gap:8px;align-items:center;font-size:12px;margin:12px 0}.info-card{background:#f6f7f9;border:1px solid #e1e5e9;border-radius:8px;padding:11px;margin-bottom:14px}.info-card b{font-size:13px}.info-card p{font-size:11px;line-height:1.45;color:#67717e;margin:5px 0 0}
 .stage-wrap{display:flex;flex-direction:column;min-width:0;background:#eef0f3}.stage-toolbar{height:42px;border-bottom:1px solid #d9dde3;background:#f8f9fa;display:flex;align-items:center;justify-content:space-between;padding:0 10px}.stage-toolbar .left{display:flex;align-items:center;gap:6px;font-size:11px}.status-inline{display:flex;align-items:center;gap:5px;color:#69717c;font-size:9px}.dot{width:7px;height:7px;border-radius:50%}.dot.good{background:#16a34a}.dot.warn{background:#d97706}.dot.bad{background:#dc2626}
 .stage-scroller{flex:1;overflow:hidden;position:relative;background:#eef0f3;cursor:default;touch-action:none}.stage-scroller.pan-ready{cursor:grab}.stage-scroller.panning{cursor:grabbing}.artboard-shell{position:absolute;left:0;top:0;transform-origin:0 0;width:max-content;height:max-content;will-change:transform}.artboard{position:relative;background:#fff;box-shadow:0 3px 16px #11182724;width:1240px;height:600px;overflow:visible}.safe-area{position:absolute;pointer-events:none;border:1px dashed #a7afb9;inset:3px;z-index:10}.objects-layer{position:absolute;inset:0}
 .ruler{position:absolute;color:#7b8490;font-size:8px;pointer-events:none}.ruler-x{left:0;right:0;height:20px;top:-24px;border-bottom:1px solid #b9c0c8}.ruler-y{top:0;bottom:0;width:25px;left:-29px;border-right:1px solid #b9c0c8}
@@ -137,7 +137,13 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .prop-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.prop-grid label{font-size:10px;color:#66707b}.rotation-row{display:flex;align-items:center;border:1px solid #d6dce3;border-radius:7px;margin-top:5px;overflow:hidden}.rotation-row input{width:100%;border:0;padding:7px 9px}.rotation-row span{font-size:11px;color:#6b7280}.rotation-row button{margin:3px}
 .button-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}.section-divider{height:1px;background:#e8ebee;margin:15px 0}.align-title{font-size:10px;font-weight:700;color:#69717b;margin-bottom:7px}.align-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.align-grid button{height:30px;border:1px solid #d7dce2;background:#fff;border-radius:6px}.align-grid button:hover{background:#f4f5f7}
 .modal-backdrop{position:fixed;inset:0;background:#0f172a7a;z-index:100;display:flex;align-items:center;justify-content:center;padding:24px}.modal{background:#fff;border-radius:11px;box-shadow:0 24px 70px #0f172a47;overflow:hidden;max-height:calc(100vh - 48px)}.modal-head{height:54px;border-bottom:1px solid #e4e7eb;display:flex;align-items:center;justify-content:space-between;padding:0 18px}.modal-head h2{margin:0;font-size:18px}.modal-head.dark{background:#101827;color:#fff;height:70px}.kicker{font-size:9px;color:#67e8f9;font-weight:900;letter-spacing:.12em}.close-btn{border:0;background:transparent;font-size:26px;color:inherit}.modal-foot{border-top:1px solid #e4e7eb;padding:10px 18px;display:flex;justify-content:flex-end}
-.quality-modal{width:min(980px,95vw)}.quality-body{display:grid;grid-template-columns:300px 1fr;min-height:480px}.quality-preview{background:#e5edf6;border-right:1px solid #d8dee6;padding:20px;display:flex;flex-direction:column;gap:13px}.score-ring{width:92px;height:92px;border-radius:50%;padding:7px;background:conic-gradient(#22c55e var(--score,100%),#dbe4ec 0);align-self:center}.score-ring>div{height:100%;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}.score-ring strong{font-size:26px}.score-ring span{font-size:9px;color:#047857;font-weight:900}.checker{flex:1;min-height:250px;background-color:#fff;background-image:conic-gradient(#f1f5f9 25%,transparent 0 50%,#f1f5f9 0 75%,transparent 0);background-size:16px 16px;border:1px solid #cad1da;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center}.checker canvas{max-width:100%;max-height:100%}.quality-file{text-align:center;font-size:10px;color:#596575;font-weight:700}.quality-list-wrap{padding:20px;display:flex;flex-direction:column}.quality-heading{display:flex;justify-content:space-between;align-items:flex-start}.quality-heading h3{margin:0;font-size:16px}.quality-heading p{margin:3px 0 12px;font-size:11px;color:#718096}.scan-pill{background:#ecfeff;border:1px solid #a5f3fc;color:#0e7490;border-radius:999px;padding:5px 8px;font-size:9px;font-weight:900}.quality-list{display:flex;flex-direction:column;gap:8px;overflow:auto}.check-row{border:1px solid #e0e5ea;border-radius:8px;padding:11px;display:grid;grid-template-columns:34px 1fr max-content;gap:10px;align-items:center}.check-icon{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-weight:900}.check-icon.ok{background:#ecfdf5;color:#047857}.check-icon.warn{background:#fff7ed;color:#c2410c}.check-row b{font-size:12px}.check-row p{font-size:10px;color:#717b87;margin:2px 0 0}.check-status{font-size:9px;font-weight:900}
+.quality-modal{width:min(860px,95vw)}.quality-body{display:block;min-height:360px}.quality-preview{background:#e5edf6;border-right:1px solid #d8dee6;padding:20px;display:flex;flex-direction:column;gap:13px}.score-ring{width:92px;height:92px;border-radius:50%;padding:7px;background:conic-gradient(#22c55e var(--score,100%),#dbe4ec 0);align-self:center}.score-ring>div{height:100%;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}.score-ring strong{font-size:26px}.score-ring span{font-size:9px;color:#047857;font-weight:900}
+
+.quality-score-compact{width:58px;height:58px;padding:5px;flex:0 0 auto}
+.quality-score-compact strong{font-size:17px}
+.quality-score-compact span{font-size:7px}
+.quality-list-wrap{padding:22px}
+.checker{flex:1;min-height:250px;background-color:#fff;background-image:conic-gradient(#f1f5f9 25%,transparent 0 50%,#f1f5f9 0 75%,transparent 0);background-size:16px 16px;border:1px solid #cad1da;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center}.checker canvas{max-width:100%;max-height:100%}.quality-file{text-align:center;font-size:10px;color:#596575;font-weight:700}.quality-list-wrap{padding:20px;display:flex;flex-direction:column}.quality-heading{display:flex;justify-content:space-between;align-items:flex-start}.quality-heading h3{margin:0;font-size:16px}.quality-heading p{margin:3px 0 12px;font-size:11px;color:#718096}.scan-pill{background:#ecfeff;border:1px solid #a5f3fc;color:#0e7490;border-radius:999px;padding:5px 8px;font-size:9px;font-weight:900}.quality-list{display:flex;flex-direction:column;gap:8px;overflow:auto}.check-row{border:1px solid #e0e5ea;border-radius:8px;padding:11px;display:grid;grid-template-columns:34px 1fr max-content;gap:10px;align-items:center}.check-icon{width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-weight:900}.check-icon.ok{background:#ecfdf5;color:#047857}.check-icon.warn{background:#fff7ed;color:#c2410c}.check-row b{font-size:12px}.check-row p{font-size:10px;color:#717b87;margin:2px 0 0}.check-status{font-size:9px;font-weight:900}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:8px;font-size:11px;z-index:200;box-shadow:var(--shadow)}
 
 
@@ -631,6 +637,32 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   pointer-events:none;
 }
 .asset-count-badge.zero{display:none}
+
+.asset-remove-from-sheet-btn{
+  position:absolute;
+  right:6px;
+  top:6px;
+  width:22px;
+  height:22px;
+  display:grid;
+  place-items:center;
+  border:1px solid #fecaca;
+  border-radius:999px;
+  background:rgba(255,255,255,.96);
+  color:#dc2626;
+  font-size:14px;
+  line-height:1;
+  font-weight:900;
+  padding:0;
+  z-index:8;
+  box-shadow:0 1px 4px rgba(15,23,42,.16);
+}
+.asset-remove-from-sheet-btn:hover{
+  background:#fef2f2;
+  border-color:#f87171;
+  color:#b91c1c;
+}
+
 
 
 .transform-toolbar-title{
@@ -1169,7 +1201,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       </div>
 <div id="settingsPanel" class="panel-view">
         <label class="field">Ancho
-          <div class="unit-input"><input id="sheetWidth" type="number" value="62" min="5" step="0.1"><span>cm</span></div>
+          <div class="unit-input"><input id="sheetWidth" type="number" value="62" readonly aria-readonly="true" title="El ancho DTF está fijado en 62 cm"><span>cm</span></div>
         </label>
         <label class="field">Alto
           <div class="unit-input"><input id="sheetHeight" type="number" value="30" min="30" max="310" step="0.1"><span>cm</span></div>
@@ -1422,15 +1454,13 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
         <button class="close-btn" data-close="qualityModal">×</button>
       </div>
       <div class="quality-body">
-        <div class="quality-preview">
-          <div id="qualityScore" class="score-ring"><div><strong>100</strong><span>SCORE</span></div></div>
-          <div class="checker"><canvas id="qualityCanvas"></canvas></div>
-          <div id="qualityFile" class="quality-file">Hoja completa</div>
-        </div>
         <div class="quality-list-wrap">
           <div class="quality-heading">
             <div><h3>Revisión del lienzo</h3><p>Problemas detectados antes de exportar.</p></div>
-            <span class="scan-pill">● ANALIZADO</span>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div id="qualityScore" class="score-ring quality-score-compact"><div><strong>100</strong><span>SCORE</span></div></div>
+              <span class="scan-pill">● ANALIZADO</span>
+            </div>
           </div>
           <div id="qualityList" class="quality-list"></div>
           <div id="alphaTools" class="alpha-tools hidden">
@@ -2810,7 +2840,16 @@ function restore(raw){
 function undo(){if(!state.history.length)return;state.future.push(snapshot());restore(state.history.pop())}
 function redo(){if(!state.future.length)return;state.history.push(snapshot());restore(state.future.pop())}
 
+const FIXED_SHEET_WIDTH_CM=62;
+function enforceFixedSheetWidth(){
+  for(const record of state.sheets||[]){
+    if(record?.sheet) record.sheet.w=FIXED_SHEET_WIDTH_CM;
+  }
+  if(state.sheet) state.sheet.w=FIXED_SHEET_WIDTH_CM;
+}
+
 function syncSheetInputs(){
+ enforceFixedSheetWidth();
  $("#sheetWidth").value=state.sheet.w;
  $("#sheetHeight").value=state.sheet.h;
  $("#sheetMargin").value=state.sheet.margin;
@@ -4153,6 +4192,43 @@ function renderAssetCard(grid,a,sizeGroup=null){
     badge.textContent=count;
     badge.title=`${count} imagen(es) de ${sizeGroup.w.toFixed(2)} × ${sizeGroup.h.toFixed(2)} cm`;
     c.appendChild(badge);
+
+    const removeBtn=document.createElement("button");
+    removeBtn.type="button";
+    removeBtn.className="asset-remove-from-sheet-btn";
+    removeBtn.textContent="×";
+    removeBtn.title=`Quitar las ${count} copia(s) de este tamaño de la hoja activa`;
+    removeBtn.setAttribute("aria-label",removeBtn.title);
+    removeBtn.onclick=e=>{
+      e.preventDefault();
+      e.stopPropagation();
+
+      const w=sizeGroup.w;
+      const h=sizeGroup.h;
+      const ids=new Set(
+        state.objects
+          .filter(o=>
+            o.type==="image" &&
+            o.assetId===a.id &&
+            Math.abs((+o.w||0)-w)<0.005 &&
+            Math.abs((+o.h||0)-h)<0.005
+          )
+          .map(o=>o.id)
+      );
+
+      if(!ids.size) return;
+
+      pushHistory();
+      state.objects=state.objects.filter(o=>!ids.has(o.id));
+      state.selectedIds=state.selectedIds.filter(id=>!ids.has(id));
+      if(ids.has(state.selectedId)) state.selectedId=state.selectedIds.at(-1)||null;
+
+      recalcActiveSheetHeight();
+      renderAll();
+      setTimeout(fitViewport,20);
+      toast(`${ids.size} diseño(s) eliminados de ${activeSheetRecord().name}`);
+    };
+    c.appendChild(removeBtn);
   }
 
   c.onclick=()=>insertAsset(
@@ -4291,7 +4367,7 @@ function switchSheet(index){
 }
 function createNewSheet(){
   const margin=0;
-  const width=state.sheet.w;
+  const width=FIXED_SHEET_WIDTH_CM;
   const id="gs"+state.nextSheetId;
   const sheet={id,name:`Gang Sheet ${state.nextSheetId}`,sheet:{w:width,h:MIN_SHEET_HEIGHT,margin},objects:[]};
   state.nextSheetId++;
@@ -6922,32 +6998,170 @@ async function cleanCurrentCanvasSemiTransparency(){
    btn.textContent="Limpiar píxeles semitransparentes";
  }
 }
-async function runQualityCheck(){
- updateDiagnostics();
- const lows=state.objects.filter(o=>calcDpi(o)<200).length,warns=state.objects.filter(o=>calcDpi(o)>=200&&calcDpi(o)<300).length;
- const overlaps=state.objects.filter(o=>o.overlap).length,off=state.objects.filter(o=>o.offboard).length,alpha=await scanSemiTransparentPixels();
- const checks=[
-  ["Resolución",lows?`${lows} diseño(s) por debajo de 200 DPI`:warns?`${warns} diseño(s) entre 200 y 299 DPI`:"Todas las imágenes tienen resolución óptima",lows?"bad":warns?"warn":"ok"],
-  ["Superposición",overlaps?`${overlaps} objetos se superponen`:"No hay imágenes superpuestas",overlaps?"bad":"ok"],
-  ["Fuera del área",off?`${off} objetos salen del área segura`:"Todos los objetos están dentro de la hoja",off?"bad":"ok"],
-  ["Semitransparencias",alpha.total?`${alpha.total.toLocaleString()} píxeles semitransparentes en la Gang Sheet activa`:"No se detectaron píxeles semitransparentes en la Gang Sheet activa",alpha.total?"warn":"ok"],
-  ["Archivos",`${state.objects.length} objetos listos para exportar`,"ok"]
- ];
- const issues=checks.filter(c=>c[2]!=="ok").length,score=Math.max(0,100-issues*18-lows*8);
- $("#qualityScore").style.setProperty("--score",score+"%");$("#qualityScore strong").textContent=score;
- const list=$("#qualityList");list.innerHTML="";checks.forEach(c=>{const row=document.createElement("div");row.className="check-row";row.innerHTML=`<div class="check-icon ${c[2]==="ok"?"ok":"warn"}">${c[2]==="ok"?"✓":"!"}</div><div><b>${c[0]}</b><p>${c[1]}</p></div><span class="check-status">${c[2]==="ok"?"PASS":"REVISAR"}</span>`;list.appendChild(row)});
- $("#alphaTools").classList.toggle("hidden",!alpha.total);$("#alphaCountBadge").textContent=alpha.total?`${alpha.total.toLocaleString()} px`:"0 px";renderQualityCanvas();
- return alpha
-}
-async function quality(){
- openModal("qualityModal");$("#qualityList").innerHTML='<div class="check-row"><div class="check-icon warn">…</div><div><b>Analizando lienzo</b><p>Renderizando la Gang Sheet activa a 300 DPI y revisando su canal alfa.</p></div><span class="check-status">ESCANEANDO</span></div>';$("#alphaTools").classList.add("hidden");await runQualityCheck()
+async function inspectSourceAlphaFast(asset){
+  if(!asset) return {semi:false,error:true};
+
+  if(asset.alphaBinary || asset.alphaCleaned){
+    return {semi:false,binary:true,cached:true};
+  }
+
+  const cacheKey=asset.src||asset.id;
+  if(asset._preflightAlphaFast?.key===cacheKey){
+    return asset._preflightAlphaFast.result;
+  }
+
+  try{
+    const src=assetLibraryPreviewSrc(asset)||asset.src;
+    const img=await loadImageFromSrc(src);
+
+    // Sample at a bounded size. Use nearest-neighbour so the preflight itself
+    // does not invent semi-transparent pixels by interpolation.
+    const MAX_SAMPLE=512;
+    const scale=Math.min(1,MAX_SAMPLE/Math.max(img.naturalWidth||1,img.naturalHeight||1));
+    const w=Math.max(1,Math.round((img.naturalWidth||1)*scale));
+    const h=Math.max(1,Math.round((img.naturalHeight||1)*scale));
+
+    const c=document.createElement("canvas");
+    c.width=w;c.height=h;
+    const ctx=c.getContext("2d",{willReadFrequently:true});
+    ctx.clearRect(0,0,w,h);
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(img,0,0,w,h);
+
+    const d=ctx.getImageData(0,0,w,h).data;
+    let semiSamples=0;
+    for(let i=3;i<d.length;i+=4){
+      const a=d[i];
+      if(a>0 && a<255){
+        semiSamples++;
+        if(semiSamples>=16) break;
+      }
+    }
+
+    const result={semi:semiSamples>0,binary:semiSamples===0,semiSamples};
+    asset._preflightAlphaFast={key:cacheKey,result};
+    return result;
+  }catch(e){
+    console.warn("[BixStudio fast preflight alpha]",asset?.name,e);
+    return {semi:false,error:true};
+  }
 }
 
-function renderQualityCanvas(){
- const c=$("#qualityCanvas"),ctx=c.getContext("2d"),scale=Math.min(260/(state.sheet.w*PX_PER_CM),300/(state.sheet.h*PX_PER_CM));
- c.width=Math.max(1,state.sheet.w*PX_PER_CM*scale);c.height=Math.max(1,state.sheet.h*PX_PER_CM*scale);ctx.fillStyle="#fff";ctx.fillRect(0,0,c.width,c.height);
- state.objects.forEach(o=>{if(o.type==="image"){const im=new Image;im.onload=()=>ctx.drawImage(im,o.x*PX_PER_CM*scale,o.y*PX_PER_CM*scale,o.w*PX_PER_CM*scale,o.h*PX_PER_CM*scale);im.src=objectSrc(o)}else{drawCanvasTextObject(ctx,o,PX_PER_CM*scale)}})
+async function scanSemiTransparentAssetsFast(){
+  const seen=new Set();
+  const assets=[];
+
+  for(const o of state.objects){
+    if(o.type!=="image" || !o.assetId || seen.has(o.assetId)) continue;
+    seen.add(o.assetId);
+    const asset=assetById(o.assetId);
+    if(asset) assets.push(asset);
+  }
+
+  if(!assets.length){
+    return {total:0,affectedAssets:0,unknownAssets:0,analyzed:"fast-assets"};
+  }
+
+  let affectedAssets=0;
+  let unknownAssets=0;
+
+  // Small batches keep the UI responsive while avoiding a 300-DPI sheet render.
+  const CONCURRENCY=4;
+  let cursor=0;
+
+  async function worker(){
+    while(cursor<assets.length){
+      const index=cursor++;
+      const asset=assets[index];
+
+      if(asset.alphaBinary || asset.alphaCleaned) continue;
+
+      const info=await inspectSourceAlphaFast(asset);
+      if(info.error) unknownAssets++;
+      else if(info.semi) affectedAssets++;
+
+      if(index%8===0) await new Promise(r=>setTimeout(r,0));
+    }
+  }
+
+  await Promise.all(
+    Array.from({length:Math.min(CONCURRENCY,assets.length)},()=>worker())
+  );
+
+  return {
+    total:affectedAssets,
+    affectedAssets,
+    unknownAssets,
+    uniqueAssets:assets.length,
+    analyzed:"fast-assets"
+  };
 }
+
+async function runQualityCheck(){
+  updateDiagnostics();
+
+  const lows=state.objects.filter(o=>calcDpi(o)<200).length;
+  const warns=state.objects.filter(o=>calcDpi(o)>=200&&calcDpi(o)<300).length;
+  const overlaps=state.objects.filter(o=>o.overlap).length;
+  const off=state.objects.filter(o=>o.offboard).length;
+
+  const alpha=await scanSemiTransparentAssetsFast();
+
+  let alphaText="No se detectaron semitransparencias en los archivos usados";
+  let alphaStatus="ok";
+
+  if(alpha.affectedAssets){
+    alphaText=`${alpha.affectedAssets} archivo(s) muestran semitransparencias`;
+    alphaStatus="warn";
+  }else if(alpha.unknownAssets){
+    alphaText=`${alpha.unknownAssets} archivo(s) no pudieron verificarse rápidamente`;
+    alphaStatus="warn";
+  }
+
+  const checks=[
+    ["Resolución",lows?`${lows} diseño(s) por debajo de 200 DPI`:warns?`${warns} diseño(s) entre 200 y 299 DPI`:"Todas las imágenes tienen resolución óptima",lows?"bad":warns?"warn":"ok"],
+    ["Superposición",overlaps?`${overlaps} objetos se superponen`:"No hay imágenes superpuestas",overlaps?"bad":"ok"],
+    ["Fuera del área",off?`${off} objetos salen del área segura`:"Todos los objetos están dentro de la hoja",off?"bad":"ok"],
+    ["Semitransparencias",alphaText,alphaStatus],
+    ["Archivos",`${state.objects.length} objetos listos para exportar`,"ok"]
+  ];
+
+  const issues=checks.filter(c=>c[2]!=="ok").length;
+  const score=Math.max(0,100-issues*18-lows*8);
+
+  $("#qualityScore").style.setProperty("--score",score+"%");
+  $("#qualityScore strong").textContent=score;
+
+  const list=$("#qualityList");
+  list.innerHTML="";
+  checks.forEach(c=>{
+    const row=document.createElement("div");
+    row.className="check-row";
+    row.innerHTML=`<div class="check-icon ${c[2]==="ok"?"ok":"warn"}">${c[2]==="ok"?"✓":"!"}</div><div><b>${c[0]}</b><p>${c[1]}</p></div><span class="check-status">${c[2]==="ok"?"PASS":"REVISAR"}</span>`;
+    list.appendChild(row);
+  });
+
+  $("#alphaTools").classList.toggle("hidden",!alpha.affectedAssets);
+  $("#alphaCountBadge").textContent=alpha.affectedAssets
+    ? `${alpha.affectedAssets} archivo(s)`
+    : "0";
+
+  return alpha;
+}
+
+async function quality(){
+  openModal("qualityModal");
+  $("#qualityList").innerHTML='<div class="check-row"><div class="check-icon warn">…</div><div><b>Analizando lienzo</b><p>Revisando geometría, resolución y archivos utilizados.</p></div><span class="check-status">ESCANEANDO</span></div>';
+  $("#alphaTools").classList.add("hidden");
+
+  try{
+    await runQualityCheck();
+  }catch(e){
+    console.error("[BixStudio preflight]",e);
+    $("#qualityList").innerHTML='<div class="check-row"><div class="check-icon warn">!</div><div><b>No se pudo completar la revisión</b><p>Intenta nuevamente. El editor sigue disponible.</p></div><span class="check-status">REVISAR</span></div>';
+  }
+}
+
 $("#qualityBtn").onclick=quality;
 $("#alphaThreshold").addEventListener("input",e=>$("#alphaThresholdValue").textContent=e.target.value);
 $("#cleanAlphaBtn").onclick=cleanCurrentCanvasSemiTransparency;
@@ -7139,7 +7353,8 @@ $("#resetProjectBtn").onclick=()=>{
 };
 $("#applySettingsBtn").onclick=()=>{
  pushHistory();
- state.sheet.w=Math.max(5,+$("#sheetWidth").value||62);
+ enforceFixedSheetWidth();
+ state.sheet.w=FIXED_SHEET_WIDTH_CM;
  state.sheet.h=Math.min(MAX_SHEET_HEIGHT,Math.max(MIN_SHEET_HEIGHT,+$("#sheetHeight").value||MIN_SHEET_HEIGHT));
  state.sheet.margin=Math.max(0,+$("#sheetMargin").value||0);
  state.snap=$("#snapToggle").checked;
@@ -8887,6 +9102,7 @@ window.BixNestBridge={
   getState:()=>state,
   toast:(msg)=>toast(msg),
   nestGapValue:()=>nestGapValue(),
+  MIN_SHEET_HEIGHT,
   MAX_SHEET_HEIGHT,
   ensureRotationModel:(o)=>ensureRotationModel(o),
   getAdaptiveNestMask:(item,q,grid)=>getAdaptiveNestMask(item,q,grid),
@@ -9163,8 +9379,8 @@ showRightPanel("properties");
 </script>
 
 
-<script src="./bixnest/strategy.js?v=3.0.0"></script>
-<script src="./bixnest/integration.js?v=3.0.0"></script>
+<script src="./bixnest/strategy.js?v=3.1.0"></script>
+<script src="./bixnest/integration.js?v=3.1.0"></script>
 
 <div id="objectContextMenu" class="context-menu">
 <button data-cmd="duplicate">📑 Duplicar</button>

@@ -61,6 +61,9 @@
 
     const n=items.length;
     const ctx={items,shapeMap,gw,gh,gap};
+    const decodeFn=payload.multiSheet?D.decodeMulti:D.decode;
+    const validateFn=payload.multiSheet?D.validateMulti:D.validate;
+    const fitnessFn=payload.multiSheet?D.fitnessMulti:D.fitness;
     const rng=rngFactory(seed);
     const popSize=popIn || (n<=15?90:n<=40?70:n<=80?52:40);
     const eliteCount=Math.max(2,Math.floor(popSize*.20));
@@ -93,11 +96,11 @@
     }
 
     function evalChrom(c){
-      const result=D.decode(c,ctx);
+      const result=decodeFn(c,ctx);
       evaluations++;
-      if(!result || !D.validate(result,ctx)) return {c,result:null,fit:Infinity};
+      if(!result || !validateFn(result,ctx)) return {c,result:null,fit:Infinity};
 
-      const fit=D.fitness(result);
+      const fit=fitnessFn(result);
       if(fit<bestFit){
         noteImprovement(result);
         bestFit=fit;

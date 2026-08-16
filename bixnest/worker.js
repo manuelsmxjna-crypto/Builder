@@ -33,13 +33,21 @@ function runRandomSearch(msg,shapeMap){
 
   for(let i=0;i<iterations;i++){
     const c=randomChromosome(geneLen,rng);
-    const result=BixDecoder.decode(c,ctx);
-    if(!result || !BixDecoder.validate(result,ctx)){
+    const result=msg.multiSheet
+      ? BixDecoder.decodeMulti(c,ctx)
+      : BixDecoder.decode(c,ctx);
+    const ok=msg.multiSheet
+      ? BixDecoder.validateMulti(result,ctx)
+      : BixDecoder.validate(result,ctx);
+
+    if(!result || !ok){
       invalid++;
       continue;
     }
     valid++;
-    const fit=BixDecoder.fitness(result);
+    const fit=msg.multiSheet
+      ? BixDecoder.fitnessMulti(result)
+      : BixDecoder.fitness(result);
     if(fit<bestFit){
       bestFit=fit;
       best=result;

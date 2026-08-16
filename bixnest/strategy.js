@@ -118,5 +118,69 @@ function plan(analysis){
   };
 }
 
-g.BixNestStrategy={analyze,plan,groupKeyForObject};
+
+function planAllSheets(analysis){
+  const total=analysis.total;
+
+  // Global multi-sheet packing is a harder problem than one sheet.
+  // Huge duplicate jobs need a coarse grid and a deliberately bounded search
+  // so "Organizar todas" stays practical instead of exploring forever.
+  if(total>600){
+    return {
+      kind:analysis.kind,
+      grid:1,
+      randomIterations:analysis.kind==="repetitive"?8:5,
+      randomWorkers:2,
+      brkgaWorkers:analysis.kind==="repetitive"?1:0,
+      brkgaBudgetMs:analysis.kind==="repetitive"?1400:0,
+      populationSize:14,
+      minRuntimeMs:500,
+      noBeatStopMs:900,
+      stallMs:550
+    };
+  }
+
+  if(total>250){
+    return {
+      kind:analysis.kind,
+      grid:1,
+      randomIterations:analysis.kind==="repetitive"?20:12,
+      randomWorkers:2,
+      brkgaWorkers:analysis.kind==="repetitive"?1:0,
+      brkgaBudgetMs:analysis.kind==="repetitive"?1800:0,
+      populationSize:18,
+      minRuntimeMs:650,
+      noBeatStopMs:1100,
+      stallMs:700
+    };
+  }
+
+  if(total>100){
+    return {
+      kind:analysis.kind,
+      grid:2,
+      randomIterations:analysis.kind==="heterogeneous"?120:180,
+      randomWorkers:3,
+      brkgaWorkers:1,
+      brkgaBudgetMs:analysis.kind==="repetitive"?2600:1600,
+      populationSize:24,
+      minRuntimeMs:800,
+      noBeatStopMs:1300,
+      stallMs:800
+    };
+  }
+
+  const base=plan(analysis);
+  return {
+    ...base,
+    // The multi-sheet fitness is expensive; cap the portfolio a little.
+    randomIterations:Math.min(base.randomIterations,900),
+    randomWorkers:Math.min(base.randomWorkers,4),
+    brkgaWorkers:Math.min(base.brkgaWorkers,2),
+    brkgaBudgetMs:Math.min(base.brkgaBudgetMs,3800),
+    populationSize:analysis.total<=40?50:36
+  };
+}
+
+g.BixNestStrategy={analyze,plan,planAllSheets,groupKeyForObject};
 })(window);
