@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v5.2.0 · BIXNEST_V3_PRODUCTION · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
+  <!-- SHAPE_NEST_VERSION: v5.2.1 · BIXNEST_V3_PRODUCTION · BULK_DUPLICATE_FAST_PATH · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -8555,10 +8555,226 @@ function copySelection(silent=false){
   if(!silent) toast(state.clipboard.length===1?"Copiado":"Objetos copiados");
   return true;
 }
+
+/**
+ * Colocación rápida para duplicados masivos.
+ *
+ * Para cantidades grandes NO intenta resolver un nesting exacto por cada copia:
+ * eso reconstruía la ocupación raster de toda la hoja repetidamente y podía
+ * tardar minutos con 50–100+ copias.
+ *
+ * Esta ruta coloca las copias en bandas/filas válidas debajo del contenido ya
+ * existente. Al llegar al máximo de 310 cm, crea automáticamente otra Gang Sheet
+ * y continúa. Auto Organizar puede compactarlas después.
+ */
+function bulkDuplicateOrientations(template){
+  ensureRotationModel(template);
+  const base=((+template.rot||0)%360+360)%360;
+  const rots=[base];
+  if($("#allowRotate")?.checked) rots.push((base+90)%360);
+
+  return [...new Set(rots)].map(rot=>{
+    const probe={...template,rot};
+    const box=rotatedAABB(probe);
+    return {rot,w:box.w,h:box.h};
+  });
+}
+
+function chooseBulkDuplicateOrientation(template,remainingW,fullW){
+  const options=bulkDuplicateOrientations(template)
+    .filter(o=>o.w<=fullW+.001);
+
+  if(!options.length) return null;
+
+  // First prefer an orientation that still fits on the current row.
+  const fitting=options.filter(o=>o.w<=remainingW+.001);
+  if(fitting.length){
+    fitting.sort((a,b)=>
+      (a.h-b.h) ||
+      (a.w-b.w)
+    );
+    return fitting[0];
+  }
+
+  // Caller will start a new row. Prefer the orientation that uses the least
+  // vertical space; tie-break with narrower width.
+  options.sort((a,b)=>
+    (a.h-b.h) ||
+    (a.w-b.w)
+  );
+  return options[0];
+}
+
+function finalizeBulkDuplicateSheetHeight(bottom){
+  const m=Math.max(0,+state.sheet.margin||0);
+  const needed=Math.max(
+    MIN_SHEET_HEIGHT,
+    Math.ceil((bottom+m)*10)/10
+  );
+  state.sheet.h=Math.min(MAX_SHEET_HEIGHT,needed);
+}
+
+async function pasteClipboardBulkFast(times){
+  const totalCopies=times*state.clipboard.length;
+  const gap=Math.max(0,nestGapValue());
+  const created=[];
+  const createdBySheet=new Map();
+  let failed=0;
+  let sheetsCreated=0;
+
+  const resetCursor=()=>{
+    const m=Math.max(0,+state.sheet.margin||0);
+    const safe=m+.05;
+    return {
+      x:safe,
+      y:state.objects.length ? occupiedBottom()+gap : safe,
+      rowH:0,
+      safe,
+      right:state.sheet.w-m-.05
+    };
+  };
+
+  let cursor=resetCursor();
+
+  const remember=(obj)=>{
+    created.push(obj);
+    const idx=state.activeSheetIndex;
+    if(!createdBySheet.has(idx)) createdBySheet.set(idx,[]);
+    createdBySheet.get(idx).push(obj.id);
+  };
+
+  const startNewSheet=()=>{
+    finalizeBulkDuplicateSheetHeight(cursor.y+cursor.rowH);
+    createNewSheet();
+    sheetsCreated++;
+    cursor=resetCursor();
+  };
+
+  for(let t=0;t<times;t++){
+    for(const src of state.clipboard){
+      const n=cloneForPaste(src);
+      ensureRotationModel(n);
+
+      if(!objectCanEverFitSheet(n)){
+        failed++;
+        continue;
+      }
+
+      let guard=0;
+      let placed=false;
+
+      // Hard guard: one copy is allowed at most a few row/sheet transitions.
+      // This guarantees bulk duplication can never get stuck in an infinite loop.
+      while(!placed && guard++<8){
+        const fullW=cursor.right-cursor.safe;
+        const remainingW=cursor.right-cursor.x;
+
+        let orient=chooseBulkDuplicateOrientation(n,remainingW,fullW);
+        if(!orient){
+          failed++;
+          break;
+        }
+
+        // If chosen orientation doesn't fit the remaining row, start a new row.
+        if(orient.w>remainingW+.001){
+          cursor.x=cursor.safe;
+          cursor.y+=cursor.rowH+gap;
+          cursor.rowH=0;
+
+          orient=chooseBulkDuplicateOrientation(n,cursor.right-cursor.x,fullW);
+          if(!orient){
+            failed++;
+            break;
+          }
+        }
+
+        // If the row would exceed the hard sheet limit, move to a new sheet.
+        const maxBottom=MAX_SHEET_HEIGHT-Math.max(0,+state.sheet.margin||0)-.05;
+        if(cursor.y+orient.h>maxBottom+.001){
+          startNewSheet();
+          continue;
+        }
+
+        n.rot=orient.rot;
+        const probe=objectAtAABBTopLeft(n,cursor.x,cursor.y);
+
+        // Shelf placement is non-overlapping by construction, but retain strict
+        // hard-bound validation as a final safety net.
+        if(!objectInsidePrintableArea(probe,MAX_SHEET_HEIGHT)){
+          cursor.x=cursor.safe;
+          cursor.y+=cursor.rowH+gap;
+          cursor.rowH=0;
+          continue;
+        }
+
+        n.x=probe.x;
+        n.y=probe.y;
+        state.objects.push(n);
+        remember(n);
+
+        cursor.x+=orient.w+gap;
+        cursor.rowH=Math.max(cursor.rowH,orient.h);
+        placed=true;
+      }
+
+      if(!placed && guard>=8) failed++;
+
+      // Keep the browser responsive during very large duplicate requests.
+      if(created.length && created.length%40===0){
+        toast(`Colocando copias… ${created.length}/${totalCopies}`);
+        await new Promise(r=>requestAnimationFrame(r));
+      }
+    }
+  }
+
+  finalizeBulkDuplicateSheetHeight(cursor.y+cursor.rowH);
+  syncSheetInputs();
+  renderSheetsPanel();
+
+  if(!created.length) return {ok:false,created,failed,sheetsCreated};
+
+  // Selection can only refer to objects on the active sheet.
+  const activeIds=createdBySheet.get(state.activeSheetIndex)||[];
+  state.selectedIds=activeIds;
+  state.selectedId=activeIds.at(-1)||null;
+
+  renderAll();
+  setTimeout(fitViewport,20);
+
+  return {ok:true,created,failed,sheetsCreated};
+}
+
 async function pasteClipboard(count=1){
   if(!state.clipboard.length) return false;
   const times=Math.max(1,Math.min(999,Math.round(+count||1)));
+  const requested=times*state.clipboard.length;
   pushHistory();
+
+  // For bulk operations, favor guaranteed responsiveness and valid placement.
+  // Small duplicate requests retain the precise hole-first behavior.
+  const BULK_DUPLICATE_THRESHOLD=12;
+  if(requested>=BULK_DUPLICATE_THRESHOLD){
+    toast(`Colocando ${requested} copia(s) rápidamente…`);
+    const result=await pasteClipboardBulkFast(times);
+
+    if(!result.ok){
+      state.history.pop();
+      toast("No se pudo colocar ninguna copia.");
+      return false;
+    }
+
+    const placed=result.created.length;
+    const sheetNote=result.sheetsCreated
+      ? ` · ${result.sheetsCreated} hoja(s) nueva(s)`
+      : "";
+
+    if(result.failed){
+      toast(`${placed} copia(s) colocadas${sheetNote}; ${result.failed} no pudieron acomodarse.`);
+    }else{
+      toast(`${placed} copia(s) colocadas${sheetNote}`);
+    }
+    return true;
+  }
 
   const pasted=[];
   let failed=0;
@@ -8571,7 +8787,6 @@ async function pasteClipboard(count=1){
       if(!placed){failed++;continue;}
       state.objects.push(n);
       pasted.push(n);
-      // Yield periodically and make the new piece available to the next occupancy build.
       if(pasted.length%12===0) await new Promise(r=>requestAnimationFrame(r));
     }
   }
