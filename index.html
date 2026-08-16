@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v5.4.0 · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
+  <!-- SHAPE_NEST_VERSION: v5.4.1 · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -8530,14 +8530,9 @@ async function prepareSheetForCloudRenderer(record,{onProgress}={}){
 async function queueSheetRender(record,{onProgress}={}){
   const projectId=await ensureCloudProject();
 
-  const precheck=sanitizeCloudRenderObjects(record);
-  if(precheck.outside || precheck.partial){
-    const parts=[];
-    if(precheck.outside) parts.push(`${precheck.outside} fuera`);
-    if(precheck.partial) parts.push(`${precheck.partial} recortado(s)`);
-    toast(`Ajustando mesa: ${parts.join(" · ")}`);
-  }
-
+  // El renderer sigue sanitizando/recortando silenciosamente cualquier
+  // desviación mínima de borde. Se elimina únicamente el aviso visual
+  // "Ajustando mesa: ... recortado(s)" para no alarmar al cliente.
   const payload=await prepareSheetForCloudRenderer(record,{onProgress});
   payload.projectId=projectId;
 
