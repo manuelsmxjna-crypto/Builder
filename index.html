@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v5.2.1 · BIXNEST_V3_PRODUCTION · BULK_DUPLICATE_FAST_PATH · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
+  <!-- SHAPE_NEST_VERSION: v5.2.2 · BIXNEST_V3_PRODUCTION · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -8733,10 +8733,20 @@ async function pasteClipboardBulkFast(times){
 
   if(!created.length) return {ok:false,created,failed,sheetsCreated};
 
-  // Selection can only refer to objects on the active sheet.
+  // IMPORTANT:
+  // After a bulk duplicate, keep only ONE object selected.
+  //
+  // The duplicate button starts with copySelection(true). If we leave every
+  // newly-created object selected, pressing "Duplicar 99" a second time copies
+  // the whole previous batch and multiplies it by 99 (99 × dozens/hundreds),
+  // producing thousands of objects and many sheets.
+  //
+  // Selecting only the last created object preserves the expected behavior:
+  // Duplicar 99 -> 99 copies; pressing it again -> another 99 copies.
   const activeIds=createdBySheet.get(state.activeSheetIndex)||[];
-  state.selectedIds=activeIds;
-  state.selectedId=activeIds.at(-1)||null;
+  const lastCreatedId=activeIds.at(-1)||null;
+  state.selectedIds=lastCreatedId?[lastCreatedId]:[];
+  state.selectedId=lastCreatedId;
 
   renderAll();
   setTimeout(fitViewport,20);
