@@ -2881,17 +2881,17 @@ function viewportPanRange(){
   const aw=cmToPx(state.sheet.w)*state.zoom;
   const ah=cmToPx(state.sheet.h)*state.zoom;
 
-  // Symmetrical travel around the centered position.
-  const centerX=(sc.width-aw)/2;
-  const centerY=(sc.height-ah)/2;
-  const spanX=Math.max(sc.width*.65,aw*.35,180);
-  const spanY=Math.max(sc.height*.65,ah*.35,180);
+  // Inspection-first pan limits. At high zoom every artboard edge can be
+  // brought at least to the center of the viewport. This avoids the old
+  // clamp that made the outer 5–10 cm impossible to inspect closely.
+  const revealX=Math.max(80,sc.width*.50);
+  const revealY=Math.max(80,sc.height*.50);
 
   return {
-    minX:centerX-spanX,
-    maxX:centerX+spanX,
-    minY:centerY-spanY,
-    maxY:centerY+spanY
+    minX:revealX-aw,
+    maxX:sc.width-revealX,
+    minY:revealY-ah,
+    maxY:sc.height-revealY
   };
 }
 function syncPanSliders(){
@@ -3168,7 +3168,58 @@ function calcDpi(o){
 function dpiClass(d){return d>=300?"optimal":d>=250?"good":d>=200?"bad":"minimum"}
 function objRect(o){return rotatedAABB(o)}
 function rectsOverlap(a,b){return a.x < b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y}
+function enforceSafeAreaHardConstraint(){
+  if(!state.objects.length) return;
+
+  const m=Math.max(0,+state.sheet.margin||0);
+  let heightChanged=false;
+
+  // First grow the active sheet when an object's lower edge is valid within
+  // the 310 cm project limit but the current sheet is simply too short.
+  let requiredH=state.sheet.h;
+  for(const o of state.objects){
+    ensureRotationModel(o);
+    const box=rotatedAABB(o);
+    requiredH=Math.max(requiredH,box.y+box.h+m);
+  }
+  requiredH=Math.min(MAX_SHEET_HEIGHT,Math.ceil(requiredH*10)/10);
+  if(requiredH>state.sheet.h+.0001){
+    state.sheet.h=requiredH;
+    heightChanged=true;
+  }
+
+  // Safe area is now a hard invariant, not only a diagnostic. Translation is
+  // applied from the ROTATED AABB, so 90°/arbitrary rotations cannot leak out.
+  for(const o of state.objects){
+    ensureRotationModel(o);
+    const b={left:m,top:m,right:state.sheet.w-m,bottom:state.sheet.h-m};
+    let box=rotatedAABB(o);
+    const usableW=b.right-b.left, usableH=b.bottom-b.top;
+
+    // Oversized artwork cannot be made valid by moving it. Existing resize/
+    // import guards handle that case; never silently distort the design here.
+    if(box.w>usableW+.0001 || box.h>usableH+.0001) continue;
+
+    let dx=0,dy=0;
+    if(box.x<b.left) dx=b.left-box.x;
+    else if(box.x+box.w>b.right) dx=b.right-(box.x+box.w);
+    if(box.y<b.top) dy=b.top-box.y;
+    else if(box.y+box.h>b.bottom) dy=b.bottom-(box.y+box.h);
+
+    if(Math.abs(dx)>.000001 || Math.abs(dy)>.000001){
+      o.x+=dx;
+      o.y+=dy;
+    }
+  }
+
+  if(heightChanged){
+    syncSheetInputs();
+    updateBoard();
+  }
+}
+
 function updateDiagnostics(){
+ enforceSafeAreaHardConstraint();
  state.objects.forEach(o=>{
    ensureRotationModel(o);
    o.overlap=false;
@@ -8709,6 +8760,14 @@ async function pasteClipboardBulkFast(times){
 
         n.x=probe.x;
         n.y=probe.y;
+
+        // Absolute postcondition: a bulk duplicate is never committed unless
+        // its rotated footprint is fully inside the printable safe area.
+        if(!objectInsidePrintableArea(n,MAX_SHEET_HEIGHT)){
+          failed++;
+          break;
+        }
+
         state.objects.push(n);
         remember(n);
 
