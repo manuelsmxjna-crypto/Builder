@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v4.4.0 · CLOUD_RUN_SERVER_RENDER · MULTI_SHEET_ORDER_UPLOAD · ROBUST_SOURCE_UPLOAD · FAST_AUTONEST · AUTONEST_4_ROTATIONS · PNG_300DPI_ADOBE -->
+  <!-- SHAPE_NEST_VERSION: v5.2.0 · BIXNEST_V3_PRODUCTION · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -1126,6 +1126,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <span>Recientes</span><span id="assetCount">0 archivos</span>
         </div>
         <div id="assetGrid" class="asset-grid"></div>
+        <button id="assetLoadMoreBtn" type="button" class="ghost-btn wide" style="display:none;margin-top:10px">Mostrar más</button>
       </div>
 
       <div id="textPanel" class="panel-view">
@@ -1255,7 +1256,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
               <div class="autonest-processing-card">
                 <div class="autonest-processing-spinner"></div>
                 <div class="autonest-processing-title">Organizando diseños…</div>
-                <div class="autonest-processing-sub">Buscando la mejor distribución</div>
+                <div class="autonest-processing-sub">Comparando varias distribuciones durante unos segundos</div>
               </div>
             </div>
           </div>
@@ -1546,6 +1547,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const state = {
+  projectId:null,
   sheets:[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}],
   activeSheetIndex:0,
   zoom:1,
@@ -2018,6 +2020,23 @@ const fileInput=$("#fileInput");
 const ASSET_DB_NAME="bixstudio_assets_v1", ASSET_STORE="assets", SESSION_STORE="session", ASSET_DB_VERSION=2;
 const SESSION_KEY="current";
 const SESSION_LS_KEY="bixstudio_session_v1";
+
+// =====================================================================
+// v4.6 · LIGHT LIBRARY
+// - Only a small number of recent originals remain as full local Blobs.
+// - Every new asset gets a small thumbnail for the Recent library.
+// - Older originals are reloaded from Cloud Storage only when reused.
+// - The Recent grid is paginated and browser image decoding is lazy.
+// =====================================================================
+const LIGHT_LIBRARY_PAGE_SIZE=20;
+const LIGHT_LIBRARY_FULL_BLOB_LIMIT=30;
+const LIGHT_LIBRARY_MAX_ITEMS=500;
+const LIGHT_LIBRARY_THUMB_MAX=260;
+const LIGHT_LIBRARY_THUMB_QUALITY=.78;
+
+let assetLibraryVisibleCount=LIGHT_LIBRARY_PAGE_SIZE;
+let assetLibraryLastQuery="";
+
 function openAssetDB(){return new Promise((resolve,reject)=>{
   const req=indexedDB.open(ASSET_DB_NAME,ASSET_DB_VERSION);
   req.onupgradeneeded=()=>{
@@ -2028,13 +2047,265 @@ function openAssetDB(){return new Promise((resolve,reject)=>{
   req.onsuccess=()=>resolve(req.result);
   req.onerror=()=>reject(req.error);
 })}
-async function persistAsset(asset){
- try{const db=await openAssetDB();await new Promise((resolve,reject)=>{const tx=db.transaction(ASSET_STORE,"readwrite");tx.objectStore(ASSET_STORE).put({id:asset.id,name:asset.name,blob:asset.file,w:asset.w,h:asset.h,dpiX:asset.dpiX,dpiY:asset.dpiY,dpiSource:asset.dpiSource,dpiAssumed:!!asset.dpiAssumed,physicalWcm:asset.physicalWcm,physicalHcm:asset.physicalHcm,
+
+function canvasToLibraryBlob(canvas){
+  return new Promise((resolve,reject)=>{
+    const finish=(blob)=>{
+      if(blob) resolve(blob);
+      else reject(new Error("No se pudo crear miniatura"));
+    };
+    // WebP preserves transparency and is usually much smaller than the source PNG.
+    try{
+      canvas.toBlob(blob=>{
+        if(blob) return finish(blob);
+        canvas.toBlob(finish,"image/png");
+      },"image/webp",LIGHT_LIBRARY_THUMB_QUALITY);
+    }catch(_){
+      canvas.toBlob(finish,"image/png");
+    }
+  });
+}
+
+async function ensureAssetThumbnail(asset){
+  if(!asset) return null;
+  if(asset._thumbnailBlob instanceof Blob) return asset._thumbnailBlob;
+
+  const source=asset.file instanceof Blob
+    ? URL.createObjectURL(asset.file)
+    : (asset.src||"");
+
+  if(!source) return null;
+
+  let revoke=false;
+  if(asset.file instanceof Blob && source!==asset.src) revoke=true;
+
+  try{
+    const img=await loadImageFromSrc(source);
+    const scale=Math.min(
+      1,
+      LIGHT_LIBRARY_THUMB_MAX/Math.max(1,img.naturalWidth),
+      LIGHT_LIBRARY_THUMB_MAX/Math.max(1,img.naturalHeight)
+    );
+    const w=Math.max(1,Math.round(img.naturalWidth*scale));
+    const h=Math.max(1,Math.round(img.naturalHeight*scale));
+    const c=document.createElement("canvas");
+    c.width=w;c.height=h;
+    const ctx=c.getContext("2d",{alpha:true});
+    ctx.clearRect(0,0,w,h);
+    ctx.imageSmoothingEnabled=true;
+    ctx.imageSmoothingQuality="high";
+    ctx.drawImage(img,0,0,w,h);
+    const blob=await canvasToLibraryBlob(c);
+    asset._thumbnailBlob=blob;
+    if(asset._thumbnailUrl) try{URL.revokeObjectURL(asset._thumbnailUrl)}catch{}
+    asset._thumbnailUrl=URL.createObjectURL(blob);
+    return blob;
+  }catch(e){
+    console.warn("No se pudo crear miniatura",asset.name,e);
+    return null;
+  }finally{
+    if(revoke) try{URL.revokeObjectURL(source)}catch{}
+  }
+}
+
+function assetLibraryPreviewSrc(asset){
+  if(!asset) return "";
+  if(asset._thumbnailUrl) return asset._thumbnailUrl;
+  if(asset._thumbnailBlob instanceof Blob){
+    asset._thumbnailUrl=URL.createObjectURL(asset._thumbnailBlob);
+    return asset._thumbnailUrl;
+  }
+  return asset.src||"";
+}
+
+function assetCloudStoragePath(asset){
+  return asset?._renderUpload?.storagePath ||
+         asset?._renderUpload?.objectPath ||
+         asset?._renderUpload?.path ||
+         null;
+}
+
+async function ensureAssetOriginalAvailable(asset,{quiet=false}={}){
+  if(!asset) throw new Error("No se encontró el diseño.");
+
+  if(asset.file instanceof Blob && !asset._srcIsThumbnail){
+    asset.updatedAt=Date.now();
+    return asset;
+  }
+
+  const storagePath=assetCloudStoragePath(asset);
+  if(!storagePath){
+    // Legacy entry that has only a local source/thumbnail.
+    if(asset.file instanceof Blob) return asset;
+    throw new Error(`El original de ${asset.name||"este diseño"} ya no está disponible localmente.`);
+  }
+
+  if(asset._originalLoadPromise) return asset._originalLoadPromise;
+
+  asset._originalLoadPromise=(async()=>{
+    if(!quiet) toast(`Cargando original: ${asset.name}`);
+    const info=await bixApi("/download-url",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({objectPath:storagePath})
+    });
+    const url=info.downloadUrl||info.url;
+    if(!url) throw new Error("El servidor no devolvió la URL del original.");
+
+    const response=await fetch(url,{cache:"no-store"});
+    if(!response.ok) throw new Error(`No se pudo descargar el original (HTTP ${response.status}).`);
+    const blob=await response.blob();
+
+    if(asset.src && !asset._srcIsThumbnail){
+      try{URL.revokeObjectURL(asset.src)}catch{}
+    }
+    asset.file=blob;
+    asset.src=URL.createObjectURL(blob);
+    asset._srcIsThumbnail=false;
+    asset.updatedAt=Date.now();
+
+    // The reused file becomes one of the most recent locally cached originals.
+    await persistAsset(asset,{skipPrune:true});
+    void pruneLocalAssetCache();
+
+    renderAssets();
+    renderAll();
+    return asset;
+  })();
+
+  try{
+    return await asset._originalLoadPromise;
+  }finally{
+    asset._originalLoadPromise=null;
+  }
+}
+
+async function persistAsset(asset,{skipPrune=false}={}){
+  try{
+    const thumbnailBlob=await ensureAssetThumbnail(asset);
+    const db=await openAssetDB();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(ASSET_STORE,"readwrite");
+      tx.objectStore(ASSET_STORE).put({
+        id:asset.id,
+        name:asset.name,
+        blob:asset.file instanceof Blob ? asset.file : null,
+        thumbnailBlob:thumbnailBlob||asset._thumbnailBlob||null,
+        w:asset.w,h:asset.h,
+        dpiX:asset.dpiX,dpiY:asset.dpiY,
+        dpiSource:asset.dpiSource,
+        dpiAssumed:!!asset.dpiAssumed,
+        physicalWcm:asset.physicalWcm,
+        physicalHcm:asset.physicalHcm,
         alphaCleaned:!!asset.alphaCleaned,
         alphaThreshold:Number.isFinite(asset.alphaThreshold)?asset.alphaThreshold:null,
         alphaBinary:!!asset.alphaBinary,
         autoTrimmed:!!asset.autoTrimmed,
-        updatedAt:Date.now()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close()}catch(e){console.warn("No se pudo guardar localmente",e)}
+        renderUpload:asset._renderUpload||null,
+        renderProjectId:asset._renderProjectId||null,
+        updatedAt:asset.updatedAt||Date.now()
+      });
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error);
+    });
+    db.close();
+    if(!skipPrune) void pruneLocalAssetCache();
+  }catch(e){
+    console.warn("No se pudo guardar localmente",e);
+  }
+}
+
+async function pruneLocalAssetCache(){
+  try{
+    const db=await openAssetDB();
+    const rows=await new Promise((resolve,reject)=>{
+      const tx=db.transaction(ASSET_STORE,"readonly");
+      const req=tx.objectStore(ASSET_STORE).getAll();
+      req.onsuccess=()=>resolve(req.result||[]);
+      req.onerror=()=>reject(req.error);
+    });
+
+    rows.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+
+    const usedIds=new Set();
+    for(const sheet of state.sheets||[]){
+      for(const o of sheet.objects||[]){
+        if(o.type==="image" && o.assetId) usedIds.add(o.assetId);
+        if(o.originalAssetId) usedIds.add(o.originalAssetId);
+      }
+    }
+
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction(ASSET_STORE,"readwrite");
+      const store=tx.objectStore(ASSET_STORE);
+
+      rows.forEach((row,index)=>{
+        const hasCloud=!!(
+          row.renderUpload?.storagePath ||
+          row.renderUpload?.objectPath ||
+          row.renderUpload?.path
+        );
+
+        // Keep full originals only for the newest files, assets in the current
+        // project, or legacy records that have no cloud copy.
+        if(
+          index>=LIGHT_LIBRARY_FULL_BLOB_LIMIT &&
+          !usedIds.has(row.id) &&
+          hasCloud &&
+          row.thumbnailBlob &&
+          row.blob
+        ){
+          store.put({...row,blob:null});
+        }
+
+        // Metadata/thumbnails are tiny, but still cap historical local entries.
+        // Never delete anything referenced by the currently restorable session.
+        if(index>=LIGHT_LIBRARY_MAX_ITEMS && !usedIds.has(row.id)){
+          store.delete(row.id);
+        }
+      });
+
+      tx.oncomplete=resolve;
+      tx.onerror=()=>reject(tx.error);
+    });
+    db.close();
+  }catch(e){
+    console.warn("No se pudo optimizar la caché local",e);
+  }
+}
+
+function scheduleLegacyThumbnailMigration(assets){
+  const queue=assets.filter(a=>
+    a.file instanceof Blob &&
+    !(a._thumbnailBlob instanceof Blob) &&
+    !!assetCloudStoragePath(a)
+  ).slice(0,30);
+
+  if(!queue.length) return;
+
+  const runOne=async()=>{
+    const asset=queue.shift();
+    if(!asset) return;
+    try{
+      await ensureAssetThumbnail(asset);
+      await persistAsset(asset,{skipPrune:true});
+    }catch(_){}
+    if(queue.length){
+      if("requestIdleCallback" in window){
+        requestIdleCallback(()=>void runOne(),{timeout:1500});
+      }else{
+        setTimeout(()=>void runOne(),350);
+      }
+    }else{
+      void pruneLocalAssetCache();
+    }
+  };
+
+  if("requestIdleCallback" in window){
+    requestIdleCallback(()=>void runOne(),{timeout:1500});
+  }else{
+    setTimeout(()=>void runOne(),500);
+  }
 }
 
 function buildSessionPayload(){
@@ -2048,6 +2319,7 @@ function buildSessionPayload(){
     id:SESSION_KEY,
     version:1,
     savedAt:Date.now(),
+    projectId:state.projectId||null,
     sheets,
     activeSheetIndex:state.activeSheetIndex,
     nextSheetId:state.nextSheetId,
@@ -2120,6 +2392,7 @@ async function clearSessionPayload(){
 }
 function applySessionPayload(payload){
   if(!payload||!Array.isArray(payload.sheets)||!payload.sheets.length) return false;
+  state.projectId=payload.projectId||null;
   state.sheets=payload.sheets.map((s,i)=>({
     id:s.id||("gs"+(i+1)),
     name:s.name||("Gang Sheet "+(i+1)),
@@ -2150,6 +2423,7 @@ function applySessionPayload(payload){
   return true;
 }
 function resetToFreshSession(){
+  state.projectId=null;
   state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}];
   state.activeSheetIndex=0;
   state.nextSheetId=2;
@@ -2217,27 +2491,64 @@ function applyAssumedDpiIfMissing(asset){
 async function loadPersistedAssets(){
  try{
   const db=await openAssetDB();
-  const rows=await new Promise((resolve,reject)=>{const tx=db.transaction(ASSET_STORE,"readonly"),req=tx.objectStore(ASSET_STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)});
+  const rows=await new Promise((resolve,reject)=>{
+    const tx=db.transaction(ASSET_STORE,"readonly");
+    const req=tx.objectStore(ASSET_STORE).getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>reject(req.error);
+  });
   db.close();
+
+  rows.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
+
   for(const row of rows){
-   if(state.assets.some(a=>a.id===row.id))continue;
-   state.assets.push(applyAssumedDpiIfMissing({id:row.id,name:row.name,src:URL.createObjectURL(row.blob),w:row.w,h:row.h,file:row.blob,dpiX:row.dpiX||null,dpiY:row.dpiY||row.dpiX||null,dpiSource:row.dpiSource||null,dpiAssumed:!!row.dpiAssumed,physicalWcm:row.physicalWcm||null,physicalHcm:row.physicalHcm||null,
-        alphaCleaned:!!row.alphaCleaned,
-        alphaThreshold:Number.isFinite(row.alphaThreshold)?row.alphaThreshold:null,
-        alphaBinary:row.alphaBinary===true,
-        autoTrimmed:!!row.autoTrimmed,
-        updatedAt:row.updatedAt||0}))
+    if(state.assets.some(a=>a.id===row.id)) continue;
+
+    const fullBlob=row.blob instanceof Blob ? row.blob : null;
+    const thumbBlob=row.thumbnailBlob instanceof Blob ? row.thumbnailBlob : null;
+    const initialBlob=fullBlob||thumbBlob;
+    const initialSrc=initialBlob ? URL.createObjectURL(initialBlob) : "";
+
+    state.assets.push(applyAssumedDpiIfMissing({
+      id:row.id,
+      name:row.name,
+      src:initialSrc,
+      w:row.w,h:row.h,
+      file:fullBlob,
+      dpiX:row.dpiX||null,
+      dpiY:row.dpiY||row.dpiX||null,
+      dpiSource:row.dpiSource||null,
+      dpiAssumed:!!row.dpiAssumed,
+      physicalWcm:row.physicalWcm||null,
+      physicalHcm:row.physicalHcm||null,
+      alphaCleaned:!!row.alphaCleaned,
+      alphaThreshold:Number.isFinite(row.alphaThreshold)?row.alphaThreshold:null,
+      alphaBinary:row.alphaBinary===true,
+      autoTrimmed:!!row.autoTrimmed,
+      _renderUpload:row.renderUpload||null,
+      _renderProjectId:row.renderProjectId||null,
+      _thumbnailBlob:thumbBlob,
+      _thumbnailUrl:thumbBlob ? URL.createObjectURL(thumbBlob) : null,
+      _srcIsThumbnail:!fullBlob && !!thumbBlob,
+      updatedAt:row.updatedAt||0
+    }));
   }
+
+  // No full-resolution alpha inspection loop here. That was a major startup cost.
+  // Persisted alpha metadata is trusted and the original is inspected only when
+  // the user actually reuses/processes that asset.
   state.assets.sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0));
-  for(const a of state.assets){
-    if(a.alphaBinary!==true && !a.alphaCleaned){
-      const info=await inspectSourceAlpha(a);
-      a.alphaBinary=!!info.binary;
-      persistAsset(a);
-    }
-  }
-  renderAssets()
- }catch(e){console.warn("No se restauraron cargas locales",e)}
+  assetLibraryVisibleCount=LIGHT_LIBRARY_PAGE_SIZE;
+  renderAssets();
+
+  // Old databases are migrated slowly while the browser is idle.
+  scheduleLegacyThumbnailMigration(state.assets);
+
+  // Do NOT automatically re-upload every historical image on startup.
+  // Only assets actually reused by this project are hydrated/uploaded on demand.
+ }catch(e){
+  console.warn("No se restauraron cargas locales",e);
+ }
 }
 
 function assetById(id){return state.assets.find(a=>a.id===id)||null}
@@ -3129,6 +3440,7 @@ function renderAll(){
  layer.classList.toggle("show-dpi",state.showResolution);
  state.objects.forEach(o=>{ensureAspect(o);ensureRotationModel(o);renderObject(o)}); updateSelectionPanel(); renderSheetsPanel(); syncSheetInputs();
  renderAssets();
+ scheduleAutoNestWarmup();
 }
 function renderObject(o){
  const el=document.createElement("div");
@@ -3675,6 +3987,13 @@ async function addAsset(file){
     const trimInfo=await ensureAssetAutoTrimmed(asset);
     state.assets.unshift(asset);
     renderAssets();
+
+    // v4.5: start uploading the source immediately in the background.
+    // The customer can keep arranging the gang sheet while transfer happens.
+    void scheduleAssetBackgroundUpload(asset).catch(error=>{
+      console.warn("[BixStudio background upload]",asset.name,error);
+    });
+
     const wcm=asset.physicalWcm, hcm=asset.physicalHcm;
     const trimTxt=trimInfo.trimmed?" · márgenes recortados":"";
     if(asset.dpiAssumed){
@@ -3772,7 +4091,8 @@ function renderAssetCard(grid,a,sizeGroup=null){
     ? `Uso: ${sizeGroup.w.toFixed(2)} × ${sizeGroup.h.toFixed(2)} cm`
     : baseMeta;
 
-  c.innerHTML=`<img src="${a.src}"><div class="name">${escapeHtml(a.name)}<br><span style="color:#7b8490">${sizeMeta}</span></div>`;
+  const previewSrc=assetLibraryPreviewSrc(a);
+  c.innerHTML=`<img loading="lazy" decoding="async" src="${previewSrc}"><div class="name">${escapeHtml(a.name)}<br><span style="color:#7b8490">${sizeMeta}</span></div>`;
 
   const count=sizeGroup ? sizeGroup.count : 0;
 
@@ -3793,25 +4113,29 @@ function renderAssetCard(grid,a,sizeGroup=null){
 }
 
 function renderAssets(){
-  const q=$("#searchFiles").value.toLowerCase();
+  const q=$("#searchFiles").value.toLowerCase().trim();
   const grid=$("#assetGrid");
   grid.innerHTML="";
 
+  if(q!==assetLibraryLastQuery){
+    assetLibraryLastQuery=q;
+    assetLibraryVisibleCount=LIGHT_LIBRARY_PAGE_SIZE;
+  }
+
   const arr=state.assets.filter(a=>a.name.toLowerCase().includes(q));
+  const page=arr.slice(0,assetLibraryVisibleCount);
 
   let visibleLayers=0;
 
-  arr.forEach(a=>{
+  page.forEach(a=>{
     const groups=assetSizeGroups(a.id);
 
     if(groups.length){
-      // One visible "layer" per design + exact physical size.
       groups.forEach(g=>{
         renderAssetCard(grid,a,g);
         visibleLayers++;
       });
     }else{
-      // Newly uploaded / unused artwork still appears once.
       renderAssetCard(grid,a,null);
       visibleLayers++;
     }
@@ -3819,13 +4143,25 @@ function renderAssets(){
 
   const label=$("#assetCount");
   if(label){
-    label.textContent=
-      visibleLayers===arr.length
-        ? `${arr.length} archivos`
-        : `${arr.length} diseños · ${visibleLayers} tamaños`;
+    label.textContent=arr.length>page.length
+      ? `${page.length} de ${arr.length}`
+      : `${arr.length} archivos`;
+  }
+
+  const more=$("#assetLoadMoreBtn");
+  if(more){
+    const remaining=Math.max(0,arr.length-page.length);
+    more.style.display=remaining?"":"none";
+    more.textContent=remaining
+      ? `Mostrar más (${Math.min(LIGHT_LIBRARY_PAGE_SIZE,remaining)})`
+      : "Mostrar más";
   }
 }
 $("#searchFiles").addEventListener("input",renderAssets);
+$("#assetLoadMoreBtn")?.addEventListener("click",()=>{
+  assetLibraryVisibleCount+=LIGHT_LIBRARY_PAGE_SIZE;
+  renderAssets();
+});
 
 
 function activeSheetRecord(){return state.sheets[state.activeSheetIndex]}
@@ -4297,6 +4633,20 @@ async function cloneAssetForTrim(source){
 }
 async function insertAsset(a,sizeOverride=null){
  let asset=a;
+
+ // A Recent card may contain only a tiny thumbnail. Fetch the original from
+ // Cloud Storage only when the user actually reuses it.
+ try{
+   asset=await ensureAssetOriginalAvailable(asset);
+ }catch(e){
+   console.error(e);
+   toast(e.message||"No se pudo recuperar el archivo original");
+   return;
+ }
+
+ asset.updatedAt=Date.now();
+ void persistAsset(asset);
+
  // Trim transparent margins before placing (covers older library assets too).
  if(!asset.autoTrimmed){
    toast("Recortando márgenes…");
@@ -4608,7 +4958,9 @@ async function createProcessedAsset(base,blob,w,h,nameSuffix,physicalWcm,physica
  }
 
  const a={id:"a"+Date.now()+Math.random().toString(36).slice(2),name:processedName,src:URL.createObjectURL(blob),w,h,file:blob,dpiX,dpiY,dpiSource:"BixStudio",physicalWcm,physicalHcm,alphaCleaned:!!flags.alphaBinary,alphaThreshold:flags.alphaBinary?128:null,alphaBinary:!!flags.alphaBinary,autoTrimmed:!!flags.autoTrimmed,updatedAt:Date.now()};
- state.assets.unshift(a);await persistAsset(a);renderAssets();return a;
+ state.assets.unshift(a);await persistAsset(a);renderAssets();
+ void scheduleAssetBackgroundUpload(a).catch(error=>console.warn("[BixStudio processed upload]",a.name,error));
+ return a;
 }
 function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
  if(!o.originalAssetId)o.originalAssetId=o.assetId;
@@ -5788,7 +6140,7 @@ function currentNestUsedHeight(){
   }
   return Math.max(0,bottom-m);
 }
-const INLINE_NEST_WORKER_SOURCE="\n'use strict';\n\nlet cancelled=false;\n\nfunction postProgress(pct,label){\n  self.postMessage({type:'progress',pct,label});\n}\nfunction cmpScore(a,b){\n  for(let i=0;i<a.length;i++){\n    if(a[i]<b[i]) return -1;\n    if(a[i]>b[i]) return 1;\n  }\n  return 0;\n}\nfunction collides(shape,x,y,grid,gw,gh){\n  x|=0;y|=0;\n  if(x<0||y<0||x+shape.w>gw||y+shape.h>gh) return true;\n  const sd=shape.data;\n  for(let sy=0;sy<shape.h;sy++){\n    let si=sy*shape.w, gi=(y+sy)*gw+x;\n    for(let sx=0;sx<shape.w;sx++){\n      if(sd[si+sx] && grid[gi+sx]) return true;\n    }\n  }\n  return false;\n}\nfunction mark(shape,x,y,grid,gw,gh,gap){\n  // Small Chebyshev dilation at placement time; cheaper than storing expanded masks.\n  const sd=shape.data, r=Math.max(0,gap|0);\n  for(let sy=0;sy<shape.h;sy++){\n    for(let sx=0;sx<shape.w;sx++){\n      if(!sd[sy*shape.w+sx]) continue;\n      const gx=x+sx, gy=y+sy;\n      for(let yy=Math.max(0,gy-r);yy<=Math.min(gh-1,gy+r);yy++){\n        const row=yy*gw;\n        for(let xx=Math.max(0,gx-r);xx<=Math.min(gw-1,gx+r);xx++){\n          grid[row+xx]=1;\n        }\n      }\n    }\n  }\n}\nfunction compact(shape,x,y,grid,gw,gh){\n  if(collides(shape,x,y,grid,gw,gh)) return null;\n  let changed=true, guard=0;\n  while(changed && guard++<5){\n    changed=false;\n    while(x>0 && !collides(shape,x-1,y,grid,gw,gh)){x--;changed=true}\n    while(y>0 && !collides(shape,x,y-1,grid,gw,gh)){y--;changed=true}\n  }\n  return {x,y};\n}\nfunction bboxCandidates(shape,placed,gw,gh,gap){\n  const out=[{x:0,y:0}];\n  for(const p of placed){\n    out.push(\n      {x:p.x+p.w+gap,y:p.y},\n      {x:p.x,y:p.y+p.h+gap},\n      {x:Math.max(0,p.x-shape.w-gap),y:p.y},\n      {x:p.x,y:Math.max(0,p.y-shape.h-gap)}\n    );\n  }\n  return out;\n}\nfunction frontierCandidates(shape,grid,gw,searchH,placed,gap,quality){\n  const seen=new Set(), out=[];\n  const push=(x,y)=>{\n    x=Math.max(0,Math.min(gw-shape.w,x|0));\n    y=Math.max(0,Math.min(searchH-shape.h,y|0));\n    const k=x+'|'+y;\n    if(!seen.has(k)){seen.add(k);out.push({x,y})}\n  };\n  for(const p of bboxCandidates(shape,placed,gw,searchH,gap)) push(p.x,p.y);\n\n  // Adaptive frontier sampling. Mobile/large jobs use fewer candidates.\n  const stride = quality==='fast' ? 2 : 1;\n  const maxFrontier = quality==='fast' ? 420 : quality==='balanced' ? 760 : 1200;\n  let added=0;\n  outer:\n  for(let y=0;y<searchH;y+=stride){\n    const row=y*gw;\n    for(let x=0;x<gw;x+=stride){\n      if(grid[row+x]) continue;\n      const left=x>0 && grid[row+x-1];\n      const up=y>0 && grid[(y-1)*gw+x];\n      if(!left && !up) continue;\n      push(x,y);\n      push(x-shape.w+1,y);\n      push(x,y-shape.h+1);\n      push(x-shape.w+1,y-shape.h+1);\n      added++;\n      if(added>=maxFrontier) break outer;\n    }\n  }\n  return out;\n}\nfunction bestSlot(shape,grid,gw,gh,placed,gap,quality){\n  const usedBottom=placed.length ? Math.max(...placed.map(p=>p.y+p.h)) : 0;\n  const searchH=Math.min(gh,Math.max(shape.h,usedBottom+shape.h+gap+2));\n  let starts=frontierCandidates(shape,grid,gw,searchH,placed,gap,quality);\n  if(!starts.length) starts=[{x:0,y:usedBottom+gap}];\n\n  let best=null;\n  const finals=new Set();\n  for(const st of starts){\n    if(cancelled) return null;\n    if(collides(shape,st.x,st.y,grid,gw,gh)) continue;\n    const c=compact(shape,st.x,st.y,grid,gw,gh);\n    if(!c) continue;\n    const key=c.x+'|'+c.y;\n    if(finals.has(key)) continue;\n    finals.add(key);\n    const usedH=Math.max(c.y+shape.h,usedBottom);\n    const score=[usedH,c.y,c.x,c.x+shape.w];\n    if(!best || cmpScore(score,best.score)<0) best={...c,score};\n    if(c.x===0 && c.y===0) break;\n  }\n  return best;\n}\nfunction layout(items,shapeMap,gw,gh,gap,mode,allowRotate,quality){\n  const sorted=[...items];\n  if(mode==='maxSide'){\n    sorted.sort((a,b)=>Math.max(b.baseW,b.baseH)-Math.max(a.baseW,a.baseH));\n  }else if(mode==='width'){\n    sorted.sort((a,b)=>b.baseW-a.baseW || b.baseH-a.baseH);\n  }else if(mode==='height'){\n    sorted.sort((a,b)=>b.baseH-a.baseH || b.baseW-a.baseW);\n  }else{\n    sorted.sort((a,b)=>(b.baseW*b.baseH)-(a.baseW*a.baseH));\n  }\n\n  const occupancy=new Uint8Array(gw*gh);\n  const placed=[];\n  let rotations=0,usedH=0,usedW=0,area=0;\n\n  for(let i=0;i<sorted.length;i++){\n    if(cancelled) return null;\n    const item=sorted[i];\n    const options=[];\n    const seenKeys=new Set();\n    const qs=allowRotate?[0,1,2,3]:[0];\n    for(const q of qs){\n      const key=item['k'+q];\n      if(!key || seenKeys.has(key)) continue;\n      seenKeys.add(key);\n      options.push({q,key});\n    }\n\n    let best=null;\n    for(const opt of options){\n      const shape=shapeMap.get(opt.key);\n      if(!shape||shape.w>gw||shape.h>gh) continue;\n      const slot=bestSlot(shape,occupancy,gw,gh,placed,gap,quality);\n      if(!slot) continue;\n      const score=slot.score;\n      if(!best || cmpScore(score,best.score)<0) best={...slot,shape,q:opt.q};\n    }\n    if(!best) return null;\n\n    mark(best.shape,best.x,best.y,occupancy,gw,gh,gap);\n    const p={\n      id:item.id,\n      x:best.x,y:best.y,\n      w:best.shape.w,h:best.shape.h,\n      q:best.q,\n      rot:best.q*90\n    };\n    placed.push(p);\n    if(best.q!==0) rotations++;\n    usedH=Math.max(usedH,p.y+p.h);\n    usedW=Math.max(usedW,p.x+p.w);\n    area+=best.shape.occupied||0;\n  }\n  const waste=Math.max(0,usedW*usedH-area);\n  return {placed,usedH,usedW,waste,rotations};\n}\nfunction better(a,b){\n  if(!b) return true;\n  if(a.usedH!==b.usedH) return a.usedH<b.usedH;\n  if(a.waste!==b.waste) return a.waste<b.waste;\n  if(a.rotations!==b.rotations) return a.rotations<b.rotations;\n  return a.usedW<b.usedW;\n}\n\nself.onmessage=(e)=>{\n  const msg=e.data||{};\n  if(msg.type==='cancel'){cancelled=true;return}\n  if(msg.type!=='run') return;\n  cancelled=false;\n\n  try{\n    const {items,shapes,gw,gh,gap,allowRotate,quality='balanced'}=msg;\n    const shapeMap=new Map();\n    for(const s of shapes){\n      shapeMap.set(s.key,{...s,data:new Uint8Array(s.data)});\n    }\n\n    // Faster adaptive search budget.\n    const modes=items.length>70\n      ? ['area']\n      : items.length>18\n        ? ['area','maxSide']\n        : ['area','maxSide','width'];\n    let best=null;\n    for(let i=0;i<modes.length;i++){\n      if(cancelled) throw new Error('cancelled');\n      postProgress(Math.round((i/modes.length)*90),`Organizando ${i+1}/${modes.length}`);\n      const r=layout(items,shapeMap,gw,gh,gap,modes[i],allowRotate,quality);\n      if(r && better(r,best)) best=r;\n    }\n    if(cancelled) throw new Error('cancelled');\n    postProgress(100,'Listo');\n    self.postMessage({type:'done',ok:!!best,result:best});\n  }catch(err){\n    self.postMessage({type:'done',ok:false,error:String(err&&err.message||err)});\n  }\n};\n";
+const INLINE_NEST_WORKER_SOURCE="'use strict';\n\nlet cancelled=false;\nconst tnow=()=>Date.now();\n\nfunction postProgress(pct,label,extra={}){\n  self.postMessage({type:'progress',pct,label,...extra});\n}\nfunction cmp(a,b){\n  const n=Math.max(a.length,b.length);\n  for(let i=0;i<n;i++){\n    const av=a[i]??0,bv=b[i]??0;\n    if(av<bv)return -1;\n    if(av>bv)return 1;\n  }\n  return 0;\n}\nfunction better(a,b){\n  if(!a)return false;\n  if(!b)return true;\n  return cmp(\n    [a.usedH,a.waste||0,-(a.contact||0),a.rotations||0,a.usedW||0],\n    [b.usedH,b.waste||0,-(b.contact||0),b.rotations||0,b.usedW||0]\n  )<0;\n}\nfunction collides(shape,x,y,grid,gw,gh){\n  x|=0;y|=0;\n  if(x<0||y<0||x+shape.w>gw||y+shape.h>gh)return true;\n  const sd=shape.data;\n  for(let sy=0;sy<shape.h;sy++){\n    const si=sy*shape.w,gi=(y+sy)*gw+x;\n    for(let sx=0;sx<shape.w;sx++){\n      if(sd[si+sx]&&grid[gi+sx])return true;\n    }\n  }\n  return false;\n}\nfunction mark(shape,x,y,grid,gw,gh,gap){\n  const sd=shape.data,r=Math.max(0,gap|0);\n  for(let sy=0;sy<shape.h;sy++){\n    for(let sx=0;sx<shape.w;sx++){\n      if(!sd[sy*shape.w+sx])continue;\n      const gx=x+sx,gy=y+sy;\n      for(let yy=Math.max(0,gy-r);yy<=Math.min(gh-1,gy+r);yy++){\n        const row=yy*gw;\n        for(let xx=Math.max(0,gx-r);xx<=Math.min(gw-1,gx+r);xx++){\n          grid[row+xx]=1;\n        }\n      }\n    }\n  }\n}\nfunction contact(shape,x,y,grid,gw,gh){\n  let c=0;\n  const sd=shape.data;\n  for(let sy=0;sy<shape.h;sy++){\n    for(let sx=0;sx<shape.w;sx++){\n      if(!sd[sy*shape.w+sx])continue;\n      const gx=x+sx,gy=y+sy;\n      if(gx===0||gx===gw-1)c++;\n      if(gy===0)c++;\n      if(gx>0&&grid[gy*gw+gx-1])c++;\n      if(gx+1<gw&&grid[gy*gw+gx+1])c++;\n      if(gy>0&&grid[(gy-1)*gw+gx])c++;\n      if(gy+1<gh&&grid[(gy+1)*gw+gx])c++;\n    }\n  }\n  return c;\n}\nfunction options(item,shapeMap,allowRotate){\n  const out=[],seen=new Set();\n  const qs=allowRotate?[0,1,2,3]:[0];\n  for(const q of qs){\n    const key=item['k'+q];\n    if(!key||seen.has(key))continue;\n    const shape=shapeMap.get(key);\n    if(!shape)continue;\n    seen.add(key);\n    out.push({q,key,shape});\n  }\n  return out;\n}\nfunction orderItems(items,mode){\n  const groupCount=new Map();\n  for(const it of items){\n    const k=(it.assetId||it.type||it.id)+'|'+(+it.baseW||0).toFixed(3)+'|'+(+it.baseH||0).toFixed(3);\n    groupCount.set(k,(groupCount.get(k)||0)+1);\n    it._dupKey=k;\n  }\n  const a=[...items];\n  if(mode==='duplicates'){\n    a.sort((x,y)=>(groupCount.get(y._dupKey)||1)-(groupCount.get(x._dupKey)||1) ||\n      (y.baseW*y.baseH)-(x.baseW*x.baseH));\n  }else if(mode==='maxSide'){\n    a.sort((x,y)=>Math.max(y.baseW,y.baseH)-Math.max(x.baseW,x.baseH));\n  }else if(mode==='width'){\n    a.sort((x,y)=>y.baseW-x.baseW||y.baseH-x.baseH);\n  }else if(mode==='height'){\n    a.sort((x,y)=>y.baseH-x.baseH||y.baseW-x.baseW);\n  }else if(mode==='perimeter'){\n    a.sort((x,y)=>(y.baseW+y.baseH)-(x.baseW+x.baseH));\n  }else if(mode==='random'){\n    // deterministic pseudo-random order so repeated clicks stay stable\n    const h=s=>{let v=2166136261;for(let i=0;i<s.length;i++){v^=s.charCodeAt(i);v=Math.imul(v,16777619)}return v>>>0};\n    a.sort((x,y)=>h(String(x.id))-h(String(y.id)));\n  }else{\n    a.sort((x,y)=>(y.baseW*y.baseH)-(x.baseW*x.baseH));\n  }\n  return a;\n}\nfunction finalize(placed,area,contactTotal,rotations){\n  let usedH=0,usedW=0;\n  for(const p of placed){\n    usedH=Math.max(usedH,p.y+p.h);\n    usedW=Math.max(usedW,p.x+p.w);\n  }\n  const waste=Math.max(0,usedW*usedH-area);\n  return {placed,usedH,usedW,waste,area,contact:contactTotal,rotations};\n}\n\n// GUARANTEED incumbent for normal feasible jobs:\n// shelf placement never depends on heuristic candidate discovery.\n// If a piece can fit the fixed width in an allowed orientation, it can always\n// be placed in a fresh row. This gives Auto Organizar a valid answer first.\nfunction safeShelf(items,shapeMap,gw,gh,gap,allowRotate,mode){\n  const sorted=orderItems(items,mode||'area');\n  const placed=[];\n  let x=0,y=0,rowH=0,area=0,contactTotal=0,rotations=0;\n\n  for(const item of sorted){\n    if(cancelled)return null;\n    const opts=options(item,shapeMap,allowRotate).filter(o=>o.shape.w<=gw&&o.shape.h<=gh);\n    if(!opts.length){\n      return {impossible:true,reason:'too-wide',itemId:item.id};\n    }\n\n    // Prefer the orientation that best fills the remaining row.\n    opts.sort((a,b)=>{\n      const afit=a.shape.w<=gw-x,bfit=b.shape.w<=gw-x;\n      if(afit!==bfit)return afit?-1:1;\n      const ah=Math.max(rowH,a.shape.h),bh=Math.max(rowH,b.shape.h);\n      if(ah!==bh)return ah-bh;\n      return b.shape.w-a.shape.w;\n    });\n\n    let opt=opts[0];\n    if(x>0 && opt.shape.w>gw-x){\n      y+=rowH+gap;\n      x=0;rowH=0;\n      opts.sort((a,b)=>a.shape.h-b.shape.h||b.shape.w-a.shape.w);\n      opt=opts[0];\n    }\n\n    if(y+opt.shape.h>gh){\n      return {overflow:true,reason:'height',placed};\n    }\n\n    const p={id:item.id,x,y,w:opt.shape.w,h:opt.shape.h,q:opt.q,rot:opt.q*90};\n    placed.push(p);\n    area+=opt.shape.occupied||0;\n    if(opt.q!==0)rotations++;\n    rowH=Math.max(rowH,opt.shape.h);\n    x+=opt.shape.w+gap;\n  }\n  return finalize(placed,area,contactTotal,rotations);\n}\n\nfunction buildGridFromPlaced(placed,shapeMap,itemsById,gw,gh,gap,skipId=null){\n  const grid=new Uint8Array(gw*gh);\n  for(const p of placed){\n    if(skipId&&p.id===skipId)continue;\n    const item=itemsById.get(p.id);\n    if(!item)continue;\n    const key=item['k'+p.q];\n    const shape=shapeMap.get(key);\n    if(shape)mark(shape,p.x,p.y,grid,gw,gh,gap);\n  }\n  return grid;\n}\n\n// Complete raster candidate scan over the currently relevant strip.\n// No frontier/skyline heuristic can \"miss\" a feasible grid position here.\nfunction bestCompleteSlot(item,grid,shapeMap,gw,gh,gap,allowRotate,usedH,deadline){\n  let best=null;\n  const opts=options(item,shapeMap,allowRotate);\n\n  for(const opt of opts){\n    const s=opt.shape;\n    if(s.w>gw||s.h>gh)continue;\n\n    // Search all rows up to a little below current used height. If nothing\n    // fits, fresh rows below usedH are also scanned.\n    const maxY=Math.min(gh-s.h,Math.max(0,usedH+s.h+gap));\n    for(let y=0;y<=maxY;y++){\n      if(tnow()>deadline||cancelled)return best;\n      for(let x=0;x<=gw-s.w;x++){\n        if(collides(s,x,y,grid,gw,gh))continue;\n        const newH=Math.max(usedH,y+s.h);\n        const c=contact(s,x,y,grid,gw,gh);\n        const score=[newH,-c,y,x];\n        if(!best||cmp(score,best.score)<0){\n          best={x,y,q:opt.q,shape:s,score,contact:c};\n          // Absolute best height cannot be beaten below y=0.\n          if(newH===usedH&&y===0&&c>0)break;\n        }\n      }\n    }\n  }\n  return best;\n}\n\nfunction completeConstruct(items,shapeMap,gw,gh,gap,allowRotate,mode,deadline){\n  const sorted=orderItems(items,mode);\n  const placed=[],grid=new Uint8Array(gw*gh);\n  let usedH=0,usedW=0,area=0,contactTotal=0,rotations=0;\n\n  for(let i=0;i<sorted.length;i++){\n    if(cancelled||tnow()>deadline)return null;\n    const item=sorted[i];\n    let best=bestCompleteSlot(item,grid,shapeMap,gw,gh,gap,allowRotate,usedH,deadline);\n\n    // Guaranteed extension: if detailed scan did not finish/find a slot,\n    // place the item in the first fresh row below current content.\n    if(!best){\n      const opts=options(item,shapeMap,allowRotate)\n        .filter(o=>o.shape.w<=gw&&usedH+gap+o.shape.h<=gh)\n        .sort((a,b)=>a.shape.h-b.shape.h||a.shape.w-b.shape.w);\n      if(!opts.length)return null;\n      const opt=opts[0];\n      best={x:0,y:placed.length?usedH+gap:0,q:opt.q,shape:opt.shape,contact:0};\n    }\n\n    mark(best.shape,best.x,best.y,grid,gw,gh,gap);\n    const p={id:item.id,x:best.x,y:best.y,w:best.shape.w,h:best.shape.h,q:best.q,rot:best.q*90};\n    placed.push(p);\n    usedH=Math.max(usedH,p.y+p.h);\n    usedW=Math.max(usedW,p.x+p.w);\n    area+=best.shape.occupied||0;\n    contactTotal+=best.contact||0;\n    if(best.q!==0)rotations++;\n  }\n  return finalize(placed,area,contactTotal,rotations);\n}\n\n// Cheap local improvement focused on the pieces that determine material length.\n// Reinsert bottom-most pieces using a complete scan above their current bottom.\nfunction compactTail(result,items,shapeMap,gw,gh,gap,allowRotate,deadline){\n  if(!result||!result.placed?.length)return result;\n  const itemsById=new Map(items.map(i=>[i.id,i]));\n  let best=result;\n  let placed=best.placed.map(p=>({...p}));\n\n  for(let pass=0;pass<2;pass++){\n    if(tnow()>deadline||cancelled)break;\n\n    // Pieces nearest the bottom edge determine total gang-sheet length.\n    const tail=[...placed].sort((a,b)=>(b.y+b.h)-(a.y+a.h)).slice(0,Math.min(10,placed.length));\n\n    let changed=false;\n    for(const target of tail){\n      if(tnow()>deadline||cancelled)break;\n      const item=itemsById.get(target.id);\n      if(!item)continue;\n\n      const grid=buildGridFromPlaced(placed,shapeMap,itemsById,gw,gh,gap,target.id);\n      let currentOtherH=0;\n      for(const p of placed)if(p.id!==target.id)currentOtherH=Math.max(currentOtherH,p.y+p.h);\n\n      const slot=bestCompleteSlot(item,grid,shapeMap,gw,gh,gap,allowRotate,currentOtherH,deadline);\n      if(!slot)continue;\n\n      const oldBottom=target.y+target.h;\n      const newBottom=slot.y+slot.shape.h;\n      if(newBottom<oldBottom || (newBottom===oldBottom && slot.x<target.x)){\n        target.x=slot.x;target.y=slot.y;target.w=slot.shape.w;target.h=slot.shape.h;target.q=slot.q;target.rot=slot.q*90;\n        changed=true;\n      }\n    }\n\n    if(!changed)break;\n\n    let area=0,rotations=0;\n    for(const p of placed){\n      const item=itemsById.get(p.id);\n      const shape=item?shapeMap.get(item['k'+p.q]):null;\n      area+=shape?.occupied||0;\n      if(p.q!==0)rotations++;\n    }\n    const candidate=finalize(placed.map(p=>({...p})),area,0,rotations);\n    if(better(candidate,best))best=candidate;\n  }\n  return best;\n}\n\nself.onmessage=(e)=>{\n  const msg=e.data||{};\n  if(msg.type==='cancel'){cancelled=true;return;}\n  if(msg.type!=='run')return;\n  cancelled=false;\n\n  try{\n    const {\n      items,shapes,gw,gh,gap,allowRotate,\n      mode='area',budgetMs=2200\n    }=msg;\n\n    const shapeMap=new Map();\n    for(const s of shapes)shapeMap.set(s.key,{...s,data:new Uint8Array(s.data)});\n\n    const started=tnow();\n    const deadline=started+Math.max(700,Math.min(5000,budgetMs|0));\n\n    // 1) Immediate incumbent.\n    let best=safeShelf(items,shapeMap,gw,gh,gap,allowRotate,mode);\n    if(best?.impossible){\n      self.postMessage({type:'done',ok:false,impossible:true,itemId:best.itemId,error:'Una pieza no cabe en el ancho de la hoja.'});\n      return;\n    }\n\n    if(best&&!best.overflow){\n      self.postMessage({type:'incumbent',result:best,label:'Solución válida'});\n    }else{\n      best=null;\n    }\n\n    // 2) Complete raster construction for this independent portfolio mode.\n    if(tnow()<deadline){\n      postProgress(35,'Optimizando distribución');\n      const improved=completeConstruct(items,shapeMap,gw,gh,gap,allowRotate,mode,deadline);\n      if(improved&&better(improved,best)){\n        best=improved;\n        self.postMessage({type:'incumbent',result:best,label:'Mejor distribución'});\n      }\n    }\n\n    // 3) Tail-focused gravity/local improvement.\n    if(best&&tnow()<deadline){\n      postProgress(75,'Compactando espacio');\n      const compacted=compactTail(best,items,shapeMap,gw,gh,gap,allowRotate,deadline);\n      if(compacted&&better(compacted,best)){\n        best=compacted;\n        self.postMessage({type:'incumbent',result:best,label:'Distribución compactada'});\n      }\n    }\n\n    postProgress(100,'Listo');\n    self.postMessage({type:'done',ok:!!best,result:best});\n  }catch(err){\n    self.postMessage({type:'done',ok:false,error:String(err&&err.message||err)});\n  }\n};";
 let inlineNestWorkerUrl=null;
 function createNestWorker(){
   // Always use the worker embedded in this HTML.
@@ -5802,59 +6154,117 @@ function createNestWorker(){
   return new Worker(inlineNestWorkerUrl);
 }
 
-function runNestWorker(payload,onProgress){
-  return new Promise((resolve,reject)=>{
-    let w;
-    try{w=createNestWorker()}catch(e){reject(e);return}
-    let settled=false;
-    let retriedInline=false;
-    const cleanup=()=>{try{w.terminate()}catch{}};
-    const send=()=>{
-      try{
-        // Do not include the transfer list itself in the structured-cloned payload.
-        const transfers=payload.transfers||[];
-        const msg={...payload};
-        delete msg.transfers;
-        w.postMessage(msg,transfers);
-      }catch(err){
-        cleanup();reject(err);
-      }
-    };
-    const attach=()=>{
-      w.onmessage=e=>{
-        const msg=e.data||{};
-        if(msg.type==="progress"){onProgress?.(msg);return}
-        if(msg.type==="done"){
-          settled=true;cleanup();
-          if(msg.ok) resolve(msg.result);
-          else reject(new Error(msg.error||"El motor de organización no encontró una solución"));
-        }
-      };
-      w.onerror=e=>{
-        if(settled)return;
-        const reason=e?.message||"No se pudo cargar el motor de organización";
-        console.error("[ShapeNest worker]",e);
-        // A Worker constructor can succeed even if the URL later returns 404/HTML.
-        // Retry once using the embedded source.
-        if(!retriedInline){
-          retriedInline=true;cleanup();
-          try{
-            if(!inlineNestWorkerUrl) inlineNestWorkerUrl=URL.createObjectURL(new Blob([INLINE_NEST_WORKER_SOURCE],{type:"text/javascript"}));
-            w=new Worker(inlineNestWorkerUrl);
-            attach();
-            // buffers from the first failed send may already be detached, so reject
-            // here with a precise error rather than silently hanging. The caller can retry.
-            reject(new Error(reason+". Recarga y vuelve a intentar; ya quedó activado el worker integrado."));
-          }catch(err){reject(err)}
-          return;
-        }
-        cleanup();reject(new Error(reason));
-      };
-    };
-    attach();send();
-  });
+function nestResultBetter(a,b){
+  if(!a) return false;
+  if(!b) return true;
+  const as=[a.usedH,a.waste||0,-(a.contact||0),a.rotations||0,a.usedW||0];
+  const bs=[b.usedH,b.waste||0,-(b.contact||0),b.rotations||0,b.usedW||0];
+  for(let i=0;i<as.length;i++){
+    if(as[i]<bs[i]) return true;
+    if(as[i]>bs[i]) return false;
+  }
+  return false;
 }
 
+function runNestPortfolio(payload,onProgress){
+  return new Promise((resolve,reject)=>{
+    const count=payload.items?.length||0;
+    const cores=Math.max(2,navigator.hardwareConcurrency||4);
+
+    const modes=count<=14
+      ? ["duplicates","area","maxSide","width","height","perimeter","random"]
+      : count<=45
+        ? ["duplicates","area","maxSide","width"]
+        : ["duplicates","area","maxSide"];
+
+    const workerCount=Math.max(1,Math.min(modes.length,Math.max(2,cores-1),6));
+    const selectedModes=modes.slice(0,workerCount);
+
+    let best=null;
+    let finished=0;
+    let impossible=null;
+    let settled=false;
+    const workers=[];
+    const started=performance.now();
+
+    const totalBudget=payload.portfolioBudgetMs || (count<=20?2600:count<=70?2300:1900);
+    const hardTimer=setTimeout(()=>{
+      if(settled)return;
+      settled=true;
+      workers.forEach(w=>{try{w.terminate()}catch{}});
+      if(best) resolve(best);
+      else if(impossible) reject(new Error(impossible));
+      else reject(new Error("No se pudo construir una distribución válida dentro del límite de la hoja."));
+    },totalBudget+700);
+
+    const finishOne=()=>{
+      finished++;
+      if(finished<selectedModes.length||settled)return;
+      settled=true;
+      clearTimeout(hardTimer);
+      workers.forEach(w=>{try{w.terminate()}catch{}});
+      if(best)resolve(best);
+      else if(impossible)reject(new Error(impossible));
+      else reject(new Error("No se pudo construir una distribución válida dentro del límite de la hoja."));
+    };
+
+    selectedModes.forEach((mode,index)=>{
+      let w;
+      try{
+        w=createNestWorker();
+        workers.push(w);
+      }catch(e){
+        finishOne();
+        return;
+      }
+
+      w.onmessage=e=>{
+        const msg=e.data||{};
+
+        if(msg.type==="incumbent" && msg.result){
+          if(nestResultBetter(msg.result,best)){
+            best=msg.result;
+            const cm=(best.usedH/(payload.grid||1)).toFixed(1);
+            onProgress?.({label:`Mejor opción: ${cm} cm`,pct:Math.min(90,25+index*8)});
+          }
+          return;
+        }
+
+        if(msg.type==="progress"){
+          if(msg.label) onProgress?.(msg);
+          return;
+        }
+
+        if(msg.type==="done"){
+          if(msg.impossible){
+            impossible=msg.error||"Una pieza no cabe en el ancho de la hoja.";
+          }
+          if(msg.result&&nestResultBetter(msg.result,best))best=msg.result;
+          try{w.terminate()}catch{}
+          finishOne();
+        }
+      };
+
+      w.onerror=err=>{
+        console.warn("[AutoNest portfolio worker]",mode,err);
+        try{w.terminate()}catch{}
+        finishOne();
+      };
+
+      // Do not transfer masks: each portfolio worker needs its own copy.
+      const message={...payload};
+      delete message.transfers;
+      message.mode=mode;
+      message.budgetMs=Math.max(1800,totalBudget-350);
+      w.postMessage(message);
+    });
+
+    if(!selectedModes.length){
+      clearTimeout(hardTimer);
+      reject(new Error("No hay estrategias de organización disponibles."));
+    }
+  });
+}
 function showAutoNestProcessing(){
   const overlay=$("#autoNestProcessingOverlay");
   if(overlay) overlay.classList.add("show");
@@ -5874,6 +6284,72 @@ function hideAutoNestProcessing(){
   if(btn){
     btn.textContent=btn.dataset.originalText||"✦ Auto Organizar";
     delete btn.dataset.originalText;
+  }
+}
+
+
+let autoNestWarmTimer=null;
+let autoNestWarmRunning=false;
+
+function scheduleAutoNestWarmup(){
+  clearTimeout(autoNestWarmTimer);
+  if(autoNestRunning || !state.objects?.length) return;
+
+  autoNestWarmTimer=setTimeout(()=>{
+    const launch=()=>{ void warmAutoNestMasks(); };
+    if("requestIdleCallback" in window){
+      requestIdleCallback(launch,{timeout:1200});
+    }else{
+      setTimeout(launch,120);
+    }
+  },650);
+}
+
+async function warmAutoNestMasks(){
+  if(autoNestWarmRunning || autoNestRunning || !state.objects?.length) return;
+  autoNestWarmRunning=true;
+
+  try{
+    const count=state.objects.length;
+    const grid=autoNestDeviceProfile(count).grid;
+    const allowRotate=!!$("#allowRotate")?.checked;
+    const unique=new Map();
+
+    for(const o of state.objects){
+      ensureRotationModel(o);
+      const item={
+        id:o.id,type:o.type,assetId:o.assetId||null,
+        baseW:o.baseW,baseH:o.baseH,
+        flipX:!!o.flipX,flipY:!!o.flipY
+      };
+      const key=[
+        item.assetId||item.type||"shape",
+        (+item.baseW||1).toFixed(3),
+        (+item.baseH||1).toFixed(3),
+        item.flipX?1:0,item.flipY?1:0
+      ].join("|");
+      if(!unique.has(key)) unique.set(key,item);
+      if(unique.size>=24) break;
+    }
+
+    let n=0;
+    for(const item of unique.values()){
+      if(autoNestRunning) break;
+      await getAdaptiveNestMask(item,0,grid);
+      if(allowRotate){
+        await Promise.all([
+          getAdaptiveNestMask(item,1,grid),
+          getAdaptiveNestMask(item,2,grid),
+          getAdaptiveNestMask(item,3,grid)
+        ]);
+      }
+      n++;
+      if(n%3===0) await new Promise(r=>setTimeout(r,0));
+    }
+  }catch(e){
+    console.debug("[AutoNest prewarm]",e);
+  }finally{
+    autoNestWarmRunning=false;
   }
 }
 
@@ -5957,18 +6433,21 @@ async function autoNest(){
       transfers.push(copy.buffer);
     }
 
-    const result=await runNestWorker({
+    const result=await runNestPortfolio({
       type:"run",
       items,shapes,gw,gh,gap:gapCells,
+      grid,
       allowRotate,
-      quality:profile.quality,
+      portfolioBudgetMs:profile.mobile
+        ? (count<=20?3500:count<=60?4500:5500)
+        : (count<=15?5000:count<=35?6500:count<=70?8000:10000),
       transfers
     },msg=>{
-      if(msg.label) toast(`${msg.label}…`);
+      if(msg.label) toast(msg.label);
     });
 
     if(!result||!result.placed?.length){
-      toast("No se encontró una distribución válida.");
+      toast("No fue posible acomodar todo dentro del límite máximo de la hoja.");
       return;
     }
 
@@ -7144,6 +7623,45 @@ const SHOPIFY_PRICE_PER_CM = 2.00;
 const GANGSHEET_UPLOAD_URL = "https://qrpxaqvybfmpkkkgqaoe.supabase.co/functions/v1/rapid-function";
 const BIX_RENDERER_URL = "https://bixstudio-renderer-318403647962.us-central1.run.app";
 
+let cloudProjectPromise=null;
+
+async function bixApi(path,options={}){
+  const response=await fetch(`${BIX_RENDERER_URL}${path}`,{
+    cache:"no-store",
+    ...options
+  });
+  let data={};
+  try{data=await response.json()}catch(_){}
+  if(!response.ok || data?.ok===false){
+    throw new Error(data?.error||`BixStudio API respondió HTTP ${response.status}`);
+  }
+  return data;
+}
+
+async function ensureCloudProject(){
+  if(state.projectId) return state.projectId;
+  if(cloudProjectPromise) return cloudProjectPromise;
+
+  cloudProjectPromise=(async()=>{
+    const totalHeight=state.sheets.reduce((sum,s)=>sum+(+s.sheet?.h||0),0);
+    const data=await bixApi("/projects",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        totalWidthCm:62,
+        totalHeightCm:Math.max(30,totalHeight||30)
+      })
+    });
+    if(!data?.projectId) throw new Error("El servidor no devolvió projectId.");
+    state.projectId=data.projectId;
+    if(sessionSaveReady) scheduleSessionSave();
+    return state.projectId;
+  })();
+
+  try{return await cloudProjectPromise}
+  finally{cloudProjectPromise=null}
+}
+
 let shopifyCartBusy=false;
 
 function shopifyBillableCmForSheet(record){
@@ -7205,6 +7723,7 @@ function shopifyLineProperties(uploadInfos=[]){
     "Largo facturado":`${totalCm} cm`,
     "_BixStudio":"Gang Sheet Builder"
   };
+  if(state.projectId) props["_BixStudio Project ID"]=String(state.projectId);
 
   const medidas=[];
 
@@ -7331,54 +7850,276 @@ function safeUploadName(name,fallback="asset.png"){
   return `${base}.${ext}`;
 }
 
-async function uploadRenderSourceBlob(blob,name,{onAttempt}={}){
-  let lastError=null;
-  const filename=`SRC_${Date.now()}_${Math.random().toString(36).slice(2,8)}_${safeUploadName(name)}`;
+// =====================================================================
+// v4.5 · BACKGROUND / BATCH SOURCE UPLOADS
+// Assets are transferred while the customer edits, not after checkout.
+// =====================================================================
+const BIX_UPLOAD_BATCH_SIZE=24;
+const BIX_UPLOAD_CONCURRENCY=8;
+const BIX_UPLOAD_BATCH_DELAY_MS=220;
 
-  for(let attempt=1;attempt<=GANGSHEET_UPLOAD_MAX_ATTEMPTS;attempt++){
-    if(onAttempt) onAttempt(attempt,GANGSHEET_UPLOAD_MAX_ATTEMPTS);
-    const form=new FormData();
-    form.append("file",blob,filename);
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),GANGSHEET_UPLOAD_TIMEOUT_MS);
+const backgroundUploadQueue=[];
+const backgroundUploadQueuedIds=new Set();
+const backgroundUploadDeferred=new Map();
+let backgroundUploadLoopRunning=false;
+let backgroundUploadTimer=null;
 
-    try{
-      const response=await fetch(GANGSHEET_UPLOAD_URL,{method:"POST",body:form,signal:controller.signal,cache:"no-store"});
-      let data={};
-      try{ data=await response.json(); }catch(_){ }
-      if(!response.ok || !data?.ok){
-        const err=new Error(data?.error||`No se pudo subir el recurso (HTTP ${response.status})`);
-        if(response.status>=400&&response.status<500&&response.status!==408&&response.status!==429) err.noRetry=true;
-        throw err;
+function deferredPromise(){
+  let resolve,reject;
+  const promise=new Promise((res,rej)=>{resolve=res;reject=rej});
+  return {promise,resolve,reject};
+}
+
+async function mapLimit(items,limit,worker){
+  const results=new Array(items.length);
+  let next=0;
+  const runners=Array.from(
+    {length:Math.min(Math.max(1,limit),Math.max(1,items.length))},
+    async()=>{
+      while(true){
+        const i=next++;
+        if(i>=items.length) return;
+        results[i]=await worker(items[i],i);
       }
-      if(!data.downloadUrl) throw Object.assign(new Error("El servidor guardó el recurso pero no devolvió una URL de descarga."),{noRetry:true});
-      return data;
-    }catch(e){
-      if(e?.name==="AbortError") lastError=new Error("La subida de un recurso tardó demasiado y se canceló.");
-      else if(e instanceof TypeError) lastError=new Error("No se pudo conectar al servidor de archivos.");
-      else lastError=e instanceof Error?e:new Error(String(e));
-      if(e?.noRetry || attempt>=GANGSHEET_UPLOAD_MAX_ATTEMPTS) break;
-      await waitMs(700*attempt);
-    }finally{ clearTimeout(timer); }
+    }
+  );
+  await Promise.all(runners);
+  return results;
+}
+
+async function assetBlobForUpload(asset){
+  if(asset?.file instanceof Blob && !asset._srcIsThumbnail) return asset.file;
+
+  // Historical entries keep only a thumbnail locally. Hydrate the original
+  // before copying it into the current cloud project.
+  await ensureAssetOriginalAvailable(asset,{quiet:true});
+  if(asset?.file instanceof Blob) return asset.file;
+
+  throw new Error(`No se pudo preparar ${asset?.name||"una imagen"}.`);
+}
+
+function assetAlreadyUploaded(asset,projectId){
+  return !!(
+    asset?._renderUpload?.storagePath &&
+    asset._renderProjectId===projectId
+  );
+}
+
+function scheduleAssetBackgroundUpload(asset,{priority=false}={}){
+  if(!asset) return Promise.reject(new Error("Asset inválido"));
+
+  if(asset._renderUpload?.storagePath && asset._renderProjectId===state.projectId && state.projectId){
+    return Promise.resolve(asset._renderUpload);
   }
-  throw lastError||new Error("No se pudo subir un recurso del diseño.");
+
+  const existing=backgroundUploadDeferred.get(asset.id);
+  if(existing) return existing.promise;
+
+  const d=deferredPromise();
+  backgroundUploadDeferred.set(asset.id,d);
+
+  if(!backgroundUploadQueuedIds.has(asset.id)){
+    backgroundUploadQueuedIds.add(asset.id);
+    if(priority) backgroundUploadQueue.unshift(asset);
+    else backgroundUploadQueue.push(asset);
+  }
+
+  // Start project creation immediately, but do not block the editor.
+  void ensureCloudProject().then(()=>{
+    clearTimeout(backgroundUploadTimer);
+    backgroundUploadTimer=setTimeout(
+      ()=>void runBackgroundUploadLoop(),
+      BIX_UPLOAD_BATCH_DELAY_MS
+    );
+  }).catch(error=>{
+    backgroundUploadDeferred.delete(asset.id);
+    backgroundUploadQueuedIds.delete(asset.id);
+    d.reject(error);
+  });
+
+  return d.promise;
+}
+
+async function putSignedAsset(item,asset){
+  const blob=await assetBlobForUpload(asset);
+  let lastError=null;
+
+  for(let attempt=1;attempt<=3;attempt++){
+    try{
+      const put=await fetch(item.uploadUrl,{
+        method:"PUT",
+        headers:{"Content-Type":item.contentType||blob.type||"image/png"},
+        body:blob
+      });
+      if(!put.ok) throw new Error(`Cloud Storage respondió HTTP ${put.status}`);
+      return {blob,item};
+    }catch(error){
+      lastError=error;
+      if(attempt<3) await waitMs(250*attempt);
+    }
+  }
+  throw lastError||new Error("No se pudo subir el recurso.");
+}
+
+async function runBackgroundUploadLoop(){
+  if(backgroundUploadLoopRunning) return;
+  backgroundUploadLoopRunning=true;
+
+  try{
+    while(backgroundUploadQueue.length){
+      const projectId=await ensureCloudProject();
+      const batch=[];
+
+      while(backgroundUploadQueue.length && batch.length<BIX_UPLOAD_BATCH_SIZE){
+        const asset=backgroundUploadQueue.shift();
+        if(!asset) continue;
+        backgroundUploadQueuedIds.delete(asset.id);
+
+        if(assetAlreadyUploaded(asset,projectId)){
+          const d=backgroundUploadDeferred.get(asset.id);
+          backgroundUploadDeferred.delete(asset.id);
+          d?.resolve(asset._renderUpload);
+          continue;
+        }
+        batch.push(asset);
+      }
+
+      if(!batch.length) continue;
+
+      let signed;
+      try{
+        signed=await bixApi("/upload-urls",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            projectId,
+            assets:batch.map(asset=>({
+              clientId:asset.id,
+              filename:safeUploadName(asset.name||"asset.png"),
+              contentType:(asset.file?.type||"image/png").toLowerCase(),
+              widthPx:asset.w||null,
+              heightPx:asset.h||null,
+              dpiX:asset.dpiX||null,
+              dpiY:asset.dpiY||null,
+              fileSizeBytes:asset.file?.size||null
+            }))
+          })
+        });
+      }catch(error){
+        for(const asset of batch){
+          const d=backgroundUploadDeferred.get(asset.id);
+          backgroundUploadDeferred.delete(asset.id);
+          d?.reject(error);
+        }
+        continue;
+      }
+
+      const byClient=new Map((signed.assets||[]).map(x=>[x.clientId,x]));
+      const succeeded=[];
+
+      await mapLimit(batch,BIX_UPLOAD_CONCURRENCY,async asset=>{
+        const d=backgroundUploadDeferred.get(asset.id);
+        try{
+          const item=byClient.get(asset.id);
+          if(!item?.uploadUrl || !item?.storagePath){
+            throw new Error("El servidor no devolvió una URL de subida.");
+          }
+
+          const {blob}=await putSignedAsset(item,asset);
+          const info={
+            id:item.assetId,
+            assetId:item.assetId,
+            path:item.storagePath,
+            objectPath:item.storagePath,
+            storagePath:item.storagePath,
+            contentType:item.contentType||blob.type||"image/png",
+            bytes:blob.size||0
+          };
+
+          asset._renderUpload=info;
+          asset._renderProjectId=projectId;
+          asset.updatedAt=Date.now();
+          await persistAsset(asset,{skipPrune:true});
+          void pruneLocalAssetCache();
+          succeeded.push(info.storagePath);
+          d?.resolve(info);
+        }catch(error){
+          d?.reject(error);
+        }finally{
+          backgroundUploadDeferred.delete(asset.id);
+        }
+      });
+
+      // One browser request confirms the whole batch instead of one request per file.
+      if(succeeded.length){
+        void bixApi("/assets-confirm",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({objectPaths:succeeded})
+        }).catch(error=>console.warn("[BixStudio assets-confirm]",error));
+      }
+    }
+  }finally{
+    backgroundUploadLoopRunning=false;
+  }
 }
 
 async function ensureAssetUploadedForRenderer(asset){
   if(!asset) throw new Error("No se encontró una imagen del diseño.");
-  if(asset._renderUpload?.downloadUrl) return asset._renderUpload;
+  const projectId=await ensureCloudProject();
 
-  let blob=asset.file instanceof Blob ? asset.file : null;
-  if(!blob && asset.src){
-    const r=await fetch(asset.src);
-    if(!r.ok) throw new Error(`No se pudo leer ${asset.name||"una imagen"}.`);
-    blob=await r.blob();
+  if(assetAlreadyUploaded(asset,projectId)) return asset._renderUpload;
+
+  // High priority if checkout is waiting for this source.
+  return await scheduleAssetBackgroundUpload(asset,{priority:true});
+}
+
+async function uploadTransientBlob(blob,name,{widthPx=null,heightPx=null,dpiX=null,dpiY=null}={}){
+  const projectId=await ensureCloudProject();
+  const contentType=(blob?.type||"image/png").toLowerCase();
+
+  const data=await bixApi("/upload-urls",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      projectId,
+      assets:[{
+        clientId:"transient_"+Date.now()+"_"+Math.random().toString(36).slice(2),
+        filename:safeUploadName(name||"asset.png"),
+        contentType,
+        widthPx,heightPx,dpiX,dpiY,
+        fileSizeBytes:blob?.size||null
+      }]
+    })
+  });
+
+  const item=data.assets?.[0];
+  if(!item?.uploadUrl || !item?.storagePath){
+    throw new Error("El servidor no devolvió la URL del recurso temporal.");
   }
-  if(!blob) throw new Error(`No se pudo preparar ${asset.name||"una imagen"}.`);
 
-  const info=await uploadRenderSourceBlob(blob,asset.name||"imagen.png");
-  asset._renderUpload=info;
-  return info;
+  const put=await fetch(item.uploadUrl,{
+    method:"PUT",
+    headers:{"Content-Type":contentType},
+    body:blob
+  });
+  if(!put.ok) throw new Error(`Cloud Storage respondió HTTP ${put.status}`);
+
+  void bixApi("/assets-confirm",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({objectPaths:[item.storagePath]})
+  }).catch(()=>{});
+
+  return {
+    id:item.assetId,
+    assetId:item.assetId,
+    path:item.storagePath,
+    objectPath:item.storagePath,
+    storagePath:item.storagePath,
+    contentType,
+    bytes:blob.size||0
+  };
 }
 
 async function renderTextObjectSourceBlob(o){
@@ -7399,23 +8140,101 @@ async function renderTextObjectSourceBlob(o){
   return await forcePngDpi(blob,300);
 }
 
+function objectHasArtboardIntersection(o,record){
+  const sheetW=+record?.sheet?.w||0;
+  const sheetH=+record?.sheet?.h||0;
+  if(sheetW<=0 || sheetH<=0) return false;
+
+  // Use the rotated bounding box because the server receives the original
+  // object + rotation and clips the final raster to the physical sheet.
+  let box;
+  try{
+    box=rotatedAABB(o);
+  }catch(_){
+    box={x:+o.x||0,y:+o.y||0,w:+o.w||0,h:+o.h||0};
+  }
+
+  const right=box.x+box.w;
+  const bottom=box.y+box.h;
+  const eps=.0001;
+
+  return (
+    right>0+eps &&
+    bottom>0+eps &&
+    box.x<sheetW-eps &&
+    box.y<sheetH-eps
+  );
+}
+
+function sanitizeCloudRenderObjects(record){
+  const source=Array.isArray(record?.objects)?record.objects:[];
+  const kept=[];
+  let outside=0;
+  let partial=0;
+
+  for(const o of source){
+    if(!objectHasArtboardIntersection(o,record)){
+      outside++;
+      continue;
+    }
+
+    try{
+      const box=rotatedAABB(o);
+      const sheetW=+record.sheet.w||0;
+      const sheetH=+record.sheet.h||0;
+      if(
+        box.x<0 ||
+        box.y<0 ||
+        box.x+box.w>sheetW ||
+        box.y+box.h>sheetH
+      ){
+        partial++;
+      }
+    }catch(_){}
+
+    kept.push(o);
+  }
+
+  if(outside){
+    console.warn(`[BixStudio] ${outside} diseño(s) completamente fuera de la mesa fueron omitidos del render.`);
+  }
+  if(partial){
+    console.warn(`[BixStudio] ${partial} diseño(s) sobresalen de la mesa; el servidor recortará únicamente la parte imprimible.`);
+  }
+
+  return {objects:kept,outside,partial};
+}
+
 async function prepareSheetForCloudRenderer(record,{onProgress}={}){
-  const objects=[];
-  const list=record.objects||[];
-  for(let i=0;i<list.length;i++){
-    const o=list[i];
-    if(onProgress) onProgress(i+1,list.length,o);
+  const sanitized=sanitizeCloudRenderObjects(record);
+  const list=sanitized.objects;
+  let completed=0;
+
+  if(!list.length){
+    throw new Error("No hay diseños dentro de la mesa de trabajo.");
+  }
+
+  const objects=await Promise.all(list.map(async o=>{
     let uploadInfo;
+
     if(o.type==="image"){
       uploadInfo=await ensureAssetUploadedForRenderer(assetById(o.assetId));
     }else if(o.type==="text"){
       const blob=await renderTextObjectSourceBlob(o);
-      uploadInfo=await uploadRenderSourceBlob(blob,`texto_${record.id}_${o.id}.png`);
-    }else continue;
+      uploadInfo=await uploadTransientBlob(
+        blob,
+        `texto_${record.id}_${o.id}.png`
+      );
+    }else{
+      return null;
+    }
 
-    objects.push({
+    completed++;
+    if(onProgress) onProgress(completed,list.length,o);
+
+    return {
       id:o.id,
-      url:uploadInfo.downloadUrl,
+      storagePath:uploadInfo.storagePath,
       x:+o.x||0,
       y:+o.y||0,
       width:+o.w||1,
@@ -7423,46 +8242,67 @@ async function prepareSheetForCloudRenderer(record,{onProgress}={}){
       rotation:+o.rot||0,
       flipX:!!o.flipX,
       flipY:!!o.flipY
-    });
-  }
+    };
+  }));
 
   return {
     sheet:{
       id:record.id,
       name:record.name,
+      sheetNumber:Math.max(1,state.sheets.indexOf(record)+1),
       widthCm:+record.sheet.w,
       heightCm:+record.sheet.h,
       dpi:300
     },
-    objects
+    objects:objects.filter(Boolean)
   };
 }
 
-async function renderSheetOnCloud(record,{onProgress}={}){
+// Queue the heavyweight render and return immediately.
+// /print-file/<job> stays stable: before completion it shows "processing";
+// once done it redirects to the final signed PNG.
+async function queueSheetRender(record,{onProgress}={}){
+  const projectId=await ensureCloudProject();
+
+  const precheck=sanitizeCloudRenderObjects(record);
+  if(precheck.outside || precheck.partial){
+    const parts=[];
+    if(precheck.outside) parts.push(`${precheck.outside} fuera`);
+    if(precheck.partial) parts.push(`${precheck.partial} recortado(s)`);
+    toast(`Ajustando mesa: ${parts.join(" · ")}`);
+  }
+
   const payload=await prepareSheetForCloudRenderer(record,{onProgress});
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),15*60*1000);
-  try{
-    const response=await fetch(`${BIX_RENDERER_URL}/render-sheet`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(payload),
-      signal:controller.signal,
-      cache:"no-store"
-    });
-    let data={};
-    try{ data=await response.json(); }catch(_){ }
-    if(!response.ok || !data?.ok){
-      throw new Error(data?.error||`Cloud Run no pudo generar la hoja (HTTP ${response.status}).`);
-    }
-    if(!data.id || !data.downloadUrl){
-      throw new Error("Cloud Run generó la hoja pero no devolvió la referencia del archivo final.");
-    }
-    return data;
-  }catch(e){
-    if(e?.name==="AbortError") throw new Error("El render del servidor tardó más de 15 minutos.");
-    throw e;
-  }finally{ clearTimeout(timer); }
+  payload.projectId=projectId;
+
+  const response=await fetch(`${BIX_RENDERER_URL}/render-queue`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(payload),
+    cache:"no-store"
+  });
+
+  let data={};
+  try{data=await response.json()}catch(_){}
+  if(!response.ok || !data?.ok){
+    throw new Error(data?.error||`No se pudo encolar la hoja (HTTP ${response.status}).`);
+  }
+  if(!data.renderJobId || !data.printFileUrl){
+    throw new Error("El servidor no devolvió la referencia del trabajo.");
+  }
+
+  return {
+    ...data,
+    id:data.renderJobId,
+    path:`render_job:${data.renderJobId}`,
+    downloadUrl:data.printFileUrl,
+    printFileUrl:data.printFileUrl
+  };
+}
+
+// Compatibility name. It is now asynchronous from the customer's point of view.
+async function renderSheetOnCloud(record,options={}){
+  return queueSheetRender(record,options);
 }
 
 async function generateSheetRecordPngBlob(index){
@@ -7500,41 +8340,43 @@ async function addActiveSheetToShopifyCart(){
   const btn=$("#exportBtn");
   const quantity=orderSheets.reduce((sum,{record})=>sum+shopifyBillableCmForSheet(record),0);
   shopifyCartBusy=true;
+
   if(btn){
     btn.disabled=true;
-    btn.textContent=orderSheets.length>1?`Preparando ${orderSheets.length} hojas…`:"Preparando recursos…";
+    btn.textContent="Sincronizando diseños…";
   }
 
-  const uploads=[];
   try{
-    for(let pos=0;pos<orderSheets.length;pos++){
-      const {record}=orderSheets[pos];
-      const sheetNo=pos+1,totalSheets=orderSheets.length;
+    // Create/restore project first. Most assets should already be transferring
+    // in the background by this point.
+    await ensureCloudProject();
 
-      if(btn) btn.textContent=totalSheets>1?`Preparando hoja ${sheetNo}/${totalSheets}…`:"Preparando recursos…";
-      toast(totalSheets>1?`Preparando ${record.name} para el servidor…`:"Preparando diseños para el servidor…");
+    let ready=0;
+    const uploads=await Promise.all(
+      orderSheets.map(async({record},pos)=>{
+        const info=await queueSheetRender(record,{
+          onProgress:()=>{
+            ready++;
+            if(btn) btn.textContent="Sincronizando diseños…";
+          }
+        });
+        return info;
+      })
+    );
 
-      const uploadInfo=await renderSheetOnCloud(record,{
-        onProgress:(current,total)=>{
-          if(btn) btn.textContent=totalSheets>1
-            ? `Preparando hoja ${sheetNo}/${totalSheets}…`
-            : "Preparando recursos…";
-          // Deliberately do not expose 1/N counters to customers.
-        }
-      });
+    // Rendering now continues in Cloud Tasks AFTER the customer moves on.
+    // Shopify receives stable /print-file/<job> links immediately.
+    if(btn) btn.textContent="Añadiendo al carrito…";
 
-      uploads.push(uploadInfo);
-      toast(totalSheets>1?`✓ ${record.name} generada en servidor`:`✓ Archivo generado y guardado`);
-    }
-
-    if(btn) btn.textContent="Añadiendo pedido al carrito…";
     window.parent.postMessage({
       type:"BIXSTUDIO_ADD_TO_CART",
       variantId:SHOPIFY_DTF_VARIANT_ID,
       quantity,
       properties:shopifyLineProperties(uploads),
       total:quantity*SHOPIFY_PRICE_PER_CM,
-      sheetCount:orderSheets.length
+      sheetCount:orderSheets.length,
+      projectId:state.projectId,
+      renderJobs:uploads.map(x=>x.renderJobId)
     },"*");
 
     setTimeout(()=>{
@@ -7543,12 +8385,10 @@ async function addActiveSheetToShopifyCart(){
       updateShopifyCartUi();
     },20000);
   }catch(e){
-    console.error("[BixStudio cloud render/cart]",e);
+    console.error("[BixStudio async render/cart]",e);
     shopifyCartBusy=false;
     updateShopifyCartUi();
-    const completed=uploads.length;
-    const prefix=completed?`Se generaron ${completed} de ${orderSheets.length} hojas, pero el pedido no se añadió al carrito. `:"";
-    toast(`${prefix}No se pudo preparar el pedido: ${String(e?.message||e).slice(0,135)}`);
+    toast(`No se pudo preparar el pedido: ${String(e?.message||e).slice(0,150)}`);
   }
 }
 
@@ -7571,7 +8411,7 @@ window.addEventListener("message",e=>{
   if(d.type==="BIXSTUDIO_CART_OK"){
     shopifyCartBusy=false;
     const count=shopifyOrderSheets().length;
-    toast(`✓ ${count>1?`${count} hojas guardadas y añadidas`:"Archivo guardado y añadido"} al carrito · ${d.quantity||shopifyBillableCm()} cm`);
+    toast(`✓ Pedido añadido al carrito · ${count} hoja(s) · el archivo final seguirá procesándose en servidor`);
     updateShopifyCartUi();
   }else if(d.type==="BIXSTUDIO_CART_ERROR"){
     shopifyCartBusy=false;
@@ -7754,8 +8594,31 @@ async function pasteClipboard(count=1){
 }
 // Exponer el pegado interno únicamente para el menú contextual.
 window.BixStudioPasteClipboard=()=>pasteClipboard();
+
 window.BixStudioCanPaste=()=>state.clipboard.length>0;
 
+// External BixNest engine bridge.
+// Only the capabilities required by /bixnest are exposed.
+window.BixNestBridge={
+  getState:()=>state,
+  toast:(msg)=>toast(msg),
+  nestGapValue:()=>nestGapValue(),
+  MAX_SHEET_HEIGHT,
+  ensureRotationModel:(o)=>ensureRotationModel(o),
+  getAdaptiveNestMask:(item,q,grid)=>getAdaptiveNestMask(item,q,grid),
+  pushHistory:()=>pushHistory(),
+  recalcActiveSheetHeight:()=>recalcActiveSheetHeight(),
+  updateDiagnostics:()=>updateDiagnostics(),
+  renderAll:()=>renderAll(),
+  fitViewport:()=>fitViewport()
+};
+
+// ---------------------------------------------------------------------
+// BixNest external-engine bridge.
+// `state`, toast(), getAdaptiveNestMask(), etc. live inside this large
+// Builder script and are NOT globals visible to an external JS file.
+// Export only the capabilities BixNest needs through an explicit window API.
+// ---------------------------------------------------------------------
 // Puente seguro para el menú contextual externo.
 // El segundo <script> no puede acceder directamente a `state` ni `renderAll()`.
 window.BixStudioContextState=()=>({
@@ -7967,6 +8830,36 @@ showRightPanel("properties");
   await loadPersistedAssets();
   await offerSessionRestore();
 
+  // Restore the UI immediately with thumbnails, then hydrate only designs that
+  // are actually present on the restored sheets. This does not block startup.
+  const usedAssetIds=new Set();
+  for(const sheet of state.sheets||[]){
+    for(const o of sheet.objects||[]){
+      if(o.type==="image" && o.assetId) usedAssetIds.add(o.assetId);
+      if(o.originalAssetId) usedAssetIds.add(o.originalAssetId);
+    }
+  }
+  void (async()=>{
+    for(const id of usedAssetIds){
+      const asset=assetById(id);
+      if(!asset || (asset.file instanceof Blob && !asset._srcIsThumbnail)) continue;
+      try{
+        await ensureAssetOriginalAvailable(asset,{quiet:true});
+      }catch(e){
+        console.warn("[BixStudio restore asset]",id,e);
+      }
+    }
+    renderAll();
+  })();
+
+  // Every active editor session is backed by a real Supabase project.
+  try{
+    await ensureCloudProject();
+  }catch(e){
+    console.error("[BixStudio project init]",e);
+    toast("No se pudo iniciar el proyecto en la nube. Se reintentará al guardar.");
+  }
+
   // Session restore can bring back the old 0.3 cm default.
   // Run the one-time migration AFTER restore, then refresh the UI.
   migrateLegacyDefaultMargin();
@@ -7984,6 +8877,10 @@ showRightPanel("properties");
 })();
 })();
 </script>
+
+
+<script src="./bixnest/strategy.js?v=3.0.0"></script>
+<script src="./bixnest/integration.js?v=3.0.0"></script>
 
 <div id="objectContextMenu" class="context-menu">
 <button data-cmd="duplicate">📑 Duplicar</button>
