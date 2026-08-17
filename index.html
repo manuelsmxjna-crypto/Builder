@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v5.4.1 · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
+  <!-- SHAPE_NEST_VERSION: v5.6.0 · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -17,7 +17,6 @@
 *{box-sizing:border-box} html,body,#app{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text)}
 body{overflow:hidden;background:var(--bg)}
 button,input,select,textarea{font:inherit} button{cursor:pointer}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
 .topbar{height:62px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px 0 12px;position:relative;z-index:20}
 .brand{display:flex;align-items:center;gap:10px;min-width:210px}.brand-mark{width:34px;height:34px;background:#111827;color:#fff;border-radius:9px;display:grid;place-items:center;font-weight:900}.brand-title{font-weight:800}.brand-sub{font-size:10px;color:#8a919c;margin-top:1px}
 .top-actions{display:flex;align-items:center;gap:7px}.divider{width:1px;height:24px;background:#e4e7eb;margin:0 3px}
@@ -50,7 +49,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .field{display:block;font-size:11px;color:#535d69;margin-bottom:13px}.field>input[type=range]{width:100%;margin-top:8px}.field>input[type=color]{display:block;margin-top:7px;width:100%;height:36px;border:1px solid #d6dce3;border-radius:7px;padding:3px;background:#fff}.unit-input{margin-top:5px;display:flex;align-items:center;border:1px solid #d6dce3;border-radius:7px;overflow:hidden;background:#fff}.unit-input input{min-width:0;width:100%;border:0;padding:7px 9px;outline:0}.unit-input input[readonly]{background:#f8fafc;color:#64748b;cursor:not-allowed;font-weight:800}.unit-input span{padding:0 8px;color:#7a838d;font-size:11px}.toggle-row{display:flex;gap:8px;align-items:center;font-size:12px;margin:12px 0}.info-card{background:#f6f7f9;border:1px solid #e1e5e9;border-radius:8px;padding:11px;margin-bottom:14px}.info-card b{font-size:13px}.info-card p{font-size:11px;line-height:1.45;color:#67717e;margin:5px 0 0}
 .stage-wrap{display:flex;flex-direction:column;min-width:0;background:#eef0f3}.stage-toolbar{height:42px;border-bottom:1px solid #d9dde3;background:#f8f9fa;display:flex;align-items:center;justify-content:space-between;padding:0 10px}.stage-toolbar .left{display:flex;align-items:center;gap:6px;font-size:11px}.status-inline{display:flex;align-items:center;gap:5px;color:#69717c;font-size:9px}.dot{width:7px;height:7px;border-radius:50%}.dot.good{background:#16a34a}.dot.warn{background:#d97706}.dot.bad{background:#dc2626}
 .stage-scroller{flex:1;overflow:hidden;position:relative;background:#eef0f3;cursor:default;touch-action:none}.stage-scroller.pan-ready{cursor:grab}.stage-scroller.panning{cursor:grabbing}.artboard-shell{position:absolute;left:0;top:0;transform-origin:0 0;width:max-content;height:max-content;will-change:transform}.artboard{position:relative;background:#fff;box-shadow:0 3px 16px #11182724;width:1240px;height:600px;overflow:visible}.safe-area{position:absolute;pointer-events:none;border:1px dashed #a7afb9;inset:3px;z-index:10}.objects-layer{position:absolute;inset:0}
-.canvas-empty-state{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;padding:24px}.canvas-empty-card{width:min(390px,80%);padding:24px;text-align:center;border:1px dashed #94a3b8;border-radius:14px;background:rgba(248,250,252,.94);box-shadow:0 8px 24px rgba(15,23,42,.08)}.canvas-empty-icon{font-size:30px}.canvas-empty-card b{display:block;margin-top:8px;font-size:16px}.canvas-empty-card p{margin:7px 0 0;color:#64748b;font-size:12px;line-height:1.5}.canvas-empty-card button{pointer-events:auto;margin-top:14px}
 .ruler{position:absolute;color:#7b8490;font-size:8px;pointer-events:none}.ruler-x{left:0;right:0;height:20px;top:-24px;border-bottom:1px solid #b9c0c8}.ruler-y{top:0;bottom:0;width:25px;left:-29px;border-right:1px solid #b9c0c8}
 .ruler-mark-x,.ruler-mark-y{position:absolute;background:#9ca3af}.ruler-mark-x{width:1px;height:6px;bottom:0}.ruler-mark-y{height:1px;width:6px;right:0}.ruler-label-x,.ruler-label-y{font-size:11px;font-weight:800;color:#4b5563;line-height:1;text-shadow:0 1px 0 rgba(255,255,255,.9)}.ruler-label-x{position:absolute;bottom:7px;transform:translateX(-50%)}.ruler-label-y{position:absolute;right:8px;transform:translateY(-50%)}
 .design-object{
@@ -106,6 +104,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 }
 .num-stepper-btns button:hover{background:#eef2f7;color:#111827}
 .num-stepper-btns button+button{border-top:1px solid #e5e9ef}
+
+.custom-font-install{margin:-5px 0 13px}
+.custom-font-install .ghost-btn{min-height:34px;font-size:10px;font-weight:800}
+.custom-font-install small{display:block;margin-top:5px;font-size:8px;line-height:1.35;color:#8a939f}
 .text-style-card{border:1px solid #dbe3ea;border-radius:9px;padding:10px;margin:0 0 13px;background:#f8fafc}
 .text-style-card>b{display:block;font-size:11px;margin-bottom:8px}
 .text-style-row{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
@@ -263,24 +265,9 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .design-object.dpi-good{outline-color:#2563eb}
 .design-object.dpi-bad{outline-color:#d97706}
 .design-object.dpi-minimum{outline-color:#dc2626}
-.design-object.dpi-optimal::after,.design-object.dpi-good::after,.design-object.dpi-bad::after,.design-object.dpi-minimum::after{
-  position:absolute;left:-3px;top:-18px;z-index:22;min-width:16px;height:16px;padding:0 4px;
-  display:grid;place-items:center;border:1px solid #fff;border-radius:4px;color:#fff;
-  font:900 10px/1 ui-sans-serif,system-ui;box-shadow:0 1px 4px rgba(15,23,42,.28);
-  pointer-events:none
-}
-.design-object.dpi-optimal::after{content:"✓";background:#15803d}
-.design-object.dpi-good::after{content:"●";background:#1d4ed8}
-.design-object.dpi-bad::after{content:"!";background:#b45309}
-.design-object.dpi-minimum::after{content:"×";background:#b91c1c}
 .design-object.overlap{
   outline-color:#a855f7 !important;
   box-shadow:0 0 0 2px rgba(168,85,247,.30) !important;
-}
-.design-object.selected:has(.text-obj)::before{
-  content:"✎ Editar texto";position:absolute;left:50%;bottom:-28px;transform:translateX(-50%);
-  z-index:23;white-space:nowrap;background:#111827;color:#fff;border-radius:5px;padding:5px 7px;
-  font:700 10px/1 ui-sans-serif,system-ui;box-shadow:0 2px 6px rgba(15,23,42,.22);pointer-events:none
 }
 
 
@@ -679,7 +666,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   border-color:#f87171;
   color:#b91c1c;
 }
-.asset-remove-from-sheet-btn::after{content:"Quitar copias";position:absolute;right:28px;top:-2px;display:none;white-space:nowrap;background:#111827;color:#fff;border-radius:5px;padding:5px 7px;font-size:9px;font-weight:700}.asset-remove-from-sheet-btn:hover::after,.asset-remove-from-sheet-btn:focus-visible::after{display:block}
 
 
 
@@ -740,8 +726,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .transform-separator{
   display:none;
 }
-.transform-mobile-help{display:none;margin:8px 0 0;color:#475569;font-size:11px;line-height:1.45}
-.align-icon{width:18px;height:14px;display:block}.align-icon line{stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 
 
 .image-processing-card{border:1px solid #dbe3ea;border-radius:9px;padding:10px;margin:0 0 13px;background:#f8fafc}
@@ -986,7 +970,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 @media(max-width:1100px){
   .workspace{grid-template-columns:60px 220px minmax(0,1fr) 260px}
   .top-actions .variant-label{display:none}
-  .top-actions #qualityBtn{padding:6px 9px;font-size:11px}
+  .top-actions #qualityBtn{display:none}
 }
 
 /* Tablet / phone: canvas-first + drawers + bottom nav */
@@ -1069,7 +1053,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   .workspace{height:calc(100% - 54px - var(--mobile-nav-h));margin-top:0}
   .top-actions .divider{display:none}
   .top-actions #exportBtn{padding:7px 10px;font-size:12px}
-  .top-actions #qualityBtn{display:none}
   .icon-btn{width:38px;min-height:38px}
   .top-actions .mini-btn,.top-actions .ghost-btn{min-height:34px;padding:6px 10px}
   .stage-toolbar{min-height:50px;padding:9px 12px}
@@ -1087,17 +1070,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   }
   .num-stepper{height:40px}
   .text-style-btn{width:40px;height:38px}
-  .transform-mobile-help{display:block}
 }
-
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
-
-/* Legibility pass: functional help must remain readable, not decorative micro-text. */
-.panel-head p,.upload-zone span,.asset-card .name,.selection-title .muted,.aspect-lock-row small,
-.prop-grid label,.text-color-grid label,.duplicate-card-title,.dup-qty-field,.check-row p,
-.color-help-item small,.sheets-header small,.sheet-card small,.image-processing-status,
-.processing-body p,.processing-note,.processing-progress-label{font-size:11px!important;color:#475569!important;line-height:1.45}
-.field,.toggle-row,.library-head,.transform-toolbar-title,.image-processing-title b{font-size:12px}
 
 @media(max-width:480px){
   .sidepanel{left:56px;width:min(280px,calc(100vw - 56px))}
@@ -1128,92 +1101,60 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 }
 .shopify-cart-btn:hover{background:#15803d!important;border-color:#15803d!important}
 .shopify-cart-btn:disabled{opacity:.55;cursor:not-allowed;transform:none!important}
+
+
+.checkout-confirm-modal{width:min(500px,94vw)}
+.checkout-confirm-body{padding:22px 22px 18px;text-align:center}
+.checkout-confirm-icon{font-size:34px;margin-bottom:8px}
+.checkout-confirm-body>b{display:block;font-size:16px;color:#111827}
+.checkout-confirm-body>p{
+  max-width:410px;margin:8px auto 14px;
+  color:#64748b;font-size:11px;line-height:1.5
+}
+.checkout-confirm-summary{
+  border:1px solid #e2e8f0;background:#f8fafc;border-radius:9px;
+  padding:10px 12px;color:#475569;font-size:10px;font-weight:700
+}
+.checkout-confirm-actions{gap:8px}
+.checkout-confirm-actions .primary-btn{min-width:170px}
+
+.checkout-processing-overlay{
+  position:fixed;inset:0;z-index:5000;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(15,23,42,.58);
+  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  padding:20px;pointer-events:all;
+}
+.checkout-processing-overlay[hidden]{display:none!important}
+.checkout-processing-card{
+  width:min(390px,92vw);border:1px solid rgba(255,255,255,.18);
+  border-radius:14px;background:rgba(15,23,42,.94);color:#fff;
+  box-shadow:0 24px 70px rgba(0,0,0,.34);padding:22px 22px 18px;
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;
+}
+.checkout-processing-card b{font-size:15px}
+.checkout-processing-card span{font-size:10px;line-height:1.45;color:#cbd5e1}
+.checkout-processing-spinner{
+  width:34px;height:34px;border:3px solid rgba(255,255,255,.24);
+  border-top-color:#fff;border-radius:50%;animation:bixAiSpin .75s linear infinite;margin-bottom:3px;
+}
+.checkout-processing-bar{
+  width:100%;height:5px;margin-top:7px;border-radius:999px;
+  background:rgba(255,255,255,.14);overflow:hidden
+}
+.checkout-processing-bar span{
+  display:block;width:38%;height:100%;border-radius:inherit;background:#fff;
+  animation:bixCheckoutBar 1.25s ease-in-out infinite alternate
+}
+@keyframes bixCheckoutBar{
+  from{transform:translateX(-80%)}
+  to{transform:translateX(250%)}
+}
+body.bix-checkout-locked{cursor:progress}
+
 @media(max-width:767px){
   .shopify-price-chip{display:none}
   .shopify-cart-btn{min-width:0!important;padding:7px 10px!important;font-size:11px!important}
-}
-
-/* Mobile workspace rebuilt around one canvas, one panel and contextual actions. */
-.mobile-panel-tabs,.mobile-selection-bar,.mobile-quick-organize,.mobile-action-sheet{display:none}
-@media(max-width:900px){
-  .leftbar{display:none!important}
-  .sidepanel{
-    left:0!important;width:min(420px,100vw)!important;transform:translateX(-105%)!important;
-    border-radius:0 16px 16px 0;overflow:hidden
-  }
-  body.drawer-left-open .sidepanel{transform:translateX(0)!important}
-  .mobile-panel-tabs{display:grid!important;grid-template-columns:repeat(3,1fr);gap:4px;padding:8px;background:#f8fafc;border-bottom:1px solid #e5e7eb}
-  .mobile-panel-tabs button{min-height:42px;border:0;border-radius:9px;background:transparent;color:#475569;font-weight:800;font-size:12px}
-  .mobile-panel-tabs button.active{background:#111827;color:#fff}
-
-  .rightbar{
-    display:flex!important;left:0!important;right:0!important;top:auto!important;bottom:var(--mobile-nav-h)!important;
-    width:100vw!important;height:min(72dvh,640px);max-height:calc(100dvh - 70px - var(--mobile-nav-h));
-    transform:translateY(110%)!important;border-radius:18px 18px 0 0;border:1px solid #dbe1e8;
-    box-shadow:0 -14px 38px rgba(15,23,42,.22)
-  }
-  body.drawer-right-open .rightbar{transform:translateY(0)!important}
-  .rightbar-mobile-head{position:sticky;top:0;background:#fff;z-index:4}
-  .rightbar .right-tabs{display:none!important}
-
-  .stage-toolbar{justify-content:center!important;overflow:visible!important;padding:7px!important}
-  .stage-toolbar>.left{background:#fff;border:1px solid #d7dce2;border-radius:10px;padding:4px;box-shadow:0 2px 8px rgba(15,23,42,.08)}
-  .stage-toolbar>.packing-toolbar,.stage-toolbar>#mobileOrganizeBtn,.stage-toolbar>.color-help-wrap{display:none!important}
-  .viewport-coordinates{display:none!important}
-
-  .mobile-bottom-nav{grid-template-columns:repeat(3,1fr)}
-  .mobile-selection-bar{
-    position:fixed;display:none;left:8px;right:8px;bottom:calc(var(--mobile-nav-h) + 8px);z-index:76;
-    height:58px;padding:5px;background:#111827;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.28);
-    grid-template-columns:repeat(4,1fr);gap:3px
-  }
-  body.has-mobile-selection .mobile-selection-bar{display:grid}
-  .mobile-selection-bar button{border:0;border-radius:9px;background:transparent;color:#fff;font-size:10px;font-weight:750;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
-  .mobile-selection-bar button:active{background:#ffffff20}
-  .mobile-selection-bar span{font-size:17px;line-height:1}
-  .mobile-quick-organize{
-    position:fixed;display:block;right:14px;bottom:calc(var(--mobile-nav-h) + 14px);z-index:74;
-    min-height:44px;padding:0 16px;border:0;border-radius:999px;background:#2563eb;color:#fff;font-weight:900;
-    box-shadow:0 8px 24px rgba(37,99,235,.32)
-  }
-  body.has-mobile-selection .mobile-quick-organize{display:none}
-
-  .mobile-action-sheet{position:fixed;display:block;inset:0;z-index:180}
-  .mobile-action-sheet.hidden{display:none!important}
-  .mobile-sheet-scrim{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0f172a73}
-  .mobile-sheet-card{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;padding:10px 18px max(18px,env(safe-area-inset-bottom));box-shadow:0 -20px 50px rgba(15,23,42,.25)}
-  .mobile-sheet-handle{width:42px;height:5px;border-radius:999px;background:#cbd5e1;margin:0 auto 14px}
-  .mobile-sheet-card h2{font-size:18px;margin:0}.mobile-sheet-card>p{font-size:12px;color:#475569;line-height:1.45;margin:6px 0 16px}
-  .mobile-sheet-card>label{display:block;font-size:12px;font-weight:800;color:#334155;margin:12px 0}
-  .mobile-sheet-input{display:flex;margin-top:6px;border:1px solid #cbd5e1;border-radius:9px;overflow:hidden;height:44px}
-  .mobile-sheet-input input{flex:1;min-width:0;border:0;padding:0 12px;font-weight:800}.mobile-sheet-input span{display:grid;place-items:center;padding:0 12px;background:#f8fafc;color:#64748b}
-  .mobile-sheet-check{display:flex!important;align-items:center;gap:10px;min-height:44px}
-  .mobile-sheet-check input{width:20px;height:20px}
-  .mobile-sheet-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:18px}.mobile-sheet-actions button{min-height:46px}
-
-  .design-object.selected .resize-point{
-    width:44px!important;height:44px!important;border:0!important;background:transparent!important;
-    display:grid!important;place-items:center;touch-action:none
-  }
-  .design-object.selected .resize-point::after{
-    content:"";display:block;width:22px;height:22px;box-sizing:border-box;
-    border:3px solid #fff;border-radius:50%;background:#2563eb;
-    box-shadow:0 0 0 2px #1d4ed8,0 3px 8px rgba(15,23,42,.35)
-  }
-  .design-object.selected .resize-point:active::after{background:#1d4ed8;transform:scale(1.12)}
-  .resize-point.tl{left:-22px!important;top:-22px!important}.resize-point.tr{right:-22px!important;top:-22px!important}
-  .resize-point.bl{left:-22px!important;bottom:-22px!important}.resize-point.br{right:-22px!important;bottom:-22px!important}
-  .rotation-point{width:40px!important;height:40px!important;border:0!important;background:transparent!important}
-  .rotation-point::after{content:"↻";width:22px;height:22px;display:grid;place-items:center;border:2px solid #2563eb;border-radius:50%;background:#fff;color:#1d4ed8;font-size:14px;font-weight:900;box-shadow:0 1px 4px rgba(15,23,42,.25)}
-  .transform-mobile-help{display:none!important}
-  .design-object.selected:has(.text-obj)::before{display:none!important}
-}
-@media(max-width:767px){
-  .brand>div:last-child{display:none}
-  #redoBtn{display:none}
-  .topbar{padding-left:8px}.brand{min-width:34px;gap:0}
-  .top-actions{margin-left:auto}
-  .shopify-cart-btn{min-height:40px!important;font-size:12px!important}
 }
 
 </style>
@@ -1230,14 +1171,14 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
     </div>
 
     <div class="top-actions">
-      <button class="icon-btn" id="undoBtn" title="Deshacer" aria-label="Deshacer">↶</button>
-      <button class="icon-btn" id="redoBtn" title="Rehacer" aria-label="Rehacer">↷</button>
+      <button class="icon-btn" id="undoBtn" title="Deshacer">↶</button>
+      <button class="icon-btn" id="redoBtn" title="Rehacer">↷</button>
       <div class="divider"></div>
       <label class="variant-label">Hoja activa <span id="activeSheetSize" class="sheet-size-chip">62 × 30 cm</span></label>
-      <button class="ghost-btn" id="qualityBtn">✓ Revisar hoja</button>
-      <button class="autonest-top-btn" id="autoNestTopBtn">✦ Organizar diseños</button>
-      <span id="shopifyPriceChip" class="shopify-price-chip" title="Precio de la hoja activa">Agrega diseños para calcular</span>
-<button class="primary-btn shopify-cart-btn" id="exportBtn">Agregar al carrito</button>
+      <button class="ghost-btn" id="qualityBtn">✓ Revisar lienzo</button>
+      <button class="autonest-top-btn" id="autoNestTopBtn">✦ Auto Organizar</button>
+      <span id="shopifyPriceChip" class="shopify-price-chip" title="Precio de la hoja activa">—</span>
+<button class="primary-btn shopify-cart-btn" id="exportBtn">🛒 Agregar al carrito</button>
     </div>
   </header>
 
@@ -1246,15 +1187,10 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       <button class="tool-nav active" data-panel="uploads"><span>▣</span><b>Archivos</b></button>
       <button class="tool-nav" data-panel="text"><span>T</span><b>Texto</b></button>
       <button class="tool-nav" data-panel="settings"><span>⚙</span><b>Ajustes</b></button>
-      <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Vaciar hoja</b></button>
+      <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Iniciar de nuevo</b></button>
     </aside>
 
     <section class="sidepanel" id="sidepanel">
-      <div class="mobile-panel-tabs mobile-only" role="tablist" aria-label="Herramientas">
-        <button type="button" data-mobile-panel="uploads">Diseños</button>
-        <button type="button" data-mobile-panel="text">Texto</button>
-        <button type="button" data-mobile-panel="settings">Hoja</button>
-      </div>
       <div class="panel-head">
         <div>
           <h2 id="panelTitle">Añadir imagen</h2>
@@ -1285,12 +1221,17 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
         <label class="field">Fuente
           <select id="textFont" class="text-input" style="margin-top:5px;height:36px;padding:0 8px"></select>
         </label>
+        <div class="custom-font-install">
+          <input id="customFontInput" type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" hidden>
+          <button id="installFontBtn" type="button" class="ghost-btn wide">＋ Instalar fuente</button>
+          <small id="customFontStatus">TTF, OTF, WOFF o WOFF2 · disponible en este navegador</small>
+        </div>
         <div class="text-style-row" style="margin-top:0">
           <button type="button" id="textBoldBtn" class="text-style-btn active" title="Negrita">B</button>
           <button type="button" id="textItalicBtn" class="text-style-btn" title="Cursiva" style="font-style:italic">I</button>
-          <button type="button" id="textAlignLeftBtn" class="text-style-btn align-ico" title="Alinear a la izquierda" aria-label="Alinear a la izquierda"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="2" y1="7" x2="12" y2="7"/><line x1="2" y1="12" x2="15" y2="12"/></svg></button>
-          <button type="button" id="textAlignCenterBtn" class="text-style-btn align-ico active" title="Centrar texto" aria-label="Centrar texto"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="4" y1="7" x2="14" y2="7"/><line x1="3" y1="12" x2="15" y2="12"/></svg></button>
-          <button type="button" id="textAlignRightBtn" class="text-style-btn align-ico" title="Alinear a la derecha" aria-label="Alinear a la derecha"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="6" y1="7" x2="16" y2="7"/><line x1="3" y1="12" x2="16" y2="12"/></svg></button>
+          <button type="button" id="textAlignLeftBtn" class="text-style-btn align-ico" title="Izquierda">L</button>
+          <button type="button" id="textAlignCenterBtn" class="text-style-btn align-ico active" title="Centro">C</button>
+          <button type="button" id="textAlignRightBtn" class="text-style-btn align-ico" title="Derecha">R</button>
         </div>
         <div class="prop-grid" style="margin-bottom:12px">
           <label>Ancho<div class="unit-input"><input id="textWidthCm" type="number" step="0.1" min="0.2" value="12"><span>cm</span></div></label>
@@ -1321,7 +1262,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 <div id="settingsPanel" class="panel-view">
         <label class="field">Ancho
           <div class="unit-input"><input id="sheetWidth" type="number" value="62" readonly aria-readonly="true" title="El ancho DTF está fijado en 62 cm"><span>cm</span></div>
-          <small style="display:block;margin-top:5px;color:#475569;font-size:11px;line-height:1.4">El ancho está fijado en 62 cm por el formato de impresión.</small>
         </label>
         <label class="field">Alto
           <div class="unit-input"><input id="sheetHeight" type="number" value="30" min="30" max="310" step="0.1"><span>cm</span></div>
@@ -1330,19 +1270,19 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div class="unit-input"><input id="sheetMargin" type="number" value="0" min="0" step="0.1"><span>cm</span></div>
         </label>
         <label class="toggle-row"><input id="showResolution" type="checkbox" checked><span>Mostrar calidad de resolución</span></label>
-        <label class="toggle-row"><input id="snapToggle" type="checkbox" checked><span>Ajustar a guías</span></label>
+        <label class="toggle-row"><input id="snapToggle" type="checkbox" checked><span>Snap a guías</span></label>
         <button id="applySettingsBtn" class="primary-btn wide">Aplicar ajustes</button>
         <div class="settings-bottom-spacer"></div>
-        <button id="resetProjectBtn" class="reset-project-btn wide">↺ Vaciar hoja activa</button>
+        <button id="resetProjectBtn" class="reset-project-btn wide">↺ Volver a empezar</button>
       </div>
     </section>
 
     <main class="stage-wrap">
       <div class="stage-toolbar">
         <div class="left">
-          <button class="mini-btn" id="zoomOut" aria-label="Alejar lienzo">−</button>
+          <button class="mini-btn" id="zoomOut">−</button>
           <span id="zoomLabel">100%</span>
-          <button class="mini-btn" id="zoomIn" aria-label="Acercar lienzo">+</button>
+          <button class="mini-btn" id="zoomIn">+</button>
           <button class="mini-btn" id="fitBtn" title="Centrar la mesa en pantalla">Centrar</button>
         </div>
 
@@ -1359,7 +1299,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
             <span>Permitir rotación</span>
           </label>
         </div>
-        <button id="mobileOrganizeBtn" class="mini-btn mobile-only" type="button">✦ Organizar</button>
 <div class="color-help-wrap">
           <button id="colorHelpBtn" class="color-help-btn" type="button">ⓘ ¿Qué significan los colores?</button>
           <div id="colorHelpPopover" class="color-help-popover hidden">
@@ -1405,7 +1344,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div id="artboard" class="artboard">
             <div id="safeArea" class="safe-area"></div>
             <div id="objectsLayer" class="objects-layer"></div>
-            <div id="canvasEmptyState" class="canvas-empty-state"><div class="canvas-empty-card"><div class="canvas-empty-icon">⬆</div><b>Empieza subiendo tus diseños</b><p>Agrega archivos PNG, JPG, WEBP o SVG para preparar tu hoja DTF.</p><button id="canvasUploadBtn" class="primary-btn" type="button">Subir diseños</button></div></div>
             <div id="autoNestProcessingOverlay" class="autonest-processing-overlay" aria-live="polite">
               <div class="autonest-processing-card">
                 <div class="autonest-processing-spinner"></div>
@@ -1451,8 +1389,8 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
         <div id="imageProcessingTools" class="image-processing-card">
           <div class="image-processing-title"><b>Procesamiento de imagen</b><small>DTF</small></div>
           <div class="image-processing-actions">
-            <button id="enhanceImageBtn" class="process-image-btn ai" type="button">Mejorar calidad con IA</button>
-            <button id="removeBgBtn" class="process-image-btn bgremove" type="button">Quitar fondo con IA</button>
+            <button id="enhanceImageBtn" class="process-image-btn ai" type="button">✨ Mejorar calidad con IA</button>
+            <button id="removeBgBtn" class="process-image-btn bgremove" type="button">✂ Quitar fondo con IA</button>
             <button id="halftoneImageBtn" class="process-image-btn halftone" type="button">◉ Crear semitono</button>
             <button id="restoreOriginalBtn" class="process-image-btn restore hidden" type="button">↶ Restaurar imagen original</button>
           </div>
@@ -1467,9 +1405,9 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div class="text-style-row">
             <button type="button" id="selTextBoldBtn" class="text-style-btn" title="Negrita">B</button>
             <button type="button" id="selTextItalicBtn" class="text-style-btn" title="Cursiva" style="font-style:italic">I</button>
-            <button type="button" id="selTextAlignLeftBtn" class="text-style-btn align-ico" title="Alinear a la izquierda" aria-label="Alinear a la izquierda"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="2" y1="7" x2="12" y2="7"/><line x1="2" y1="12" x2="15" y2="12"/></svg></button>
-            <button type="button" id="selTextAlignCenterBtn" class="text-style-btn align-ico" title="Centrar texto" aria-label="Centrar texto"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="4" y1="7" x2="14" y2="7"/><line x1="3" y1="12" x2="15" y2="12"/></svg></button>
-            <button type="button" id="selTextAlignRightBtn" class="text-style-btn align-ico" title="Alinear a la derecha" aria-label="Alinear a la derecha"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="6" y1="7" x2="16" y2="7"/><line x1="3" y1="12" x2="16" y2="12"/></svg></button>
+            <button type="button" id="selTextAlignLeftBtn" class="text-style-btn align-ico" title="Izquierda">L</button>
+            <button type="button" id="selTextAlignCenterBtn" class="text-style-btn align-ico" title="Centro">C</button>
+            <button type="button" id="selTextAlignRightBtn" class="text-style-btn align-ico" title="Derecha">R</button>
           </div>
           <label class="field">Ancho del trazo
             <input id="selTextStrokeWidth" type="range" min="0" max="12" step="0.5" value="0">
@@ -1516,18 +1454,17 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div class="duplicate-card-title">Duplicar</div>
           <label class="dup-qty-field">
             <span>Cantidad de imágenes</span>
-              <div class="num-stepper">
+            <div class="num-stepper">
               <input id="duplicateQty" type="number" min="1" max="999" step="1" value="1">
               <div class="num-stepper-btns">
                 <button type="button" id="dupQtyUp" title="Subir" aria-label="Subir cantidad">▲</button>
                 <button type="button" id="dupQtyDown" title="Bajar" aria-label="Bajar cantidad">▼</button>
               </div>
-              <small style="display:block;margin-top:5px;color:#475569;font-size:11px">Se pedirá confirmación al duplicar más de 20 veces.</small>
             </div>
           </label>
           <button id="duplicateBtn" class="duplicate-primary-btn" type="button">⧉ Duplicar imagen</button>
         </div>
-        <button id="fillSelectedBtn" class="fill-selection-btn" type="button" title="Añade copias en los huecos sin mover los demás diseños" style="width:100%;margin-bottom:4px">▦ Rellenar espacios con este diseño</button>
+        <button id="fillSelectedBtn" class="fill-selection-btn" type="button" style="width:100%;margin-bottom:4px">▦ Auto rellenar</button>
 
         <div class="section-divider"></div>
 
@@ -1548,7 +1485,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <span class="transform-separator"></span>
           <button id="toolbarDeleteBtn" class="transform-tool-btn danger" type="button" title="Borrar" aria-label="Borrar">⌫</button>
         </div>
-        <p class="transform-mobile-help">↶ ↷ Girar · ⇋ ⇵ Voltear · ⊣ ⊢ Alinear · ⌫ Borrar</p>
 
         <div class="section-divider"></div>
 </div>
@@ -1566,34 +1502,47 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 
   <div id="mobileDrawerOverlay" class="mobile-drawer-overlay" hidden></div>
   <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Navegación móvil">
-    <button type="button" data-mobile-nav="files"><span>▣</span>Diseños</button>
-    <button type="button" data-mobile-nav="sheets"><span>▤</span>Hojas</button>
-    <button type="button" data-mobile-nav="settings"><span>⚙</span>Ajustes</button>
+    <button type="button" data-mobile-nav="files"><span>▣</span>Archivos</button>
+    <button type="button" data-mobile-nav="props"><span>☰</span>Props</button>
+    <button type="button" data-mobile-nav="nest"><span>✦</span>Organizar</button>
   </nav>
-  <div id="mobileSelectionBar" class="mobile-selection-bar" aria-label="Acciones del diseño seleccionado">
-    <button type="button" data-selection-action="size"><span>↔</span>Tamaño</button>
-    <button type="button" data-selection-action="duplicate"><span>⧉</span>Duplicar</button>
-    <button type="button" data-selection-action="organize"><span>✦</span>Organizar</button>
-    <button type="button" data-selection-action="more"><span>•••</span>Más</button>
+
+  <div id="checkoutProcessingOverlay" class="checkout-processing-overlay" hidden aria-live="polite" aria-busy="true">
+    <div class="checkout-processing-card">
+      <div class="checkout-processing-spinner"></div>
+      <b id="checkoutProcessingTitle">Preparando tu pedido…</b>
+      <span id="checkoutProcessingSub">No cierres esta ventana ni modifiques el lienzo.</span>
+      <div class="checkout-processing-bar"><span></span></div>
+    </div>
   </div>
-  <button id="mobileQuickOrganize" class="mobile-quick-organize" type="button">✦ Organizar</button>
-  <div id="mobileOrganizeSheet" class="mobile-action-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="mobileOrganizeTitle">
-    <button class="mobile-sheet-scrim" type="button" aria-label="Cerrar"></button>
-    <div class="mobile-sheet-card">
-      <div class="mobile-sheet-handle"></div>
-      <h2 id="mobileOrganizeTitle">Organizar diseños</h2>
-      <p>Acomoda todos los diseños de la hoja aprovechando mejor el espacio.</p>
-      <label>Separación <div class="mobile-sheet-input"><input id="mobileNestGap" type="number" min="0" step="0.1" value="0.5"><span>cm</span></div></label>
-      <label class="mobile-sheet-check"><input id="mobileAllowRotate" type="checkbox" checked><span>Permitir rotación</span></label>
-      <div class="mobile-sheet-actions"><button id="mobileOrganizeCancel" class="ghost-btn" type="button">Cancelar</button><button id="mobileOrganizeRun" class="primary-btn" type="button">Organizar</button></div>
+
+  <div id="checkoutConfirmModal" class="modal-backdrop hidden">
+    <div class="modal checkout-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="checkoutConfirmTitle">
+      <div class="modal-head">
+        <h2 id="checkoutConfirmTitle">Confirmar pedido</h2>
+        <button class="close-btn" id="checkoutConfirmCloseBtn" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="checkout-confirm-body">
+        <div class="checkout-confirm-icon">🛒</div>
+        <b>¿Ya estás listo para agregar este pedido al carrito?</b>
+        <p>
+          Al continuar se prepararán las Gang Sheets actuales. Verifica que tamaños,
+          cantidades y posiciones sean los que deseas.
+        </p>
+        <div id="checkoutConfirmSummary" class="checkout-confirm-summary"></div>
+      </div>
+      <div class="modal-foot checkout-confirm-actions">
+        <button id="checkoutConfirmCancelBtn" class="ghost-btn" type="button">Seguir editando</button>
+        <button id="checkoutConfirmContinueBtn" class="primary-btn" type="button">Sí, agregar al carrito</button>
+      </div>
     </div>
   </div>
 
   <div id="qualityModal" class="modal-backdrop hidden">
-    <div class="modal quality-modal" role="dialog" aria-modal="true" aria-labelledby="qualityTitle">
+    <div class="modal quality-modal">
       <div class="modal-head dark">
-        <div><span class="kicker">REVISIÓN DE IMPRESIÓN</span><h2 id="qualityTitle">Revisar hoja</h2></div>
-        <button class="close-btn" data-close="qualityModal" aria-label="Cerrar revisión">×</button>
+        <div><span class="kicker">PRE-FLIGHT</span><h2>Revisar lienzo</h2></div>
+        <button class="close-btn" data-close="qualityModal">×</button>
       </div>
       <div class="quality-body">
         <div class="quality-list-wrap">
@@ -3343,8 +3292,18 @@ function nextCopyName(sourceName){
 
 function calcDpi(o){
  if(o.type==="text") return 999;
- const pxw=o.naturalW||1; const inches=o.w/2.54;
- return Math.round(pxw/Math.max(.01,inches));
+
+ const asset=o.assetId?assetById(o.assetId):null;
+ const pxw=+(asset?.w||o.naturalW||1);
+ const pxh=+(asset?.h||o.naturalH||1);
+ const widthCm=Math.max(.001,+o.w||.001);
+ const heightCm=Math.max(.001,+o.h||.001);
+
+ const dpiX=pxw/(widthCm/2.54);
+ const dpiY=pxh/(heightCm/2.54);
+ const effective=Math.min(dpiX,dpiY);
+
+ return Math.round(effective+1e-6);
 }
 function dpiClass(d){return d>=300?"optimal":d>=250?"good":d>=200?"bad":"minimum"}
 function objRect(o){return rotatedAABB(o)}
@@ -3433,6 +3392,127 @@ function updateDiagnostics(){
    }
  }
 }
+
+const CUSTOM_FONT_DB_NAME="bixstudio_custom_fonts_v1";
+const CUSTOM_FONT_STORE="fonts";
+const customFonts=new Map();
+
+function openCustomFontDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(CUSTOM_FONT_DB_NAME,1);
+    req.onupgradeneeded=()=>{
+      const db=req.result;
+      if(!db.objectStoreNames.contains(CUSTOM_FONT_STORE)){
+        db.createObjectStore(CUSTOM_FONT_STORE,{keyPath:"id"});
+      }
+    };
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+
+function customFontFamilyFromFilename(name){
+  return String(name||"Fuente personalizada")
+    .replace(/\.(ttf|otf|woff2?)$/i,"")
+    .replace(/[_-]+/g," ")
+    .replace(/\s+/g," ")
+    .trim() || "Fuente personalizada";
+}
+
+function uniqueCustomFontFamily(base){
+  let name=base;
+  let n=2;
+  const builtIn=new Set(TEXT_FONTS.map(f=>f.id));
+  while(builtIn.has(name) || customFonts.has(name)){
+    name=`${base} ${n++}`;
+  }
+  return name;
+}
+
+async function registerCustomFontRecord(record){
+  if(!record?.family || !(record.blob instanceof Blob)) return null;
+  try{
+    const bytes=await record.blob.arrayBuffer();
+    const face=new FontFace(record.family,bytes);
+    await face.load();
+    document.fonts.add(face);
+    customFonts.set(record.family,{...record,face});
+    return record.family;
+  }catch(e){
+    console.warn("[BixStudio custom font]",record?.family,e);
+    return null;
+  }
+}
+
+async function persistCustomFont(record){
+  const db=await openCustomFontDB();
+  await new Promise((resolve,reject)=>{
+    const tx=db.transaction(CUSTOM_FONT_STORE,"readwrite");
+    tx.objectStore(CUSTOM_FONT_STORE).put({
+      id:record.id,
+      family:record.family,
+      filename:record.filename,
+      blob:record.blob,
+      installedAt:record.installedAt||Date.now()
+    });
+    tx.oncomplete=resolve;
+    tx.onerror=()=>reject(tx.error);
+  });
+  db.close();
+}
+
+async function loadCustomFonts(){
+  try{
+    const db=await openCustomFontDB();
+    const rows=await new Promise((resolve,reject)=>{
+      const tx=db.transaction(CUSTOM_FONT_STORE,"readonly");
+      const req=tx.objectStore(CUSTOM_FONT_STORE).getAll();
+      req.onsuccess=()=>resolve(req.result||[]);
+      req.onerror=()=>reject(req.error);
+    });
+    db.close();
+    for(const row of rows) await registerCustomFontRecord(row);
+  }catch(e){
+    console.warn("No se pudieron restaurar fuentes personalizadas",e);
+  }
+}
+
+function customFontOptionRecords(){
+  return [...customFonts.keys()].map(family=>({id:family,label:`★ ${family}`}));
+}
+
+async function installCustomFontFile(file){
+  if(!file) return null;
+  const ext=(file.name.split(".").pop()||"").toLowerCase();
+  if(!["ttf","otf","woff","woff2"].includes(ext)){
+    throw new Error("Formato no compatible. Usa TTF, OTF, WOFF o WOFF2.");
+  }
+
+  const base=customFontFamilyFromFilename(file.name);
+  const family=uniqueCustomFontFamily(base);
+  const record={
+    id:"font_"+Date.now()+"_"+Math.random().toString(36).slice(2),
+    family,
+    filename:file.name,
+    blob:file,
+    installedAt:Date.now()
+  };
+
+  const loaded=await registerCustomFontRecord(record);
+  if(!loaded) throw new Error("El navegador no pudo cargar esta fuente.");
+
+  await persistCustomFont(record);
+  return family;
+}
+
+function refreshFontSelectors(preferred=null){
+  const currentCreate=preferred||$("#textFont")?.value||"Abril Fatface";
+  const selectedObj=typeof objById==="function" ? objById(state.selectedId) : null;
+  const currentSelected=selectedObj?.fontFamily||$("#selTextFont")?.value||currentCreate;
+  fillFontSelect($("#textFont"),currentCreate);
+  fillFontSelect($("#selTextFont"),currentSelected);
+}
+
 const TEXT_FONTS=[
   {id:"Abril Fatface",label:"Abril Fatface"},
   {id:"Bebas Neue",label:"Bebas Neue"},
@@ -3450,9 +3530,10 @@ const TEXT_FONTS=[
 function fillFontSelect(sel,current){
   if(!sel) return;
   const cur=current||"Abril Fatface";
-  sel.innerHTML=TEXT_FONTS.map(f=>`<option value="${f.id}" style="font-family:'${f.id}',sans-serif">${f.label}</option>`).join("");
-  if(!TEXT_FONTS.some(f=>f.id===cur)){
-    sel.insertAdjacentHTML("afterbegin",`<option value="${cur}">${cur}</option>`);
+  const allFonts=[...TEXT_FONTS,...customFontOptionRecords()];
+  sel.innerHTML=allFonts.map(f=>`<option value="${escapeHtml(f.id)}" style="font-family:'${escapeHtml(f.id)}',sans-serif">${escapeHtml(f.label)}</option>`).join("");
+  if(!allFonts.some(f=>f.id===cur)){
+    sel.insertAdjacentHTML("afterbegin",`<option value="${escapeHtml(cur)}">${escapeHtml(cur)}</option>`);
   }
   sel.value=cur;
 }
@@ -3669,7 +3750,6 @@ function beginTextEdit(o){
 function renderAll(){
  if(textEditSession) endTextEdit(true);
  updateBoard(); updateDiagnostics(); layer.innerHTML="";
- const empty=$("#canvasEmptyState"); if(empty) empty.classList.toggle("hidden",state.objects.length>0);
  layer.classList.toggle("show-dpi",state.showResolution);
  state.objects.forEach(o=>{ensureAspect(o);ensureRotationModel(o);renderObject(o)}); updateSelectionPanel(); renderSheetsPanel(); syncSheetInputs();
  renderAssets();
@@ -4948,6 +5028,45 @@ async function insertAsset(a,sizeOverride=null){
    aspectLocked:true,aspectRatio:printW/printH,
    baseW:printW,baseH:printH
  };
+ const canFitAsIs=objectCanEverFitSheet(o);
+
+ if(!canFitAsIs){
+   // Oversize import mode:
+   // Keep the source's real physical dimensions instead of rejecting/scaling it.
+   // It is deliberately placed from the top-left and may extend outside the
+   // 62 cm artboard. The customer can then resize it manually to the desired size.
+   o.x=state.sheet.margin+0.05;
+   o.y=state.sheet.margin+0.05;
+   o.rot=0;
+
+   state.objects.push(o);
+   state.selectedId=o.id;
+   state.selectedIds=[o.id];
+
+   // Grow only the visible sheet height when useful, never change the fixed width
+   // and never exceed the production maximum.
+   const visibleBottom=Math.min(
+     MAX_SHEET_HEIGHT,
+     Math.max(MIN_SHEET_HEIGHT,o.y+o.h+state.sheet.margin)
+   );
+   state.sheet.h=Math.max(state.sheet.h,visibleBottom);
+
+   renderAll();
+   hintPropertiesTab();
+
+   const overW=o.w>(state.sheet.w-state.sheet.margin*2)+.001;
+   const overH=o.h>(MAX_SHEET_HEIGHT-state.sheet.margin*2)+.001;
+   const reasons=[];
+   if(overW) reasons.push(`ancho ${o.w.toFixed(1)} cm`);
+   if(overH) reasons.push(`alto ${o.h.toFixed(1)} cm`);
+
+   toast(
+     `Diseño importado a tamaño original (${reasons.join(" · ")}). `+
+     `Redimensiónalo para colocarlo dentro de la Gang Sheet de 62 cm.`
+   );
+   return;
+ }
+
  toast("Buscando hueco por forma…");
  const placed=await placeObjectWithShapeAutoGrowth(o);
  if(!placed){state.history.pop();return}
@@ -5694,11 +5813,6 @@ function syncTextStyleButtons(prefix,stateObj){
   if(left) left.classList.toggle("active",stateObj.align==="left");
   if(center) center.classList.toggle("active",stateObj.align==="center");
   if(right) right.classList.toggle("active",stateObj.align==="right");
-  if(bold) bold.setAttribute("aria-pressed",String(!!stateObj.bold));
-  if(italic) italic.setAttribute("aria-pressed",String(!!stateObj.italic));
-  if(left) left.setAttribute("aria-pressed",String(stateObj.align==="left"));
-  if(center) center.setAttribute("aria-pressed",String(stateObj.align==="center"));
-  if(right) right.setAttribute("aria-pressed",String(stateObj.align==="right"));
 }
 function syncTextPanelSizeInputs(o){
   const wEl=$("#textWidthCm"), hEl=$("#textHeightCm");
@@ -5776,6 +5890,51 @@ function wireTextCreateControls(){
     renderAll();
   });
 }
+function wireCustomFontInstall(){
+  const btn=$("#installFontBtn");
+  const input=$("#customFontInput");
+  const status=$("#customFontStatus");
+  if(!btn||!input) return;
+
+  btn.onclick=()=>input.click();
+
+  input.onchange=async()=>{
+    const file=input.files?.[0];
+    input.value="";
+    if(!file) return;
+
+    const old=btn.textContent;
+    btn.disabled=true;
+    btn.textContent="Instalando fuente…";
+    if(status) status.textContent=file.name;
+
+    try{
+      const family=await installCustomFontFile(file);
+      refreshFontSelectors(family);
+
+      const createSel=$("#textFont");
+      if(createSel) createSel.value=family;
+
+      const o=objById(state.selectedId);
+      if(o&&o.type==="text"){
+        await ensureTextFontLoaded({...o,fontFamily:family});
+        applySelectedTextPatch({fontFamily:family});
+      }
+
+      if(status) status.textContent=`✓ ${family} instalada`;
+      toast(`Fuente instalada: ${family}`);
+    }catch(e){
+      console.error(e);
+      if(status) status.textContent="No se pudo instalar la fuente";
+      toast(String(e?.message||e).slice(0,140));
+    }finally{
+      btn.disabled=false;
+      btn.textContent=old;
+    }
+  };
+}
+wireCustomFontInstall();
+
 async function addText(text="bixprint"){
  pushHistory();
  const strokeW=+$("#textStrokeWidth")?.value||0;
@@ -5885,7 +6044,6 @@ wireSelectedTextControls();
 
 function updateSelectionPanel(){
  const o=objById(state.selectedId),empty=$("#noSelection"),panel=$("#selectionPanel");
- document.body.classList.toggle("has-mobile-selection",!!o);
  if(!o){empty.classList.remove("hidden");panel.classList.add("hidden");return}
  empty.classList.add("hidden");panel.classList.remove("hidden");$("#selName").textContent=state.selectedIds.length>1?`${state.selectedIds.length} diseños seleccionados`:(o.name||o.text||"Diseño");
  {
@@ -6081,10 +6239,8 @@ $("#dupQtyUp")?.addEventListener("click",()=>setDuplicateQty(readDuplicateQty()+
 $("#dupQtyDown")?.addEventListener("click",()=>setDuplicateQty(readDuplicateQty()-1));
 $("#duplicateQty")?.addEventListener("change",()=>setDuplicateQty(readDuplicateQty()));
 $("#duplicateBtn").onclick=async()=>{
-  const qty=readDuplicateQty();
-  if(qty>20 && !confirm("Se crearán "+qty+" copias del diseño seleccionado. ¿Quieres continuar?")) return;
   if(!copySelection(true)) return;
-  await pasteClipboard(qty);
+  await pasteClipboard(readDuplicateQty());
 };
 $("#aspectLockBtn").onclick=()=>{
  const o=objById(state.selectedId); if(!o) return;
@@ -7297,7 +7453,7 @@ async function runQualityCheck(){
     ? `${alpha.affectedAssets} archivo(s)`
     : "0";
 
-  return {alpha,issues,lows,warns,overlaps,off,hasBlockingIssues:!!(lows||overlaps||off)};
+  return alpha;
 }
 
 async function quality(){
@@ -7306,11 +7462,10 @@ async function quality(){
   $("#alphaTools").classList.add("hidden");
 
   try{
-    return await runQualityCheck();
+    await runQualityCheck();
   }catch(e){
     console.error("[BixStudio preflight]",e);
     $("#qualityList").innerHTML='<div class="check-row"><div class="check-icon warn">!</div><div><b>No se pudo completar la revisión</b><p>Intenta nuevamente. El editor sigue disponible.</p></div><span class="check-status">REVISAR</span></div>';
-    return null;
   }
 }
 
@@ -7353,7 +7508,7 @@ function openMobileDrawer(side){
     $("#mobileBottomNav [data-mobile-nav='files']")?.classList.add("active");
   }else if(side==="right"){
     document.body.classList.add("drawer-right-open");
-    if(!$("#sheetsView")?.classList.contains("hidden")) $("#mobileBottomNav [data-mobile-nav='sheets']")?.classList.add("active");
+    $("#mobileBottomNav [data-mobile-nav='props']")?.classList.add("active");
   }
   if(ov){ ov.hidden=false; ov.classList.add("show"); }
 }
@@ -7393,12 +7548,12 @@ function wireMobileChrome(){
       if(action==="files"){
         if(document.body.classList.contains("drawer-left-open")) closeMobileDrawers();
         else{ setPanel("uploads"); openMobileDrawer("left"); }
-      }else if(action==="sheets"){
+      }else if(action==="props"){
         if(document.body.classList.contains("drawer-right-open")) closeMobileDrawers();
-        else{ showRightPanel("sheets"); openMobileDrawer("right"); }
-      }else if(action==="settings"){
-        if(document.body.classList.contains("drawer-left-open")) closeMobileDrawers();
-        else{ setPanel("settings"); openMobileDrawer("left"); }
+        else{ showRightPanel("properties"); openMobileDrawer("right"); }
+      }else if(action==="nest"){
+        closeMobileDrawers();
+        $("#autoNestTopBtn")?.click();
       }
     });
   });
@@ -7411,46 +7566,6 @@ function wireMobileChrome(){
   });
 }
 wireMobileChrome();
-$$(".mobile-panel-tabs [data-mobile-panel]").forEach(btn=>btn.addEventListener("click",()=>setPanel(btn.dataset.mobilePanel)));
-$(".mobile-panel-tabs [data-mobile-panel='uploads']")?.classList.add("active");
-$("#canvasUploadBtn")?.addEventListener("click",()=>$("#fileInput")?.click());
-$("#mobileOrganizeBtn")?.addEventListener("click",()=>$("#autoNestTopBtn")?.click());
-
-function openMobileOrganizeSheet(){
-  const sheet=$("#mobileOrganizeSheet");
-  if(!sheet) return;
-  $("#mobileNestGap").value=$("#nestGap")?.value||"0.5";
-  $("#mobileAllowRotate").checked=!!$("#allowRotate")?.checked;
-  sheet.classList.remove("hidden");
-}
-function closeMobileOrganizeSheet(){$("#mobileOrganizeSheet")?.classList.add("hidden")}
-$("#mobileQuickOrganize")?.addEventListener("click",openMobileOrganizeSheet);
-$("#mobileOrganizeCancel")?.addEventListener("click",closeMobileOrganizeSheet);
-$("#mobileOrganizeSheet .mobile-sheet-scrim")?.addEventListener("click",closeMobileOrganizeSheet);
-$("#mobileOrganizeRun")?.addEventListener("click",()=>{
-  const gap=$("#nestGap"),rotate=$("#allowRotate");
-  if(gap) gap.value=$("#mobileNestGap").value;
-  if(rotate) rotate.checked=$("#mobileAllowRotate").checked;
-  closeMobileOrganizeSheet();
-  $("#autoNestTopBtn")?.click();
-});
-$$("[data-selection-action]").forEach(btn=>btn.addEventListener("click",()=>{
-  const action=btn.dataset.selectionAction;
-  if(action==="duplicate"){ $("#duplicateQty").value="1"; $("#duplicateBtn")?.click(); return; }
-  if(action==="organize"){ openMobileOrganizeSheet(); return; }
-  showRightPanel("properties");openMobileDrawer("right");
-  setTimeout(()=>{
-    const target=action==="size"?$("#objWidth"):$("#imageProcessingTools");
-    target?.scrollIntoView({behavior:"smooth",block:"start"});
-  },260);
-}));
-
-// Close the topmost open modal with Escape.
-document.addEventListener("keydown",e=>{
-  if(e.key!=="Escape") return;
-  const open=[...document.querySelectorAll(".modal-backdrop:not(.hidden)")].at(-1);
-  if(open){ e.preventDefault(); if(open.id==="inspectModal") closeInspectPreview(); else open.classList.add("hidden"); }
-});
 
 
 function setShowOutlines(on,{skipRender=false}={}){
@@ -7498,7 +7613,6 @@ function setPanel(name){
  $("#"+name+"Panel").classList.add("active");
  $("#panelTitle").textContent=map[name][0];
  $("#panelSubtitle").textContent=map[name][1];
- $$(".mobile-panel-tabs [data-mobile-panel]").forEach(x=>x.classList.toggle("active",x.dataset.mobilePanel===name));
  if(name==="text"){
    void addText("bixprint");
    // En móvil addText abre el drawer de propiedades; no forzar el panel izquierdo.
@@ -8123,6 +8237,28 @@ async function ensureCloudProject(){
 
 let shopifyCartBusy=false;
 
+function setCheckoutLocked(locked,{title=null,sub=null}={}){
+  const overlay=$("#checkoutProcessingOverlay");
+  const titleEl=$("#checkoutProcessingTitle");
+  const subEl=$("#checkoutProcessingSub");
+
+  document.body.classList.toggle("bix-checkout-locked",!!locked);
+  if(title && titleEl) titleEl.textContent=title;
+  if(sub && subEl) subEl.textContent=sub;
+  if(overlay) overlay.hidden=!locked;
+}
+
+function checkoutPaint(){
+  return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+}
+
+window.addEventListener("keydown",e=>{
+  if(!shopifyCartBusy) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+},true);
+
+
 function shopifyBillableCmForSheet(record){
   if(!record?.objects?.length) return 0;
   return Math.max(1,Math.ceil((+record.sheet?.h||0)-1e-9));
@@ -8155,8 +8291,8 @@ function updateShopifyCartUi(){
 
   const orderSheets=shopifyOrderSheets();
   if(!orderSheets.length){
-    if(chip) chip.textContent="Agrega diseños para calcular";
-    btn.textContent=isMobileLayout()?"Continuar":"Agregar al carrito";
+    if(chip) chip.textContent="—";
+    btn.textContent="🛒 Agregar al carrito";
     btn.disabled=false;
     return;
   }
@@ -8166,7 +8302,7 @@ function updateShopifyCartUi(){
   if(chip) chip.textContent=shopifyMoney(total);
 
   const sheetLabel=orderSheets.length>1 ? ` · ${orderSheets.length} hojas` : "";
-  btn.textContent=isMobileLayout()?"Continuar · "+shopifyMoney(total):"Agregar · "+shopifyMoney(total)+sheetLabel;
+  btn.textContent=`🛒 Agregar · ${shopifyMoney(total)}${sheetLabel}`;
   btn.disabled=false;
 }
 
@@ -8778,6 +8914,64 @@ async function generateSheetRecordPngBlob(index){
   }
 }
 
+
+function confirmCheckout(orderSheets){
+  const modal=$("#checkoutConfirmModal");
+  if(!modal) return Promise.resolve(window.confirm("¿Agregar este pedido al carrito?"));
+
+  const objectCount=orderSheets.reduce((n,{record})=>n+(record.objects?.length||0),0);
+  const totalCm=orderSheets.reduce((sum,{record})=>sum+shopifyBillableCmForSheet(record),0);
+  const summary=$("#checkoutConfirmSummary");
+  if(summary){
+    summary.textContent=
+      `${orderSheets.length} Gang Sheet${orderSheets.length===1?"":"s"} · `+
+      `${objectCount} diseño${objectCount===1?"":"s"} · `+
+      `${totalCm} cm facturables`;
+  }
+
+  modal.classList.remove("hidden");
+
+  return new Promise(resolve=>{
+    let done=false;
+    const finish=value=>{
+      if(done) return;
+      done=true;
+      modal.classList.add("hidden");
+      cleanup();
+      resolve(value);
+    };
+
+    const close=$("#checkoutConfirmCloseBtn");
+    const cancel=$("#checkoutConfirmCancelBtn");
+    const yes=$("#checkoutConfirmContinueBtn");
+
+    const onBackdrop=e=>{
+      if(e.target===modal) finish(false);
+    };
+    const onKey=e=>{
+      if(e.key==="Escape"){
+        e.preventDefault();
+        finish(false);
+      }
+    };
+    const cleanup=()=>{
+      modal.removeEventListener("click",onBackdrop);
+      window.removeEventListener("keydown",onKey,true);
+      if(close) close.onclick=null;
+      if(cancel) cancel.onclick=null;
+      if(yes) yes.onclick=null;
+    };
+
+    modal.addEventListener("click",onBackdrop);
+    window.addEventListener("keydown",onKey,true);
+    if(close) close.onclick=()=>finish(false);
+    if(cancel) cancel.onclick=()=>finish(false);
+    if(yes) yes.onclick=()=>finish(true);
+
+    setTimeout(()=>yes?.focus(),0);
+  });
+}
+
 async function addActiveSheetToShopifyCart(){
   if(shopifyCartBusy) return;
 
@@ -8786,49 +8980,59 @@ async function addActiveSheetToShopifyCart(){
     toast("Añade al menos un diseño antes de agregar al carrito.");
     return;
   }
-  // Review before checkout so printing problems are not hidden behind the cart action.
-  const report=await runQualityCheck();
-  if(report?.hasBlockingIssues){
-    openModal("qualityModal");
-    toast("Revisa los problemas de la hoja antes de continuar.");
-    return;
-  }
   if(!(window.parent && window.parent!==window)){
     toast("Abre BixStudio desde la página de BixPrint para agregar al carrito.");
     return;
   }
 
+  // Final explicit confirmation. This is intentionally NOT "Revisar lienzo";
+  // no quality scan is run here.
+  const confirmed=await confirmCheckout(orderSheets);
+  if(!confirmed) return;
+
   const btn=$("#exportBtn");
   const quantity=orderSheets.reduce((sum,{record})=>sum+shopifyBillableCmForSheet(record),0);
+  const totalResources=orderSheets.reduce((n,{record})=>n+(record.objects?.length||0),0);
   shopifyCartBusy=true;
 
   if(btn){
     btn.disabled=true;
-    btn.textContent="Sincronizando diseños…";
+    btn.textContent="⏳ Preparando pedido…";
   }
 
+  setCheckoutLocked(true,{
+    title:"Preparando tu pedido…",
+    sub:`Sincronizando ${orderSheets.length} Gang Sheet${orderSheets.length===1?"":"s"}. No modifiques el lienzo.`
+  });
+
+  await checkoutPaint();
+
   try{
-    // Create/restore project first. Most assets should already be transferring
-    // in the background by this point.
     await ensureCloudProject();
 
     let ready=0;
     const uploads=await Promise.all(
-      orderSheets.map(async({record},pos)=>{
+      orderSheets.map(async({record})=>{
         const info=await queueSheetRender(record,{
           onProgress:()=>{
             ready++;
-            if(btn) btn.textContent="Sincronizando diseños…";
+            if(btn) btn.textContent="⏳ Sincronizando diseños…";
+            const sub=$("#checkoutProcessingSub");
+            if(sub) sub.textContent=`Preparando archivos… ${Math.min(ready,totalResources)}/${totalResources}`;
           }
         });
         return info;
       })
     );
 
-    // Rendering now continues in Cloud Tasks AFTER the customer moves on.
-    // Shopify receives stable /print-file/<job> links immediately.
-    if(btn) btn.textContent="Añadiendo al carrito…";
+    if(btn) btn.textContent="🛒 Añadiendo al carrito…";
+    setCheckoutLocked(true,{
+      title:"Añadiendo al carrito…",
+      sub:"Tus archivos ya están en proceso. Espera un momento."
+    });
+    await checkoutPaint();
 
+    // Se continúa directamente. No se abre Revisar lienzo ni otra revisión previa.
     window.parent.postMessage({
       type:"BIXSTUDIO_ADD_TO_CART",
       variantId:SHOPIFY_DTF_VARIANT_ID,
@@ -8843,11 +9047,14 @@ async function addActiveSheetToShopifyCart(){
     setTimeout(()=>{
       if(!shopifyCartBusy) return;
       shopifyCartBusy=false;
+      setCheckoutLocked(false);
       updateShopifyCartUi();
-    },20000);
+      toast("El carrito tardó demasiado en responder. Puedes intentarlo nuevamente.");
+    },60000);
   }catch(e){
     console.error("[BixStudio async render/cart]",e);
     shopifyCartBusy=false;
+    setCheckoutLocked(false);
     updateShopifyCartUi();
     toast(`No se pudo preparar el pedido: ${String(e?.message||e).slice(0,150)}`);
   }
@@ -8870,12 +9077,23 @@ window.addEventListener("message",e=>{
   const d=e.data||{};
 
   if(d.type==="BIXSTUDIO_CART_OK"){
-    shopifyCartBusy=false;
     const count=shopifyOrderSheets().length;
+    setCheckoutLocked(true,{
+      title:"✓ Pedido añadido",
+      sub:"Abriendo tu carrito…"
+    });
+    if($("#exportBtn")) $("#exportBtn").textContent="✓ Pedido añadido";
     toast(`✓ Pedido añadido al carrito · ${count} hoja(s) · el archivo final seguirá procesándose en servidor`);
-    updateShopifyCartUi();
+
+    setTimeout(()=>{
+      if(!shopifyCartBusy) return;
+      shopifyCartBusy=false;
+      setCheckoutLocked(false);
+      updateShopifyCartUi();
+    },10000);
   }else if(d.type==="BIXSTUDIO_CART_ERROR"){
     shopifyCartBusy=false;
+    setCheckoutLocked(false);
     updateShopifyCartUi();
     toast(`El archivo se guardó, pero Shopify respondió: ${String(d.error||"Error de Shopify").slice(0,120)}`);
   }
@@ -9522,7 +9740,11 @@ syncSheetInputs();
 renderAll();
 showRightPanel("properties");
 (async()=>{
-  await loadPersistedAssets();
+  await Promise.all([
+    loadPersistedAssets(),
+    loadCustomFonts()
+  ]);
+  refreshFontSelectors();
   await offerSessionRestore();
 
   // Restore the UI immediately with thumbnails, then hydrate only designs that
@@ -9658,13 +9880,7 @@ m.addEventListener('click',e=>{
  rotateCW:'rotateCWBtn',rotateCCW:'rotateCCWBtn',
  flipH:'flipHorizontalBtn',flipV:'flipVerticalBtn',
  lock:'aspectLockBtn'};
- if(cmd==='quantity'){
-   const qty=document.getElementById('duplicateQty');
-   if(qty){qty.focus();qty.select();}
-   if(window.matchMedia('(max-width:900px)').matches) document.querySelector("#mobileBottomNav [data-mobile-nav='props']")?.click();
-   m.classList.remove('show');return;
- }
- const id=map[cmd]; if(id){const el=document.getElementById(id); if(el)el.click();}
+ if(cmd==='quantity'){alert('Agregar cantidad (pendiente de integrar).');return;} const id=map[cmd]; if(id){const el=document.getElementById(id); if(el)el.click();}
  m.classList.remove('show');
 });
 })();
