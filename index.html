@@ -1133,6 +1133,89 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   .shopify-cart-btn{min-width:0!important;padding:7px 10px!important;font-size:11px!important}
 }
 
+/* Mobile workspace rebuilt around one canvas, one panel and contextual actions. */
+.mobile-panel-tabs,.mobile-selection-bar,.mobile-quick-organize,.mobile-action-sheet{display:none}
+@media(max-width:900px){
+  .leftbar{display:none!important}
+  .sidepanel{
+    left:0!important;width:min(420px,100vw)!important;transform:translateX(-105%)!important;
+    border-radius:0 16px 16px 0;overflow:hidden
+  }
+  body.drawer-left-open .sidepanel{transform:translateX(0)!important}
+  .mobile-panel-tabs{display:grid!important;grid-template-columns:repeat(3,1fr);gap:4px;padding:8px;background:#f8fafc;border-bottom:1px solid #e5e7eb}
+  .mobile-panel-tabs button{min-height:42px;border:0;border-radius:9px;background:transparent;color:#475569;font-weight:800;font-size:12px}
+  .mobile-panel-tabs button.active{background:#111827;color:#fff}
+
+  .rightbar{
+    display:flex!important;left:0!important;right:0!important;top:auto!important;bottom:var(--mobile-nav-h)!important;
+    width:100vw!important;height:min(72dvh,640px);max-height:calc(100dvh - 70px - var(--mobile-nav-h));
+    transform:translateY(110%)!important;border-radius:18px 18px 0 0;border:1px solid #dbe1e8;
+    box-shadow:0 -14px 38px rgba(15,23,42,.22)
+  }
+  body.drawer-right-open .rightbar{transform:translateY(0)!important}
+  .rightbar-mobile-head{position:sticky;top:0;background:#fff;z-index:4}
+  .rightbar .right-tabs{display:none!important}
+
+  .stage-toolbar{justify-content:center!important;overflow:visible!important;padding:7px!important}
+  .stage-toolbar>.left{background:#fff;border:1px solid #d7dce2;border-radius:10px;padding:4px;box-shadow:0 2px 8px rgba(15,23,42,.08)}
+  .stage-toolbar>.packing-toolbar,.stage-toolbar>#mobileOrganizeBtn,.stage-toolbar>.color-help-wrap{display:none!important}
+  .viewport-coordinates{display:none!important}
+
+  .mobile-bottom-nav{grid-template-columns:repeat(3,1fr)}
+  .mobile-selection-bar{
+    position:fixed;display:none;left:8px;right:8px;bottom:calc(var(--mobile-nav-h) + 8px);z-index:76;
+    height:58px;padding:5px;background:#111827;border-radius:14px;box-shadow:0 10px 30px rgba(15,23,42,.28);
+    grid-template-columns:repeat(4,1fr);gap:3px
+  }
+  body.has-mobile-selection .mobile-selection-bar{display:grid}
+  .mobile-selection-bar button{border:0;border-radius:9px;background:transparent;color:#fff;font-size:10px;font-weight:750;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .mobile-selection-bar button:active{background:#ffffff20}
+  .mobile-selection-bar span{font-size:17px;line-height:1}
+  .mobile-quick-organize{
+    position:fixed;display:block;right:14px;bottom:calc(var(--mobile-nav-h) + 14px);z-index:74;
+    min-height:44px;padding:0 16px;border:0;border-radius:999px;background:#2563eb;color:#fff;font-weight:900;
+    box-shadow:0 8px 24px rgba(37,99,235,.32)
+  }
+  body.has-mobile-selection .mobile-quick-organize{display:none}
+
+  .mobile-action-sheet{position:fixed;display:block;inset:0;z-index:180}
+  .mobile-action-sheet.hidden{display:none!important}
+  .mobile-sheet-scrim{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0f172a73}
+  .mobile-sheet-card{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:20px 20px 0 0;padding:10px 18px max(18px,env(safe-area-inset-bottom));box-shadow:0 -20px 50px rgba(15,23,42,.25)}
+  .mobile-sheet-handle{width:42px;height:5px;border-radius:999px;background:#cbd5e1;margin:0 auto 14px}
+  .mobile-sheet-card h2{font-size:18px;margin:0}.mobile-sheet-card>p{font-size:12px;color:#475569;line-height:1.45;margin:6px 0 16px}
+  .mobile-sheet-card>label{display:block;font-size:12px;font-weight:800;color:#334155;margin:12px 0}
+  .mobile-sheet-input{display:flex;margin-top:6px;border:1px solid #cbd5e1;border-radius:9px;overflow:hidden;height:44px}
+  .mobile-sheet-input input{flex:1;min-width:0;border:0;padding:0 12px;font-weight:800}.mobile-sheet-input span{display:grid;place-items:center;padding:0 12px;background:#f8fafc;color:#64748b}
+  .mobile-sheet-check{display:flex!important;align-items:center;gap:10px;min-height:44px}
+  .mobile-sheet-check input{width:20px;height:20px}
+  .mobile-sheet-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:18px}.mobile-sheet-actions button{min-height:46px}
+
+  .design-object.selected .resize-point{
+    width:44px!important;height:44px!important;border:0!important;background:transparent!important;
+    display:grid!important;place-items:center;touch-action:none
+  }
+  .design-object.selected .resize-point::after{
+    content:"";display:block;width:22px;height:22px;box-sizing:border-box;
+    border:3px solid #fff;border-radius:50%;background:#2563eb;
+    box-shadow:0 0 0 2px #1d4ed8,0 3px 8px rgba(15,23,42,.35)
+  }
+  .design-object.selected .resize-point:active::after{background:#1d4ed8;transform:scale(1.12)}
+  .resize-point.tl{left:-22px!important;top:-22px!important}.resize-point.tr{right:-22px!important;top:-22px!important}
+  .resize-point.bl{left:-22px!important;bottom:-22px!important}.resize-point.br{right:-22px!important;bottom:-22px!important}
+  .rotation-point{width:40px!important;height:40px!important;border:0!important;background:transparent!important}
+  .rotation-point::after{content:"↻";width:22px;height:22px;display:grid;place-items:center;border:2px solid #2563eb;border-radius:50%;background:#fff;color:#1d4ed8;font-size:14px;font-weight:900;box-shadow:0 1px 4px rgba(15,23,42,.25)}
+  .transform-mobile-help{display:none!important}
+  .design-object.selected:has(.text-obj)::before{display:none!important}
+}
+@media(max-width:767px){
+  .brand>div:last-child{display:none}
+  #redoBtn{display:none}
+  .topbar{padding-left:8px}.brand{min-width:34px;gap:0}
+  .top-actions{margin-left:auto}
+  .shopify-cart-btn{min-height:40px!important;font-size:12px!important}
+}
+
 </style>
 </head>
 <body>
@@ -1167,6 +1250,11 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
     </aside>
 
     <section class="sidepanel" id="sidepanel">
+      <div class="mobile-panel-tabs mobile-only" role="tablist" aria-label="Herramientas">
+        <button type="button" data-mobile-panel="uploads">Diseños</button>
+        <button type="button" data-mobile-panel="text">Texto</button>
+        <button type="button" data-mobile-panel="settings">Hoja</button>
+      </div>
       <div class="panel-head">
         <div>
           <h2 id="panelTitle">Añadir imagen</h2>
@@ -1478,10 +1566,28 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 
   <div id="mobileDrawerOverlay" class="mobile-drawer-overlay" hidden></div>
   <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Navegación móvil">
-    <button type="button" data-mobile-nav="files"><span>▣</span>Archivos</button>
-    <button type="button" data-mobile-nav="props"><span>☰</span>Propiedades</button>
-    <button type="button" data-mobile-nav="review"><span>✓</span>Revisar</button>
+    <button type="button" data-mobile-nav="files"><span>▣</span>Diseños</button>
+    <button type="button" data-mobile-nav="sheets"><span>▤</span>Hojas</button>
+    <button type="button" data-mobile-nav="settings"><span>⚙</span>Ajustes</button>
   </nav>
+  <div id="mobileSelectionBar" class="mobile-selection-bar" aria-label="Acciones del diseño seleccionado">
+    <button type="button" data-selection-action="size"><span>↔</span>Tamaño</button>
+    <button type="button" data-selection-action="duplicate"><span>⧉</span>Duplicar</button>
+    <button type="button" data-selection-action="organize"><span>✦</span>Organizar</button>
+    <button type="button" data-selection-action="more"><span>•••</span>Más</button>
+  </div>
+  <button id="mobileQuickOrganize" class="mobile-quick-organize" type="button">✦ Organizar</button>
+  <div id="mobileOrganizeSheet" class="mobile-action-sheet hidden" role="dialog" aria-modal="true" aria-labelledby="mobileOrganizeTitle">
+    <button class="mobile-sheet-scrim" type="button" aria-label="Cerrar"></button>
+    <div class="mobile-sheet-card">
+      <div class="mobile-sheet-handle"></div>
+      <h2 id="mobileOrganizeTitle">Organizar diseños</h2>
+      <p>Acomoda todos los diseños de la hoja aprovechando mejor el espacio.</p>
+      <label>Separación <div class="mobile-sheet-input"><input id="mobileNestGap" type="number" min="0" step="0.1" value="0.5"><span>cm</span></div></label>
+      <label class="mobile-sheet-check"><input id="mobileAllowRotate" type="checkbox" checked><span>Permitir rotación</span></label>
+      <div class="mobile-sheet-actions"><button id="mobileOrganizeCancel" class="ghost-btn" type="button">Cancelar</button><button id="mobileOrganizeRun" class="primary-btn" type="button">Organizar</button></div>
+    </div>
+  </div>
 
   <div id="qualityModal" class="modal-backdrop hidden">
     <div class="modal quality-modal" role="dialog" aria-modal="true" aria-labelledby="qualityTitle">
@@ -5779,6 +5885,7 @@ wireSelectedTextControls();
 
 function updateSelectionPanel(){
  const o=objById(state.selectedId),empty=$("#noSelection"),panel=$("#selectionPanel");
+ document.body.classList.toggle("has-mobile-selection",!!o);
  if(!o){empty.classList.remove("hidden");panel.classList.add("hidden");return}
  empty.classList.add("hidden");panel.classList.remove("hidden");$("#selName").textContent=state.selectedIds.length>1?`${state.selectedIds.length} diseños seleccionados`:(o.name||o.text||"Diseño");
  {
@@ -7246,7 +7353,7 @@ function openMobileDrawer(side){
     $("#mobileBottomNav [data-mobile-nav='files']")?.classList.add("active");
   }else if(side==="right"){
     document.body.classList.add("drawer-right-open");
-    $("#mobileBottomNav [data-mobile-nav='props']")?.classList.add("active");
+    if(!$("#sheetsView")?.classList.contains("hidden")) $("#mobileBottomNav [data-mobile-nav='sheets']")?.classList.add("active");
   }
   if(ov){ ov.hidden=false; ov.classList.add("show"); }
 }
@@ -7286,12 +7393,12 @@ function wireMobileChrome(){
       if(action==="files"){
         if(document.body.classList.contains("drawer-left-open")) closeMobileDrawers();
         else{ setPanel("uploads"); openMobileDrawer("left"); }
-      }else if(action==="props"){
+      }else if(action==="sheets"){
         if(document.body.classList.contains("drawer-right-open")) closeMobileDrawers();
-        else{ showRightPanel("properties"); openMobileDrawer("right"); }
-      }else if(action==="review"){
-        closeMobileDrawers();
-        quality();
+        else{ showRightPanel("sheets"); openMobileDrawer("right"); }
+      }else if(action==="settings"){
+        if(document.body.classList.contains("drawer-left-open")) closeMobileDrawers();
+        else{ setPanel("settings"); openMobileDrawer("left"); }
       }
     });
   });
@@ -7304,8 +7411,39 @@ function wireMobileChrome(){
   });
 }
 wireMobileChrome();
+$$(".mobile-panel-tabs [data-mobile-panel]").forEach(btn=>btn.addEventListener("click",()=>setPanel(btn.dataset.mobilePanel)));
+$(".mobile-panel-tabs [data-mobile-panel='uploads']")?.classList.add("active");
 $("#canvasUploadBtn")?.addEventListener("click",()=>$("#fileInput")?.click());
 $("#mobileOrganizeBtn")?.addEventListener("click",()=>$("#autoNestTopBtn")?.click());
+
+function openMobileOrganizeSheet(){
+  const sheet=$("#mobileOrganizeSheet");
+  if(!sheet) return;
+  $("#mobileNestGap").value=$("#nestGap")?.value||"0.5";
+  $("#mobileAllowRotate").checked=!!$("#allowRotate")?.checked;
+  sheet.classList.remove("hidden");
+}
+function closeMobileOrganizeSheet(){$("#mobileOrganizeSheet")?.classList.add("hidden")}
+$("#mobileQuickOrganize")?.addEventListener("click",openMobileOrganizeSheet);
+$("#mobileOrganizeCancel")?.addEventListener("click",closeMobileOrganizeSheet);
+$("#mobileOrganizeSheet .mobile-sheet-scrim")?.addEventListener("click",closeMobileOrganizeSheet);
+$("#mobileOrganizeRun")?.addEventListener("click",()=>{
+  const gap=$("#nestGap"),rotate=$("#allowRotate");
+  if(gap) gap.value=$("#mobileNestGap").value;
+  if(rotate) rotate.checked=$("#mobileAllowRotate").checked;
+  closeMobileOrganizeSheet();
+  $("#autoNestTopBtn")?.click();
+});
+$$("[data-selection-action]").forEach(btn=>btn.addEventListener("click",()=>{
+  const action=btn.dataset.selectionAction;
+  if(action==="duplicate"){ $("#duplicateQty").value="1"; $("#duplicateBtn")?.click(); return; }
+  if(action==="organize"){ openMobileOrganizeSheet(); return; }
+  showRightPanel("properties");openMobileDrawer("right");
+  setTimeout(()=>{
+    const target=action==="size"?$("#objWidth"):$("#imageProcessingTools");
+    target?.scrollIntoView({behavior:"smooth",block:"start"});
+  },260);
+}));
 
 // Close the topmost open modal with Escape.
 document.addEventListener("keydown",e=>{
@@ -7360,6 +7498,7 @@ function setPanel(name){
  $("#"+name+"Panel").classList.add("active");
  $("#panelTitle").textContent=map[name][0];
  $("#panelSubtitle").textContent=map[name][1];
+ $$(".mobile-panel-tabs [data-mobile-panel]").forEach(x=>x.classList.toggle("active",x.dataset.mobilePanel===name));
  if(name==="text"){
    void addText("bixprint");
    // En móvil addText abre el drawer de propiedades; no forzar el panel izquierdo.
@@ -8017,7 +8156,7 @@ function updateShopifyCartUi(){
   const orderSheets=shopifyOrderSheets();
   if(!orderSheets.length){
     if(chip) chip.textContent="Agrega diseños para calcular";
-    btn.textContent="Agregar al carrito";
+    btn.textContent=isMobileLayout()?"Continuar":"Agregar al carrito";
     btn.disabled=false;
     return;
   }
@@ -8027,7 +8166,7 @@ function updateShopifyCartUi(){
   if(chip) chip.textContent=shopifyMoney(total);
 
   const sheetLabel=orderSheets.length>1 ? ` · ${orderSheets.length} hojas` : "";
-  btn.textContent=`Agregar · ${shopifyMoney(total)}${sheetLabel}`;
+  btn.textContent=isMobileLayout()?"Continuar · "+shopifyMoney(total):"Agregar · "+shopifyMoney(total)+sheetLabel;
   btn.disabled=false;
 }
 
