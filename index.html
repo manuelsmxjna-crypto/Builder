@@ -17,6 +17,7 @@
 *{box-sizing:border-box} html,body,#app{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--text)}
 body{overflow:hidden;background:var(--bg)}
 button,input,select,textarea{font:inherit} button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid #60a5fa;outline-offset:2px}
 .topbar{height:62px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 14px 0 12px;position:relative;z-index:20}
 .brand{display:flex;align-items:center;gap:10px;min-width:210px}.brand-mark{width:34px;height:34px;background:#111827;color:#fff;border-radius:9px;display:grid;place-items:center;font-weight:900}.brand-title{font-weight:800}.brand-sub{font-size:10px;color:#8a919c;margin-top:1px}
 .top-actions{display:flex;align-items:center;gap:7px}.divider{width:1px;height:24px;background:#e4e7eb;margin:0 3px}
@@ -49,6 +50,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .field{display:block;font-size:11px;color:#535d69;margin-bottom:13px}.field>input[type=range]{width:100%;margin-top:8px}.field>input[type=color]{display:block;margin-top:7px;width:100%;height:36px;border:1px solid #d6dce3;border-radius:7px;padding:3px;background:#fff}.unit-input{margin-top:5px;display:flex;align-items:center;border:1px solid #d6dce3;border-radius:7px;overflow:hidden;background:#fff}.unit-input input{min-width:0;width:100%;border:0;padding:7px 9px;outline:0}.unit-input input[readonly]{background:#f8fafc;color:#64748b;cursor:not-allowed;font-weight:800}.unit-input span{padding:0 8px;color:#7a838d;font-size:11px}.toggle-row{display:flex;gap:8px;align-items:center;font-size:12px;margin:12px 0}.info-card{background:#f6f7f9;border:1px solid #e1e5e9;border-radius:8px;padding:11px;margin-bottom:14px}.info-card b{font-size:13px}.info-card p{font-size:11px;line-height:1.45;color:#67717e;margin:5px 0 0}
 .stage-wrap{display:flex;flex-direction:column;min-width:0;background:#eef0f3}.stage-toolbar{height:42px;border-bottom:1px solid #d9dde3;background:#f8f9fa;display:flex;align-items:center;justify-content:space-between;padding:0 10px}.stage-toolbar .left{display:flex;align-items:center;gap:6px;font-size:11px}.status-inline{display:flex;align-items:center;gap:5px;color:#69717c;font-size:9px}.dot{width:7px;height:7px;border-radius:50%}.dot.good{background:#16a34a}.dot.warn{background:#d97706}.dot.bad{background:#dc2626}
 .stage-scroller{flex:1;overflow:hidden;position:relative;background:#eef0f3;cursor:default;touch-action:none}.stage-scroller.pan-ready{cursor:grab}.stage-scroller.panning{cursor:grabbing}.artboard-shell{position:absolute;left:0;top:0;transform-origin:0 0;width:max-content;height:max-content;will-change:transform}.artboard{position:relative;background:#fff;box-shadow:0 3px 16px #11182724;width:1240px;height:600px;overflow:visible}.safe-area{position:absolute;pointer-events:none;border:1px dashed #a7afb9;inset:3px;z-index:10}.objects-layer{position:absolute;inset:0}
+.canvas-empty-state{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;pointer-events:none;padding:24px}.canvas-empty-card{width:min(390px,80%);padding:24px;text-align:center;border:1px dashed #94a3b8;border-radius:14px;background:rgba(248,250,252,.94);box-shadow:0 8px 24px rgba(15,23,42,.08)}.canvas-empty-icon{font-size:30px}.canvas-empty-card b{display:block;margin-top:8px;font-size:16px}.canvas-empty-card p{margin:7px 0 0;color:#64748b;font-size:12px;line-height:1.5}.canvas-empty-card button{pointer-events:auto;margin-top:14px}
 .ruler{position:absolute;color:#7b8490;font-size:8px;pointer-events:none}.ruler-x{left:0;right:0;height:20px;top:-24px;border-bottom:1px solid #b9c0c8}.ruler-y{top:0;bottom:0;width:25px;left:-29px;border-right:1px solid #b9c0c8}
 .ruler-mark-x,.ruler-mark-y{position:absolute;background:#9ca3af}.ruler-mark-x{width:1px;height:6px;bottom:0}.ruler-mark-y{height:1px;width:6px;right:0}.ruler-label-x,.ruler-label-y{font-size:11px;font-weight:800;color:#4b5563;line-height:1;text-shadow:0 1px 0 rgba(255,255,255,.9)}.ruler-label-x{position:absolute;bottom:7px;transform:translateX(-50%)}.ruler-label-y{position:absolute;right:8px;transform:translateY(-50%)}
 .design-object{
@@ -261,9 +263,24 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .design-object.dpi-good{outline-color:#2563eb}
 .design-object.dpi-bad{outline-color:#d97706}
 .design-object.dpi-minimum{outline-color:#dc2626}
+.design-object.dpi-optimal::after,.design-object.dpi-good::after,.design-object.dpi-bad::after,.design-object.dpi-minimum::after{
+  position:absolute;left:-3px;top:-18px;z-index:22;min-width:16px;height:16px;padding:0 4px;
+  display:grid;place-items:center;border:1px solid #fff;border-radius:4px;color:#fff;
+  font:900 10px/1 ui-sans-serif,system-ui;box-shadow:0 1px 4px rgba(15,23,42,.28);
+  pointer-events:none
+}
+.design-object.dpi-optimal::after{content:"✓";background:#15803d}
+.design-object.dpi-good::after{content:"●";background:#1d4ed8}
+.design-object.dpi-bad::after{content:"!";background:#b45309}
+.design-object.dpi-minimum::after{content:"×";background:#b91c1c}
 .design-object.overlap{
   outline-color:#a855f7 !important;
   box-shadow:0 0 0 2px rgba(168,85,247,.30) !important;
+}
+.design-object.selected:has(.text-obj)::before{
+  content:"✎ Editar texto";position:absolute;left:50%;bottom:-28px;transform:translateX(-50%);
+  z-index:23;white-space:nowrap;background:#111827;color:#fff;border-radius:5px;padding:5px 7px;
+  font:700 10px/1 ui-sans-serif,system-ui;box-shadow:0 2px 6px rgba(15,23,42,.22);pointer-events:none
 }
 
 
@@ -662,6 +679,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   border-color:#f87171;
   color:#b91c1c;
 }
+.asset-remove-from-sheet-btn::after{content:"Quitar copias";position:absolute;right:28px;top:-2px;display:none;white-space:nowrap;background:#111827;color:#fff;border-radius:5px;padding:5px 7px;font-size:9px;font-weight:700}.asset-remove-from-sheet-btn:hover::after,.asset-remove-from-sheet-btn:focus-visible::after{display:block}
 
 
 
@@ -722,6 +740,8 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .transform-separator{
   display:none;
 }
+.transform-mobile-help{display:none;margin:8px 0 0;color:#475569;font-size:11px;line-height:1.45}
+.align-icon{width:18px;height:14px;display:block}.align-icon line{stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
 
 
 .image-processing-card{border:1px solid #dbe3ea;border-radius:9px;padding:10px;margin:0 0 13px;background:#f8fafc}
@@ -966,7 +986,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 @media(max-width:1100px){
   .workspace{grid-template-columns:60px 220px minmax(0,1fr) 260px}
   .top-actions .variant-label{display:none}
-  .top-actions #qualityBtn{display:none}
+  .top-actions #qualityBtn{padding:6px 9px;font-size:11px}
 }
 
 /* Tablet / phone: canvas-first + drawers + bottom nav */
@@ -1049,6 +1069,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   .workspace{height:calc(100% - 54px - var(--mobile-nav-h));margin-top:0}
   .top-actions .divider{display:none}
   .top-actions #exportBtn{padding:7px 10px;font-size:12px}
+  .top-actions #qualityBtn{display:none}
   .icon-btn{width:38px;min-height:38px}
   .top-actions .mini-btn,.top-actions .ghost-btn{min-height:34px;padding:6px 10px}
   .stage-toolbar{min-height:50px;padding:9px 12px}
@@ -1066,7 +1087,17 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   }
   .num-stepper{height:40px}
   .text-style-btn{width:40px;height:38px}
+  .transform-mobile-help{display:block}
 }
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* Legibility pass: functional help must remain readable, not decorative micro-text. */
+.panel-head p,.upload-zone span,.asset-card .name,.selection-title .muted,.aspect-lock-row small,
+.prop-grid label,.text-color-grid label,.duplicate-card-title,.dup-qty-field,.check-row p,
+.color-help-item small,.sheets-header small,.sheet-card small,.image-processing-status,
+.processing-body p,.processing-note,.processing-progress-label{font-size:11px!important;color:#475569!important;line-height:1.45}
+.field,.toggle-row,.library-head,.transform-toolbar-title,.image-processing-title b{font-size:12px}
 
 @media(max-width:480px){
   .sidepanel{left:56px;width:min(280px,calc(100vw - 56px))}
@@ -1116,14 +1147,14 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
     </div>
 
     <div class="top-actions">
-      <button class="icon-btn" id="undoBtn" title="Deshacer">↶</button>
-      <button class="icon-btn" id="redoBtn" title="Rehacer">↷</button>
+      <button class="icon-btn" id="undoBtn" title="Deshacer" aria-label="Deshacer">↶</button>
+      <button class="icon-btn" id="redoBtn" title="Rehacer" aria-label="Rehacer">↷</button>
       <div class="divider"></div>
       <label class="variant-label">Hoja activa <span id="activeSheetSize" class="sheet-size-chip">62 × 30 cm</span></label>
-      <button class="ghost-btn" id="qualityBtn">✓ Revisar lienzo</button>
-      <button class="autonest-top-btn" id="autoNestTopBtn">✦ Auto Organizar</button>
-      <span id="shopifyPriceChip" class="shopify-price-chip" title="Precio de la hoja activa">—</span>
-<button class="primary-btn shopify-cart-btn" id="exportBtn">🛒 Agregar al carrito</button>
+      <button class="ghost-btn" id="qualityBtn">✓ Revisar hoja</button>
+      <button class="autonest-top-btn" id="autoNestTopBtn">✦ Organizar diseños</button>
+      <span id="shopifyPriceChip" class="shopify-price-chip" title="Precio de la hoja activa">Agrega diseños para calcular</span>
+<button class="primary-btn shopify-cart-btn" id="exportBtn">Agregar al carrito</button>
     </div>
   </header>
 
@@ -1132,7 +1163,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
       <button class="tool-nav active" data-panel="uploads"><span>▣</span><b>Archivos</b></button>
       <button class="tool-nav" data-panel="text"><span>T</span><b>Texto</b></button>
       <button class="tool-nav" data-panel="settings"><span>⚙</span><b>Ajustes</b></button>
-      <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Iniciar de nuevo</b></button>
+      <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Vaciar hoja</b></button>
     </aside>
 
     <section class="sidepanel" id="sidepanel">
@@ -1169,9 +1200,9 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
         <div class="text-style-row" style="margin-top:0">
           <button type="button" id="textBoldBtn" class="text-style-btn active" title="Negrita">B</button>
           <button type="button" id="textItalicBtn" class="text-style-btn" title="Cursiva" style="font-style:italic">I</button>
-          <button type="button" id="textAlignLeftBtn" class="text-style-btn align-ico" title="Izquierda">L</button>
-          <button type="button" id="textAlignCenterBtn" class="text-style-btn align-ico active" title="Centro">C</button>
-          <button type="button" id="textAlignRightBtn" class="text-style-btn align-ico" title="Derecha">R</button>
+          <button type="button" id="textAlignLeftBtn" class="text-style-btn align-ico" title="Alinear a la izquierda" aria-label="Alinear a la izquierda"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="2" y1="7" x2="12" y2="7"/><line x1="2" y1="12" x2="15" y2="12"/></svg></button>
+          <button type="button" id="textAlignCenterBtn" class="text-style-btn align-ico active" title="Centrar texto" aria-label="Centrar texto"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="4" y1="7" x2="14" y2="7"/><line x1="3" y1="12" x2="15" y2="12"/></svg></button>
+          <button type="button" id="textAlignRightBtn" class="text-style-btn align-ico" title="Alinear a la derecha" aria-label="Alinear a la derecha"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="6" y1="7" x2="16" y2="7"/><line x1="3" y1="12" x2="16" y2="12"/></svg></button>
         </div>
         <div class="prop-grid" style="margin-bottom:12px">
           <label>Ancho<div class="unit-input"><input id="textWidthCm" type="number" step="0.1" min="0.2" value="12"><span>cm</span></div></label>
@@ -1202,6 +1233,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 <div id="settingsPanel" class="panel-view">
         <label class="field">Ancho
           <div class="unit-input"><input id="sheetWidth" type="number" value="62" readonly aria-readonly="true" title="El ancho DTF está fijado en 62 cm"><span>cm</span></div>
+          <small style="display:block;margin-top:5px;color:#475569;font-size:11px;line-height:1.4">El ancho está fijado en 62 cm por el formato de impresión.</small>
         </label>
         <label class="field">Alto
           <div class="unit-input"><input id="sheetHeight" type="number" value="30" min="30" max="310" step="0.1"><span>cm</span></div>
@@ -1210,19 +1242,19 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div class="unit-input"><input id="sheetMargin" type="number" value="0" min="0" step="0.1"><span>cm</span></div>
         </label>
         <label class="toggle-row"><input id="showResolution" type="checkbox" checked><span>Mostrar calidad de resolución</span></label>
-        <label class="toggle-row"><input id="snapToggle" type="checkbox" checked><span>Snap a guías</span></label>
+        <label class="toggle-row"><input id="snapToggle" type="checkbox" checked><span>Ajustar a guías</span></label>
         <button id="applySettingsBtn" class="primary-btn wide">Aplicar ajustes</button>
         <div class="settings-bottom-spacer"></div>
-        <button id="resetProjectBtn" class="reset-project-btn wide">↺ Volver a empezar</button>
+        <button id="resetProjectBtn" class="reset-project-btn wide">↺ Vaciar hoja activa</button>
       </div>
     </section>
 
     <main class="stage-wrap">
       <div class="stage-toolbar">
         <div class="left">
-          <button class="mini-btn" id="zoomOut">−</button>
+          <button class="mini-btn" id="zoomOut" aria-label="Alejar lienzo">−</button>
           <span id="zoomLabel">100%</span>
-          <button class="mini-btn" id="zoomIn">+</button>
+          <button class="mini-btn" id="zoomIn" aria-label="Acercar lienzo">+</button>
           <button class="mini-btn" id="fitBtn" title="Centrar la mesa en pantalla">Centrar</button>
         </div>
 
@@ -1239,6 +1271,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
             <span>Permitir rotación</span>
           </label>
         </div>
+        <button id="mobileOrganizeBtn" class="mini-btn mobile-only" type="button">✦ Organizar</button>
 <div class="color-help-wrap">
           <button id="colorHelpBtn" class="color-help-btn" type="button">ⓘ ¿Qué significan los colores?</button>
           <div id="colorHelpPopover" class="color-help-popover hidden">
@@ -1284,6 +1317,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div id="artboard" class="artboard">
             <div id="safeArea" class="safe-area"></div>
             <div id="objectsLayer" class="objects-layer"></div>
+            <div id="canvasEmptyState" class="canvas-empty-state"><div class="canvas-empty-card"><div class="canvas-empty-icon">⬆</div><b>Empieza subiendo tus diseños</b><p>Agrega archivos PNG, JPG, WEBP o SVG para preparar tu hoja DTF.</p><button id="canvasUploadBtn" class="primary-btn" type="button">Subir diseños</button></div></div>
             <div id="autoNestProcessingOverlay" class="autonest-processing-overlay" aria-live="polite">
               <div class="autonest-processing-card">
                 <div class="autonest-processing-spinner"></div>
@@ -1329,8 +1363,8 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
         <div id="imageProcessingTools" class="image-processing-card">
           <div class="image-processing-title"><b>Procesamiento de imagen</b><small>DTF</small></div>
           <div class="image-processing-actions">
-            <button id="enhanceImageBtn" class="process-image-btn ai" type="button">✨ Mejorar calidad con IA</button>
-            <button id="removeBgBtn" class="process-image-btn bgremove" type="button">✂ Quitar fondo con IA</button>
+            <button id="enhanceImageBtn" class="process-image-btn ai" type="button">Mejorar calidad con IA</button>
+            <button id="removeBgBtn" class="process-image-btn bgremove" type="button">Quitar fondo con IA</button>
             <button id="halftoneImageBtn" class="process-image-btn halftone" type="button">◉ Crear semitono</button>
             <button id="restoreOriginalBtn" class="process-image-btn restore hidden" type="button">↶ Restaurar imagen original</button>
           </div>
@@ -1345,9 +1379,9 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div class="text-style-row">
             <button type="button" id="selTextBoldBtn" class="text-style-btn" title="Negrita">B</button>
             <button type="button" id="selTextItalicBtn" class="text-style-btn" title="Cursiva" style="font-style:italic">I</button>
-            <button type="button" id="selTextAlignLeftBtn" class="text-style-btn align-ico" title="Izquierda">L</button>
-            <button type="button" id="selTextAlignCenterBtn" class="text-style-btn align-ico" title="Centro">C</button>
-            <button type="button" id="selTextAlignRightBtn" class="text-style-btn align-ico" title="Derecha">R</button>
+            <button type="button" id="selTextAlignLeftBtn" class="text-style-btn align-ico" title="Alinear a la izquierda" aria-label="Alinear a la izquierda"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="2" y1="7" x2="12" y2="7"/><line x1="2" y1="12" x2="15" y2="12"/></svg></button>
+            <button type="button" id="selTextAlignCenterBtn" class="text-style-btn align-ico" title="Centrar texto" aria-label="Centrar texto"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="4" y1="7" x2="14" y2="7"/><line x1="3" y1="12" x2="15" y2="12"/></svg></button>
+            <button type="button" id="selTextAlignRightBtn" class="text-style-btn align-ico" title="Alinear a la derecha" aria-label="Alinear a la derecha"><svg class="align-icon" viewBox="0 0 18 14" aria-hidden="true"><line x1="2" y1="2" x2="16" y2="2"/><line x1="6" y1="7" x2="16" y2="7"/><line x1="3" y1="12" x2="16" y2="12"/></svg></button>
           </div>
           <label class="field">Ancho del trazo
             <input id="selTextStrokeWidth" type="range" min="0" max="12" step="0.5" value="0">
@@ -1394,17 +1428,18 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <div class="duplicate-card-title">Duplicar</div>
           <label class="dup-qty-field">
             <span>Cantidad de imágenes</span>
-            <div class="num-stepper">
+              <div class="num-stepper">
               <input id="duplicateQty" type="number" min="1" max="999" step="1" value="1">
               <div class="num-stepper-btns">
                 <button type="button" id="dupQtyUp" title="Subir" aria-label="Subir cantidad">▲</button>
                 <button type="button" id="dupQtyDown" title="Bajar" aria-label="Bajar cantidad">▼</button>
               </div>
+              <small style="display:block;margin-top:5px;color:#475569;font-size:11px">Se pedirá confirmación al duplicar más de 20 veces.</small>
             </div>
           </label>
           <button id="duplicateBtn" class="duplicate-primary-btn" type="button">⧉ Duplicar imagen</button>
         </div>
-        <button id="fillSelectedBtn" class="fill-selection-btn" type="button" style="width:100%;margin-bottom:4px">▦ Auto rellenar</button>
+        <button id="fillSelectedBtn" class="fill-selection-btn" type="button" title="Añade copias en los huecos sin mover los demás diseños" style="width:100%;margin-bottom:4px">▦ Rellenar espacios con este diseño</button>
 
         <div class="section-divider"></div>
 
@@ -1425,6 +1460,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
           <span class="transform-separator"></span>
           <button id="toolbarDeleteBtn" class="transform-tool-btn danger" type="button" title="Borrar" aria-label="Borrar">⌫</button>
         </div>
+        <p class="transform-mobile-help">↶ ↷ Girar · ⇋ ⇵ Voltear · ⊣ ⊢ Alinear · ⌫ Borrar</p>
 
         <div class="section-divider"></div>
 </div>
@@ -1443,15 +1479,15 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   <div id="mobileDrawerOverlay" class="mobile-drawer-overlay" hidden></div>
   <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Navegación móvil">
     <button type="button" data-mobile-nav="files"><span>▣</span>Archivos</button>
-    <button type="button" data-mobile-nav="props"><span>☰</span>Props</button>
-    <button type="button" data-mobile-nav="nest"><span>✦</span>Organizar</button>
+    <button type="button" data-mobile-nav="props"><span>☰</span>Propiedades</button>
+    <button type="button" data-mobile-nav="review"><span>✓</span>Revisar</button>
   </nav>
 
   <div id="qualityModal" class="modal-backdrop hidden">
-    <div class="modal quality-modal">
+    <div class="modal quality-modal" role="dialog" aria-modal="true" aria-labelledby="qualityTitle">
       <div class="modal-head dark">
-        <div><span class="kicker">PRE-FLIGHT</span><h2>Revisar lienzo</h2></div>
-        <button class="close-btn" data-close="qualityModal">×</button>
+        <div><span class="kicker">REVISIÓN DE IMPRESIÓN</span><h2 id="qualityTitle">Revisar hoja</h2></div>
+        <button class="close-btn" data-close="qualityModal" aria-label="Cerrar revisión">×</button>
       </div>
       <div class="quality-body">
         <div class="quality-list-wrap">
@@ -3527,6 +3563,7 @@ function beginTextEdit(o){
 function renderAll(){
  if(textEditSession) endTextEdit(true);
  updateBoard(); updateDiagnostics(); layer.innerHTML="";
+ const empty=$("#canvasEmptyState"); if(empty) empty.classList.toggle("hidden",state.objects.length>0);
  layer.classList.toggle("show-dpi",state.showResolution);
  state.objects.forEach(o=>{ensureAspect(o);ensureRotationModel(o);renderObject(o)}); updateSelectionPanel(); renderSheetsPanel(); syncSheetInputs();
  renderAssets();
@@ -5551,6 +5588,11 @@ function syncTextStyleButtons(prefix,stateObj){
   if(left) left.classList.toggle("active",stateObj.align==="left");
   if(center) center.classList.toggle("active",stateObj.align==="center");
   if(right) right.classList.toggle("active",stateObj.align==="right");
+  if(bold) bold.setAttribute("aria-pressed",String(!!stateObj.bold));
+  if(italic) italic.setAttribute("aria-pressed",String(!!stateObj.italic));
+  if(left) left.setAttribute("aria-pressed",String(stateObj.align==="left"));
+  if(center) center.setAttribute("aria-pressed",String(stateObj.align==="center"));
+  if(right) right.setAttribute("aria-pressed",String(stateObj.align==="right"));
 }
 function syncTextPanelSizeInputs(o){
   const wEl=$("#textWidthCm"), hEl=$("#textHeightCm");
@@ -5932,8 +5974,10 @@ $("#dupQtyUp")?.addEventListener("click",()=>setDuplicateQty(readDuplicateQty()+
 $("#dupQtyDown")?.addEventListener("click",()=>setDuplicateQty(readDuplicateQty()-1));
 $("#duplicateQty")?.addEventListener("change",()=>setDuplicateQty(readDuplicateQty()));
 $("#duplicateBtn").onclick=async()=>{
+  const qty=readDuplicateQty();
+  if(qty>20 && !confirm("Se crearán "+qty+" copias del diseño seleccionado. ¿Quieres continuar?")) return;
   if(!copySelection(true)) return;
-  await pasteClipboard(readDuplicateQty());
+  await pasteClipboard(qty);
 };
 $("#aspectLockBtn").onclick=()=>{
  const o=objById(state.selectedId); if(!o) return;
@@ -7146,7 +7190,7 @@ async function runQualityCheck(){
     ? `${alpha.affectedAssets} archivo(s)`
     : "0";
 
-  return alpha;
+  return {alpha,issues,lows,warns,overlaps,off,hasBlockingIssues:!!(lows||overlaps||off)};
 }
 
 async function quality(){
@@ -7155,10 +7199,11 @@ async function quality(){
   $("#alphaTools").classList.add("hidden");
 
   try{
-    await runQualityCheck();
+    return await runQualityCheck();
   }catch(e){
     console.error("[BixStudio preflight]",e);
     $("#qualityList").innerHTML='<div class="check-row"><div class="check-icon warn">!</div><div><b>No se pudo completar la revisión</b><p>Intenta nuevamente. El editor sigue disponible.</p></div><span class="check-status">REVISAR</span></div>';
+    return null;
   }
 }
 
@@ -7244,9 +7289,9 @@ function wireMobileChrome(){
       }else if(action==="props"){
         if(document.body.classList.contains("drawer-right-open")) closeMobileDrawers();
         else{ showRightPanel("properties"); openMobileDrawer("right"); }
-      }else if(action==="nest"){
+      }else if(action==="review"){
         closeMobileDrawers();
-        $("#autoNestTopBtn")?.click();
+        quality();
       }
     });
   });
@@ -7259,6 +7304,15 @@ function wireMobileChrome(){
   });
 }
 wireMobileChrome();
+$("#canvasUploadBtn")?.addEventListener("click",()=>$("#fileInput")?.click());
+$("#mobileOrganizeBtn")?.addEventListener("click",()=>$("#autoNestTopBtn")?.click());
+
+// Close the topmost open modal with Escape.
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape") return;
+  const open=[...document.querySelectorAll(".modal-backdrop:not(.hidden)")].at(-1);
+  if(open){ e.preventDefault(); if(open.id==="inspectModal") closeInspectPreview(); else open.classList.add("hidden"); }
+});
 
 
 function setShowOutlines(on,{skipRender=false}={}){
@@ -7962,8 +8016,8 @@ function updateShopifyCartUi(){
 
   const orderSheets=shopifyOrderSheets();
   if(!orderSheets.length){
-    if(chip) chip.textContent="—";
-    btn.textContent="🛒 Agregar al carrito";
+    if(chip) chip.textContent="Agrega diseños para calcular";
+    btn.textContent="Agregar al carrito";
     btn.disabled=false;
     return;
   }
@@ -7973,7 +8027,7 @@ function updateShopifyCartUi(){
   if(chip) chip.textContent=shopifyMoney(total);
 
   const sheetLabel=orderSheets.length>1 ? ` · ${orderSheets.length} hojas` : "";
-  btn.textContent=`🛒 Agregar · ${shopifyMoney(total)}${sheetLabel}`;
+  btn.textContent=`Agregar · ${shopifyMoney(total)}${sheetLabel}`;
   btn.disabled=false;
 }
 
@@ -8591,6 +8645,13 @@ async function addActiveSheetToShopifyCart(){
   const orderSheets=shopifyOrderSheets();
   if(!orderSheets.length){
     toast("Añade al menos un diseño antes de agregar al carrito.");
+    return;
+  }
+  // Review before checkout so printing problems are not hidden behind the cart action.
+  const report=await runQualityCheck();
+  if(report?.hasBlockingIssues){
+    openModal("qualityModal");
+    toast("Revisa los problemas de la hoja antes de continuar.");
     return;
   }
   if(!(window.parent && window.parent!==window)){
@@ -9458,7 +9519,13 @@ m.addEventListener('click',e=>{
  rotateCW:'rotateCWBtn',rotateCCW:'rotateCCWBtn',
  flipH:'flipHorizontalBtn',flipV:'flipVerticalBtn',
  lock:'aspectLockBtn'};
- if(cmd==='quantity'){alert('Agregar cantidad (pendiente de integrar).');return;} const id=map[cmd]; if(id){const el=document.getElementById(id); if(el)el.click();}
+ if(cmd==='quantity'){
+   const qty=document.getElementById('duplicateQty');
+   if(qty){qty.focus();qty.select();}
+   if(window.matchMedia('(max-width:900px)').matches) document.querySelector("#mobileBottomNav [data-mobile-nav='props']")?.click();
+   m.classList.remove('show');return;
+ }
+ const id=map[cmd]; if(id){const el=document.getElementById(id); if(el)el.click();}
  m.classList.remove('show');
 });
 })();
