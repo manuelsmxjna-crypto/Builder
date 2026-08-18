@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v5.6.1 · CHECKOUT_CONFIRM_SINGLETON · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
+  <!-- SHAPE_NEST_VERSION: v5.8.0 · TEXT_ENTER · TEXT_SHAPE_NEST · TEXT_SCALE_FIX · TEXT_LIMITS · CHECKOUT_CONFIRM_SINGLETON · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -1245,7 +1245,7 @@ body.bix-checkout-locked{cursor:progress}
           <button class="aspect-lock-btn locked" type="button" disabled>🔒 Bloqueada</button>
         </div>
         <label class="field">Ancho del trazo
-          <input id="textStrokeWidth" type="range" min="0" max="12" step="0.5" value="0">
+          <input id="textStrokeWidth" type="range" min="0" max="48" step="0.25" value="0">
         </label>
         <div class="text-color-grid">
           <label>Color del texto
@@ -1410,7 +1410,7 @@ body.bix-checkout-locked{cursor:progress}
             <button type="button" id="selTextAlignRightBtn" class="text-style-btn align-ico" title="Derecha">R</button>
           </div>
           <label class="field">Ancho del trazo
-            <input id="selTextStrokeWidth" type="range" min="0" max="12" step="0.5" value="0">
+            <input id="selTextStrokeWidth" type="range" min="0" max="48" step="0.25" value="0">
           </label>
           <div class="text-color-grid">
             <label>Color del texto
@@ -3537,6 +3537,49 @@ function fillFontSelect(sel,current){
   }
   sel.value=cur;
 }
+
+const MAX_TEXT_CHARS=5000;
+const MAX_TEXT_LINES=200;
+
+function limitTextContent(raw){
+  let s=String(raw??"").replace(/\u00a0/g," ").replace(/\r\n?/g,"\n");
+  let limited=false;
+
+  const lines=s.split("\n");
+  if(lines.length>MAX_TEXT_LINES){
+    s=lines.slice(0,MAX_TEXT_LINES).join("\n");
+    limited=true;
+  }
+  if(s.length>MAX_TEXT_CHARS){
+    s=s.slice(0,MAX_TEXT_CHARS);
+    limited=true;
+  }
+  return {text:s,limited};
+}
+
+let textLimitToastAt=0;
+function notifyTextLimit(){
+  const now=Date.now();
+  if(now-textLimitToastAt<1000) return;
+  textLimitToastAt=now;
+  toast(`Texto limitado a ${MAX_TEXT_CHARS.toLocaleString()} caracteres y ${MAX_TEXT_LINES} líneas para mantener el editor estable.`);
+}
+
+function insertPlainTextAtSelection(el,value){
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount) return false;
+  const range=sel.getRangeAt(0);
+  if(!el.contains(range.commonAncestorContainer)) return false;
+  range.deleteContents();
+  const node=document.createTextNode(value);
+  range.insertNode(node);
+  range.setStartAfter(node);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+  return true;
+}
+
 function normalizeTextObject(o){
   if(!o||o.type!=="text") return o;
   if(!o.fontFamily) o.fontFamily="Abril Fatface";
@@ -3658,36 +3701,64 @@ function fitTextObjectToContent(o){
   o.aspectRatio=o.w/Math.max(0.0001,o.h);
   o.baseW=o.w;o.baseH=o.h;o.visualW=o.w;o.visualH=o.h;
 }
-/** Scale physical size (locked) and fontSize together. */
-function scaleTextObjectToWidth(o,newW){
+/** Scale text geometry, glyphs and outline together. */
+function scaleTextObjectByFactor(o,scale){
   if(!o||o.type!=="text") return;
   normalizeTextObject(o);
-  const w=Math.max(0.2,newW);
-  const scale=w/Math.max(0.0001,o.w);
+  scale=Math.max(.001,+scale||1);
+
   const cx=o.x+o.w/2, cy=o.y+o.h/2;
-  o.w=w;
-  o.h=Math.max(0.2,o.h*scale);
-  o.fontSize=Math.max(8,Math.min(400,(o.fontSize||72)*scale));
-  o.x=cx-o.w/2;o.y=cy-o.h/2;
+
+  o.w=Math.max(.2,o.w*scale);
+  o.h=Math.max(.2,o.h*scale);
+  o.fontSize=Math.max(8,Math.min(4000,(o.fontSize||72)*scale));
+
+  // Outline is part of the artwork, so it scales proportionally too.
+  if(Number.isFinite(o.strokeWidth) && o.strokeWidth>0){
+    o.strokeWidth=Math.max(.05,Math.min(48,o.strokeWidth*scale));
+  }
+
+  o.x=cx-o.w/2;
+  o.y=cy-o.h/2;
   o.aspectLocked=true;
-  o.aspectRatio=o.w/o.h;
+  o.aspectRatio=o.w/Math.max(.0001,o.h);
   o.baseW=o.w;o.baseH=o.h;o.visualW=o.w;o.visualH=o.h;
 }
+
+function scaleTextObjectToWidth(o,newW){
+  if(!o||o.type!=="text") return;
+  const w=Math.max(.2,+newW||.2);
+  scaleTextObjectByFactor(o,w/Math.max(.0001,o.w));
+}
+
 function scaleTextObjectToHeight(o,newH){
   if(!o||o.type!=="text") return;
-  normalizeTextObject(o);
-  const h=Math.max(0.2,newH);
-  const scale=h/Math.max(0.0001,o.h);
-  scaleTextObjectToWidth(o,o.w*scale);
+  const h=Math.max(.2,+newH||.2);
+  scaleTextObjectByFactor(o,h/Math.max(.0001,o.h));
 }
+
+/**
+ * Properties use the CURRENT visible footprint. This makes width/height
+ * intuitive after 90°, 180° or any free rotation.
+ */
+function setTextVisualDimension(o,axis,target){
+  if(!o||o.type!=="text") return;
+  target=Math.max(.2,+target||.2);
+  ensureRotationModel(o);
+  const box=rotatedAABB(o);
+  const current=axis==="width"?box.w:box.h;
+  scaleTextObjectByFactor(o,target/Math.max(.0001,current));
+}
+
 function endTextEdit(save=true){
   if(!textEditSession) return;
   const {id,el}=textEditSession;
   textEditSession=null;
   const o=objById(id);
   if(save && o && el){
-    const raw=(el.innerText||"").replace(/\u00a0/g," ");
-    o.text=raw.replace(/\n+$/,"")||"bixprint";
+    const limited=limitTextContent(el.innerText||"");
+    if(limited.limited) notifyTextLimit();
+    o.text=limited.text.replace(/\n+$/,"")||"bixprint";
     o.name=(o.text.split(/\n/)[0]||"bixprint").slice(0,32);
     fitTextObjectToContent(o);
   }
@@ -3722,12 +3793,51 @@ function beginTextEdit(o){
   }catch{}
   const onKey=e=>{
     e.stopPropagation();
-    if(e.key==="Escape"){e.preventDefault();endTextEdit(false);return}
-    if(e.key==="Enter" && !e.shiftKey){e.preventDefault();endTextEdit(true)}
+
+    if(e.key==="Escape"){
+      e.preventDefault();
+      endTextEdit(false);
+      return;
+    }
+
+    if(e.key==="Enter"){
+      e.preventDefault();
+
+      // Ctrl/Cmd + Enter = finish editing.
+      if(e.ctrlKey || e.metaKey){
+        endTextEdit(true);
+        return;
+      }
+
+      // Normal Enter = explicit plain-text line break.
+      const current=String(el.innerText||"");
+      const lineCount=Math.max(1,current.split(/\n/).length);
+      if(lineCount>=MAX_TEXT_LINES){
+        notifyTextLimit();
+        return;
+      }
+
+      if(insertPlainTextAtSelection(el,"\n")){
+        updateLiveText();
+      }
+    }
   };
-  const onInput=()=>{
-    const raw=(el.innerText||"").replace(/\u00a0/g," ");
-    o.text=raw.replace(/\n+$/,"")||"bixprint";
+  const updateLiveText=()=>{
+    const limited=limitTextContent(el.innerText||"");
+    if(limited.limited){
+      el.innerText=limited.text;
+      try{
+        const range=document.createRange();
+        range.selectNodeContents(el);
+        range.collapse(false);
+        const sel=window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }catch{}
+      notifyTextLimit();
+    }
+
+    o.text=limited.text.replace(/\n+$/,"")||"bixprint";
     fitTextObjectToContent(o);
     wrap.style.left=cmToPx(o.x)+"px";
     wrap.style.top=cmToPx(o.y)+"px";
@@ -3735,16 +3845,72 @@ function beginTextEdit(o){
     wrap.style.height=cmToPx(o.h)+"px";
     applyTextDomStyles(el,o);
     syncTextPanelSizeInputs(o);
+
+    const vb=rotatedAABB(o);
     const ww=$("#objWidth"), hh=$("#objHeight");
-    if(ww) ww.value=(+o.w).toFixed(2);
-    if(hh) hh.value=(+o.h).toFixed(2);
+    if(ww) ww.value=(+vb.w).toFixed(2);
+    if(hh) hh.value=(+vb.h).toFixed(2);
   };
+
+  const onPaste=e=>{
+    e.preventDefault();
+
+    const incoming=(e.clipboardData||window.clipboardData)?.getData("text/plain")||"";
+    const current=String(el.innerText||"");
+    const sel=window.getSelection();
+
+    let selectedText="";
+    if(sel&&sel.rangeCount){
+      const range=sel.getRangeAt(0);
+      if(el.contains(range.commonAncestorContainer)) selectedText=range.toString();
+    }
+
+    const charsAlready=current.length-selectedText.length;
+    const charRoom=Math.max(0,MAX_TEXT_CHARS-charsAlready);
+    let paste=incoming.slice(0,charRoom);
+
+    const currentLines=Math.max(1,current.split(/\n/).length);
+    const selectedLineBreaks=(selectedText.match(/\n/g)||[]).length;
+    const baseLines=Math.max(1,currentLines-selectedLineBreaks);
+    const allowedExtraBreaks=Math.max(0,MAX_TEXT_LINES-baseLines);
+    const incomingLines=paste.split(/\r?\n/);
+    paste=incomingLines.slice(0,allowedExtraBreaks+1).join("\n");
+
+    if(paste.length<incoming.length) notifyTextLimit();
+
+    if(insertPlainTextAtSelection(el,paste)){
+      updateLiveText();
+    }
+  };
+
+  const onBeforeInput=e=>{
+    if(e.inputType?.startsWith("delete")) return;
+    if(typeof e.data!=="string"||!e.data) return;
+
+    const current=String(el.innerText||"");
+    const sel=window.getSelection();
+    const selectedChars=(sel&&sel.rangeCount)?sel.toString().length:0;
+
+    if(current.length-selectedChars+e.data.length>MAX_TEXT_CHARS){
+      e.preventDefault();
+      notifyTextLimit();
+    }
+  };
+
+  const onInput=()=>updateLiveText();
   const onBlur=()=>{ setTimeout(()=>{ if(textEditSession&&textEditSession.id===o.id) endTextEdit(true); },0); };
+
   el.addEventListener("keydown",onKey);
+  el.addEventListener("beforeinput",onBeforeInput);
+  el.addEventListener("paste",onPaste);
   el.addEventListener("input",onInput);
   el.addEventListener("pointerdown",e=>e.stopPropagation());
   el.addEventListener("blur",onBlur,{once:true});
+
   textEditSession.onKey=onKey;
+  textEditSession.onBeforeInput=onBeforeInput;
+  textEditSession.onPaste=onPaste;
+  textEditSession.onInput=onInput;
 }
 
 function renderAll(){
@@ -3842,7 +4008,8 @@ function startResize(e,o,corner){
     x:o.x,y:o.y,w:o.w,h:o.h,
     ratio:o.aspectRatio||o.w/o.h,
     rot:o.rot||0,
-    fontSize:o.fontSize||72
+    fontSize:o.fontSize||72,
+    strokeWidth:o.strokeWidth||0
   };
   const center={x:start.x+start.w/2,y:start.y+start.h/2};
   let lastValid=objectTransformSnapshot(o);
@@ -3893,7 +4060,11 @@ function startResize(e,o,corner){
     o.y=newCenter.y-newH/2;
 
     if(o.type==="text"){
-      o.fontSize=Math.max(8,Math.min(400,start.fontSize*(newW/Math.max(0.0001,start.w))));
+      const textScale=newW/Math.max(0.0001,start.w);
+      o.fontSize=Math.max(8,Math.min(4000,start.fontSize*textScale));
+      if(start.strokeWidth>0){
+        o.strokeWidth=Math.max(.05,Math.min(48,start.strokeWidth*textScale));
+      }
       o.aspectLocked=true;
     }
 
@@ -5819,8 +5990,9 @@ function syncTextPanelSizeInputs(o){
   if(!wEl||!hEl) return;
   if(document.activeElement===wEl||document.activeElement===hEl) return;
   if(o&&o.type==="text"){
-    wEl.value=(+o.w).toFixed(2);
-    hEl.value=(+o.h).toFixed(2);
+    const box=rotatedAABB(o);
+    wEl.value=(+box.w).toFixed(2);
+    hEl.value=(+box.h).toFixed(2);
   }
 }
 function wireTextCreateControls(){
@@ -5878,14 +6050,14 @@ function wireTextCreateControls(){
   $("#textWidthCm")?.addEventListener("change",e=>{
     const o=objById(state.selectedId); if(!o||o.type!=="text") return;
     pushHistory();
-    scaleTextObjectToWidth(o,+e.target.value||o.w);
+    setTextVisualDimension(o,"width",+e.target.value||rotatedAABB(o).w);
     syncTextPanelSizeInputs(o);
     renderAll();
   });
   $("#textHeightCm")?.addEventListener("change",e=>{
     const o=objById(state.selectedId); if(!o||o.type!=="text") return;
     pushHistory();
-    scaleTextObjectToHeight(o,+e.target.value||o.h);
+    setTextVisualDimension(o,"height",+e.target.value||rotatedAABB(o).h);
     syncTextPanelSizeInputs(o);
     renderAll();
   });
@@ -5936,6 +6108,9 @@ function wireCustomFontInstall(){
 wireCustomFontInstall();
 
 async function addText(text="bixprint"){
+ const limited=limitTextContent(text);
+ if(limited.limited) notifyTextLimit();
+ text=limited.text||"bixprint";
  pushHistory();
  const strokeW=+$("#textStrokeWidth")?.value||0;
  const strokeOn=!!$("#textStrokeEnabled")?.checked || strokeW>0;
@@ -6171,10 +6346,10 @@ function setObjectVisualDimension(o,axis,target){
  pushHistory();
  const v=+e.target.value;
  if(id==="objWidth"){
-   if(o.type==="text") scaleTextObjectToWidth(o,Math.max(.1,v));
+   if(o.type==="text") setTextVisualDimension(o,"width",v);
    else setObjectVisualDimension(o,"width",v);
  }else if(id==="objHeight"){
-   if(o.type==="text") scaleTextObjectToHeight(o,Math.max(.1,v));
+   if(o.type==="text") setTextVisualDimension(o,"height",v);
    else setObjectVisualDimension(o,"height",v);
  }else if(id==="objRotation"){
    ensureRotationModel(o);
@@ -6306,26 +6481,33 @@ $("#stretchWidthBtn").onclick=()=>{
   pushHistory();
 
   const usable=state.sheet.w-state.sheet.margin*2;
-  const oldW=Math.max(.0001,o.w);
   const centerY=o.y+o.h/2;
 
-  if(o.aspectLocked){
-    const scale=usable/oldW;
-    o.w=usable;
-    o.h=Math.max(.1,o.h*scale);
+  if(o.type==="text"){
+    // Scale the actual text, font and outline to the CURRENT visible width.
+    setTextVisualDimension(o,"width",usable);
   }else{
-    o.w=usable;
+    const oldW=Math.max(.0001,o.w);
+
+    if(o.aspectLocked){
+      const scale=usable/oldW;
+      o.w=usable;
+      o.h=Math.max(.1,o.h*scale);
+    }else{
+      o.w=usable;
+    }
+
+    o.baseW=o.w;
+    o.baseH=o.h;
+    o.visualW=o.w;
+    o.visualH=o.h;
+    o.aspectRatio=o.w/o.h;
   }
 
-  o.baseW=o.w;
-  o.baseH=o.h;
-  o.visualW=o.w;
-  o.visualH=o.h;
-  o.aspectRatio=o.w/o.h;
-
-  // Start at left printable edge for a true "stretch to artboard width".
-  o.x=state.sheet.margin;
-  o.y=centerY-o.h/2;
+  // Align the real visual footprint to the left usable edge.
+  const box=rotatedAABB(o);
+  o.x += state.sheet.margin-box.x;
+  o.y += centerY-(o.y+o.h/2);
 
   finishToolbarTransform(o);
 };
@@ -6515,7 +6697,34 @@ function autoNestDeviceProfile(count){
   return {mobile,cores,grid,quality};
 }
 function adaptiveNestMaskKey(item,q,grid){
-  return [item.assetId||item.id||"shape",(+item.baseW||1).toFixed(3),(+item.baseH||1).toFixed(3),
+  let identity=item.assetId||item.id||"shape";
+
+  if(item.type==="text"){
+    let o=null;
+    if(state.objects) o=state.objects.find(x=>x.id===item.id)||null;
+    if(!o){
+      for(const sheet of (state.sheets||[])){
+        o=(sheet.objects||[]).find(x=>x.id===item.id)||null;
+        if(o) break;
+      }
+    }
+
+    if(o){
+      normalizeTextObject(o);
+      identity=[
+        "text",
+        o.text||"",
+        o.fontFamily||"",
+        o.fontBold?1:0,
+        o.fontItalic?1:0,
+        o.textAlign||"center",
+        o.strokeEnabled?1:0,
+        (+o.strokeWidth||0).toFixed(2)
+      ].join("~");
+    }
+  }
+
+  return [identity,(+item.baseW||1).toFixed(3),(+item.baseH||1).toFixed(3),
     item.flipX?1:0,item.flipY?1:0,q,grid].join("|");
 }
 async function getAdaptiveNestMask(item,q,grid){
@@ -6527,8 +6736,107 @@ async function getAdaptiveNestMask(item,q,grid){
     const mw=Math.max(1,Math.round(baseW*grid));
     const mh=Math.max(1,Math.round(baseH*grid));
     let data;
-    if(item.type==="text"||!item.assetId){
-      data=new Uint8Array(mw*mh);data.fill(1);
+
+    if(item.type==="text"){
+      // Text now participates in BixNest exactly like transparent artwork:
+      // rasterize the actual glyph alpha (including outline), then build the
+      // collision mask from those pixels. Previously every text was a solid
+      // rectangle, which made Auto Organizar behave very differently.
+      const sourceText=(()=>{
+        if(state.objects){
+          const hit=state.objects.find(o=>o.id===item.id);
+          if(hit) return hit;
+        }
+        for(const sheet of (state.sheets||[])){
+          const hit=(sheet.objects||[]).find(o=>o.id===item.id);
+          if(hit) return hit;
+        }
+        return null;
+      })();
+
+      if(!sourceText){
+        data=new Uint8Array(mw*mh);
+        data.fill(1);
+      }else{
+        normalizeTextObject(sourceText);
+        await ensureTextFontLoaded(sourceText);
+
+        const c=document.createElement("canvas");
+        c.width=mw;
+        c.height=mh;
+        const ctx=c.getContext("2d",{willReadFrequently:true});
+        ctx.clearRect(0,0,mw,mh);
+
+        // Convert the editor's board-pixel typography to this nesting grid.
+        const scaleToMask=grid/PX_PER_CM;
+        const pxSize=Math.max(1,textDisplayFontPx(sourceText)*scaleToMask);
+        const maxW=Math.max(1,mw);
+
+        ctx.save();
+
+        if(item.flipX||item.flipY){
+          ctx.translate(item.flipX?mw:0,item.flipY?mh:0);
+          ctx.scale(item.flipX?-1:1,item.flipY?-1:1);
+        }
+
+        ctx.translate(mw/2,mh/2);
+        ctx.font=canvasTextFont(sourceText,pxSize);
+        ctx.textAlign=sourceText.textAlign==="left"
+          ?"left"
+          :sourceText.textAlign==="right"
+            ?"right"
+            :"center";
+        ctx.textBaseline="middle";
+        ctx.lineJoin="round";
+        ctx.miterLimit=2;
+
+        const lines=String(sourceText.text||"bixprint").split(/\r?\n/);
+        const lineH=pxSize*1.05;
+        const startY=-((lines.length-1)*lineH)/2;
+        const tx=sourceText.textAlign==="left"
+          ?-maxW/2
+          :sourceText.textAlign==="right"
+            ?maxW/2
+            :0;
+
+        for(let li=0;li<lines.length;li++){
+          const y=startY+li*lineH;
+          const line=lines[li];
+
+          if(sourceText.strokeEnabled && sourceText.strokeWidth>0){
+            ctx.lineWidth=Math.max(.5,sourceText.strokeWidth*scaleToMask);
+            ctx.strokeStyle="#fff";
+            ctx.strokeText(line,tx,y,maxW);
+          }
+
+          ctx.fillStyle="#fff";
+          ctx.fillText(line,tx,y,maxW);
+        }
+
+        ctx.restore();
+
+        const rgba=ctx.getImageData(0,0,mw,mh).data;
+        data=new Uint8Array(mw*mh);
+        let occupied=0;
+
+        // Slightly lower threshold than uploaded raster artwork because very
+        // small text at coarse nesting grids is antialiased heavily.
+        const textThreshold=Math.max(16,Math.min(96,SHAPE_NEST_ALPHA_THRESHOLD));
+        for(let i=0,j=3;i<data.length;i++,j+=4){
+          if(rgba[j]>=textThreshold){
+            data[i]=1;
+            occupied++;
+          }
+        }
+
+        // Never let a rendering/font failure produce a zero-area piece.
+        if(!occupied) data.fill(1);
+      }
+
+    }else if(!item.assetId){
+      data=new Uint8Array(mw*mh);
+      data.fill(1);
+
     }else{
       const asset=assetById(item.assetId);
       if(!asset){data=new Uint8Array(mw*mh);data.fill(1)}
