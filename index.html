@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v5.6.0 · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
+  <!-- SHAPE_NEST_VERSION: v5.6.1 · CHECKOUT_CONFIRM_SINGLETON · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -8236,6 +8236,9 @@ async function ensureCloudProject(){
 }
 
 let shopifyCartBusy=false;
+let checkoutConfirmBusy=false;
+let checkoutConfirmPromise=null;
+
 
 function setCheckoutLocked(locked,{title=null,sub=null}={}){
   const overlay=$("#checkoutProcessingOverlay");
@@ -8916,8 +8919,14 @@ async function generateSheetRecordPngBlob(index){
 
 
 function confirmCheckout(orderSheets){
+  // Single-instance guard: if the confirmation is already open, return the
+  // exact same Promise instead of creating a second set of handlers.
+  if(checkoutConfirmPromise) return checkoutConfirmPromise;
+
   const modal=$("#checkoutConfirmModal");
-  if(!modal) return Promise.resolve(window.confirm("¿Agregar este pedido al carrito?"));
+  if(!modal){
+    return Promise.resolve(window.confirm("¿Agregar este pedido al carrito?"));
+  }
 
   const objectCount=orderSheets.reduce((n,{record})=>n+(record.objects?.length||0),0);
   const totalCm=orderSheets.reduce((sum,{record})=>sum+shopifyBillableCmForSheet(record),0);
@@ -8929,31 +8938,18 @@ function confirmCheckout(orderSheets){
       `${totalCm} cm facturables`;
   }
 
+  checkoutConfirmBusy=true;
   modal.classList.remove("hidden");
 
-  return new Promise(resolve=>{
+  const openedAt=performance.now();
+
+  checkoutConfirmPromise=new Promise(resolve=>{
     let done=false;
-    const finish=value=>{
-      if(done) return;
-      done=true;
-      modal.classList.add("hidden");
-      cleanup();
-      resolve(value);
-    };
 
     const close=$("#checkoutConfirmCloseBtn");
     const cancel=$("#checkoutConfirmCancelBtn");
     const yes=$("#checkoutConfirmContinueBtn");
 
-    const onBackdrop=e=>{
-      if(e.target===modal) finish(false);
-    };
-    const onKey=e=>{
-      if(e.key==="Escape"){
-        e.preventDefault();
-        finish(false);
-      }
-    };
     const cleanup=()=>{
       modal.removeEventListener("click",onBackdrop);
       window.removeEventListener("keydown",onKey,true);
@@ -8962,18 +8958,59 @@ function confirmCheckout(orderSheets){
       if(yes) yes.onclick=null;
     };
 
+    const finish=value=>{
+      if(done) return;
+      done=true;
+      modal.classList.add("hidden");
+      cleanup();
+      checkoutConfirmBusy=false;
+      checkoutConfirmPromise=null;
+      resolve(value);
+    };
+
+    const onBackdrop=e=>{
+      // Ignore ghost click / delayed click that may have opened the modal.
+      if(performance.now()-openedAt<250) return;
+      if(e.target===modal) finish(false);
+    };
+
+    const onKey=e=>{
+      if(e.key==="Escape"){
+        e.preventDefault();
+        e.stopPropagation();
+        finish(false);
+      }
+    };
+
     modal.addEventListener("click",onBackdrop);
     window.addEventListener("keydown",onKey,true);
-    if(close) close.onclick=()=>finish(false);
-    if(cancel) cancel.onclick=()=>finish(false);
-    if(yes) yes.onclick=()=>finish(true);
+
+    if(close) close.onclick=e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      finish(false);
+    };
+
+    if(cancel) cancel.onclick=e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      finish(false);
+    };
+
+    if(yes) yes.onclick=e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      finish(true);
+    };
 
     setTimeout(()=>yes?.focus(),0);
   });
+
+  return checkoutConfirmPromise;
 }
 
 async function addActiveSheetToShopifyCart(){
-  if(shopifyCartBusy) return;
+  if(shopifyCartBusy || checkoutConfirmBusy || checkoutConfirmPromise) return;
 
   const orderSheets=shopifyOrderSheets();
   if(!orderSheets.length){
@@ -8990,10 +9027,14 @@ async function addActiveSheetToShopifyCart(){
   const confirmed=await confirmCheckout(orderSheets);
   if(!confirmed) return;
 
+  // Lock the checkout path immediately after confirmation before any other
+  // click or delayed event can re-enter this function.
+  if(shopifyCartBusy) return;
+  shopifyCartBusy=true;
+
   const btn=$("#exportBtn");
   const quantity=orderSheets.reduce((sum,{record})=>sum+shopifyBillableCmForSheet(record),0);
   const totalResources=orderSheets.reduce((n,{record})=>n+(record.objects?.length||0),0);
-  shopifyCartBusy=true;
 
   if(btn){
     btn.disabled=true;
