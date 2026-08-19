@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v5.8.0 · TEXT_ENTER · TEXT_SHAPE_NEST · TEXT_SCALE_FIX · TEXT_LIMITS · CHECKOUT_CONFIRM_SINGLETON · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
+  <!-- SHAPE_NEST_VERSION: v5.8.2 · ENTER_SINGLE_PRESS · TEXT_INK_HITBOX · TEXT_ENTER · TEXT_SHAPE_NEST · TEXT_SCALE_FIX · TEXT_LIMITS · CHECKOUT_CONFIRM_SINGLETON · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -3542,7 +3542,7 @@ const MAX_TEXT_CHARS=5000;
 const MAX_TEXT_LINES=200;
 
 function limitTextContent(raw){
-  let s=String(raw??"").replace(/\u00a0/g," ").replace(/\r\n?/g,"\n");
+  let s=String(raw??"").replace(/\u200B/g,"").replace(/\u00a0/g," ").replace(/\r\n?/g,"\n");
   let limited=false;
 
   const lines=s.split("\n");
@@ -3672,34 +3672,105 @@ async function ensureTextFontLoaded(o){
   try{ await document.fonts.load(spec); }catch{}
   if(document.fonts.ready){ try{ await document.fonts.ready; }catch{} }
 }
-/** Resize text box tightly around the written word (DOM-measured). */
+/**
+ * Resize the text box around the REAL painted glyphs.
+ *
+ * DOM line boxes are not sufficient for fonts whose glyphs extend outside
+ * their em box (common with g/j/p/q/y, decorative fonts and thick strokes).
+ * That was especially visible after a 90° rotation, where a descender became
+ * a horizontal protrusion outside the selection box.
+ */
+function measureTextInkBox(o){
+  normalizeTextObject(o);
+
+  const canvas=measureTextInkBox._canvas||(measureTextInkBox._canvas=document.createElement("canvas"));
+  const ctx=canvas.getContext("2d");
+  const fontPx=textDisplayFontPx(o);
+
+  ctx.font=canvasTextFont(o,fontPx);
+  ctx.textBaseline="alphabetic";
+
+  const lines=String(o.text||"bixprint").split(/\r?\n/);
+  const lineH=fontPx; // matches CSS line-height:1
+
+  let maxInkW=0;
+  let maxAscent=fontPx*.8;
+  let maxDescent=fontPx*.2;
+
+  for(const lineRaw of lines){
+    // Canvas returns zero width for an empty line, but the line still occupies
+    // vertical space in the editor.
+    const line=lineRaw||" ";
+    const m=ctx.measureText(line);
+
+    const left=Number.isFinite(m.actualBoundingBoxLeft)?m.actualBoundingBoxLeft:0;
+    const right=Number.isFinite(m.actualBoundingBoxRight)?m.actualBoundingBoxRight:m.width;
+    const ascent=Number.isFinite(m.actualBoundingBoxAscent)?m.actualBoundingBoxAscent:fontPx*.8;
+    const descent=Number.isFinite(m.actualBoundingBoxDescent)?m.actualBoundingBoxDescent:fontPx*.2;
+
+    maxInkW=Math.max(maxInkW,left+right,m.width);
+    maxAscent=Math.max(maxAscent,ascent);
+    maxDescent=Math.max(maxDescent,descent);
+  }
+
+  // For a single line use actual ink ascent+descent. For multiple lines,
+  // preserve the editor's line-height while allowing first/last glyphs to
+  // extend beyond the nominal em box.
+  const lineBlockH=Math.max(lineH,lines.length*lineH);
+  const nominalAscent=fontPx*.8;
+  const nominalDescent=fontPx*.2;
+  const extraTop=Math.max(0,maxAscent-nominalAscent);
+  const extraBottom=Math.max(0,maxDescent-nominalDescent);
+  const inkH=lineBlockH+extraTop+extraBottom;
+
+  return {
+    width:Math.max(1,maxInkW),
+    height:Math.max(1,inkH),
+    ascent:maxAscent,
+    descent:maxDescent
+  };
+}
+
 function fitTextObjectToContent(o){
   if(!o||o.type!=="text") return;
   normalizeTextObject(o);
-  const probe=document.createElement("div");
-  probe.style.cssText="position:fixed;left:-10000px;top:0;visibility:hidden;pointer-events:none;display:inline-block;width:auto;height:auto;margin:0;padding:0;border:0;max-width:none;";
-  applyTextDomStyles(probe,o);
-  probe.style.width="auto";
-  probe.style.height="auto";
-  probe.style.display="inline-block";
-  probe.style.whiteSpace="pre";
-  probe.textContent=String(o.text||"bixprint");
-  document.body.appendChild(probe);
-  const rect=probe.getBoundingClientRect();
-  document.body.removeChild(probe);
-  const strokeExtra=(o.strokeEnabled && o.strokeWidth>0)?(o.strokeWidth*2)/PX_PER_CM:0;
-  const pad=0.1;
-  const wCm=Math.max(0.5,rect.width/PX_PER_CM+pad+strokeExtra);
-  const hCm=Math.max(0.35,rect.height/PX_PER_CM+pad+strokeExtra);
-  const cx=(Number.isFinite(o.x)&&Number.isFinite(o.w))?(o.x+o.w/2):(state.sheet.margin+wCm/2);
-  const cy=(Number.isFinite(o.y)&&Number.isFinite(o.h))?(o.y+o.h/2):(state.sheet.margin+hCm/2);
+
+  const ink=measureTextInkBox(o);
+
+  // Webkit text stroke grows roughly half of its width on each side, but a
+  // small extra safety allowance avoids clipping on joins/mitered corners.
+  const strokePx=(o.strokeEnabled&&o.strokeWidth>0)?o.strokeWidth:0;
+  const strokeSafetyPx=strokePx>0?(strokePx*1.35):0;
+
+  // Small visual breathing room so selection never touches the last painted
+  // antialiased pixel. Kept proportional to font size so it scales naturally.
+  const fontPx=textDisplayFontPx(o);
+  const safetyPx=Math.max(2,fontPx*.025);
+
+  const wPx=ink.width+(strokeSafetyPx*2)+(safetyPx*2);
+  const hPx=ink.height+(strokeSafetyPx*2)+(safetyPx*2);
+
+  const wCm=Math.max(.5,wPx/PX_PER_CM);
+  const hCm=Math.max(.35,hPx/PX_PER_CM);
+
+  const cx=(Number.isFinite(o.x)&&Number.isFinite(o.w))
+    ?(o.x+o.w/2)
+    :(state.sheet.margin+wCm/2);
+  const cy=(Number.isFinite(o.y)&&Number.isFinite(o.h))
+    ?(o.y+o.h/2)
+    :(state.sheet.margin+hCm/2);
+
   o.w=wCm;
   o.h=hCm;
   o.x=cx-o.w/2;
   o.y=cy-o.h/2;
+
   o.aspectLocked=true;
-  o.aspectRatio=o.w/Math.max(0.0001,o.h);
-  o.baseW=o.w;o.baseH=o.h;o.visualW=o.w;o.visualH=o.h;
+  o.aspectRatio=o.w/Math.max(.0001,o.h);
+  o.baseW=o.w;
+  o.baseH=o.h;
+  o.visualW=o.w;
+  o.visualH=o.h;
 }
 /** Scale text geometry, glyphs and outline together. */
 function scaleTextObjectByFactor(o,scale){
@@ -3809,7 +3880,6 @@ function beginTextEdit(o){
         return;
       }
 
-      // Normal Enter = explicit plain-text line break.
       const current=String(el.innerText||"");
       const lineCount=Math.max(1,current.split(/\n/).length);
       if(lineCount>=MAX_TEXT_LINES){
@@ -3817,8 +3887,36 @@ function beginTextEdit(o){
         return;
       }
 
-      if(insertPlainTextAtSelection(el,"\n")){
-        updateLiveText();
+      // Chromium/contenteditable may ignore a naked "\n" text node visually.
+      // Insert a real BR so one Enter always creates one visible new line.
+      const sel=window.getSelection();
+      if(sel && sel.rangeCount){
+        const range=sel.getRangeAt(0);
+        if(el.contains(range.commonAncestorContainer)){
+          range.deleteContents();
+
+          const br=document.createElement("br");
+          range.insertNode(br);
+
+          // Keep the caret on the new line even when BR is the final node.
+          let caretNode=br.nextSibling;
+          if(!caretNode){
+            caretNode=document.createTextNode("\u200B");
+            br.parentNode.insertBefore(caretNode,br.nextSibling);
+          }
+
+          const next=document.createRange();
+          if(caretNode.nodeType===Node.TEXT_NODE){
+            next.setStart(caretNode,caretNode.textContent?.length||0);
+          }else{
+            next.setStartAfter(br);
+          }
+          next.collapse(true);
+
+          sel.removeAllRanges();
+          sel.addRange(next);
+          updateLiveText();
+        }
       }
     }
   };
@@ -6167,23 +6265,36 @@ function refreshTextObjectVisual(o){
   d.textContent=o.text;
   applyTextDomStyles(d,o);
 }
-function applySelectedTextPatch(patch,{skipHistory=false,live=false}={}){
+async function applySelectedTextPatch(patch,{skipHistory=false,live=false}={}){
   const o=objById(state.selectedId);
   if(!o||o.type!=="text") return;
   if(!skipHistory && !live) pushHistory();
+
   Object.assign(o,patch);
   if(patch.text!=null) o.name=(String(patch.text).split(/\n/)[0]||"bixprint").slice(0,32);
   normalizeTextObject(o);
-  // Live stroke/color: paint only. Refit box when typography/text changes, or on stroke commit.
+
+  // If typography changed, measure only after the requested face is ready.
+  // Otherwise Canvas could briefly measure the fallback font and produce a
+  // hitbox that is too small once the real font appears.
   const typographyChange=("fontFamily" in patch)||("fontBold" in patch)||("fontItalic" in patch)||("text" in patch);
   const strokeCommit=!live && (("strokeWidth" in patch)||("strokeEnabled" in patch));
-  if(typographyChange || strokeCommit) fitTextObjectToContent(o);
+
+  if(typographyChange){
+    await ensureTextFontLoaded(o);
+  }
+
+  if(typographyChange || strokeCommit){
+    fitTextObjectToContent(o);
+  }
+
   if(live){
     if("strokeWidth" in patch && +patch.strokeWidth>0) o.strokeEnabled=true;
     refreshTextObjectVisual(o);
     syncTextPanelSizeInputs(o);
     return;
   }
+
   renderAll();
 }
 function wireSelectedTextControls(){
