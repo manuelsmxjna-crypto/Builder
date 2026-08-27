@@ -49,7 +49,7 @@ button,input,select,textarea{font:inherit} button{cursor:pointer}
 .library-head{font-size:11px;font-weight:700;display:flex;justify-content:space-between;color:#555f6b;margin:7px 0}.asset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.asset-card{border:1px solid #e0e4e8;border-radius:8px;background:#f7f8fa;aspect-ratio:1;position:relative;overflow:hidden;cursor:pointer}.asset-card img{width:100%;height:100%;object-fit:contain}.asset-card .name{position:absolute;left:0;right:0;bottom:0;background:#fffdf5e8;border-top:1px solid #e7eaee;font-size:9px;padding:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .field{display:block;font-size:11px;color:#535d69;margin-bottom:13px}.field>input[type=range]{width:100%;margin-top:8px}.field>input[type=color]{display:block;margin-top:7px;width:100%;height:36px;border:1px solid #d6dce3;border-radius:7px;padding:3px;background:#fff}.unit-input{margin-top:5px;display:flex;align-items:center;border:1px solid #d6dce3;border-radius:7px;overflow:hidden;background:#fff}.unit-input input{min-width:0;width:100%;border:0;padding:7px 9px;outline:0}.unit-input input[readonly]{background:#f8fafc;color:#64748b;cursor:not-allowed;font-weight:800}.unit-input span{padding:0 8px;color:#7a838d;font-size:11px}.toggle-row{display:flex;gap:8px;align-items:center;font-size:12px;margin:12px 0}.info-card{background:#f6f7f9;border:1px solid #e1e5e9;border-radius:8px;padding:11px;margin-bottom:14px}.info-card b{font-size:13px}.info-card p{font-size:11px;line-height:1.45;color:#67717e;margin:5px 0 0}
 .stage-wrap{display:flex;flex-direction:column;min-width:0;background:#eef0f3}.stage-toolbar{height:42px;border-bottom:1px solid #d9dde3;background:#f8f9fa;display:flex;align-items:center;justify-content:space-between;padding:0 10px}.stage-toolbar .left{display:flex;align-items:center;gap:6px;font-size:11px}.status-inline{display:flex;align-items:center;gap:5px;color:#69717c;font-size:9px}.dot{width:7px;height:7px;border-radius:50%}.dot.good{background:#16a34a}.dot.warn{background:#d97706}.dot.bad{background:#dc2626}
-.stage-scroller{flex:1;overflow:hidden;position:relative;background:#eef0f3;cursor:default;touch-action:none}.stage-scroller.pan-ready{cursor:grab}.stage-scroller.panning{cursor:grabbing}.artboard-shell{position:absolute;left:0;top:0;transform-origin:0 0;width:max-content;height:max-content;will-change:transform}.artboard{position:relative;background:#fff;box-shadow:0 3px 16px #11182724;width:1240px;height:600px;overflow:visible}.safe-area{position:absolute;pointer-events:none;border:1px dashed #a7afb9;inset:3px;z-index:10}.objects-layer{position:absolute;inset:0}
+.stage-scroller{flex:1;overflow:hidden;position:relative;background:#eef0f3;cursor:default;touch-action:none}.stage-scroller.pan-ready{cursor:grab}.stage-scroller.panning{cursor:grabbing}.artboard-shell{position:absolute;left:0;top:0;transform-origin:0 0;width:max-content;height:max-content;will-change:transform}.artboard{position:relative;background-color:#fff;background-image:linear-gradient(45deg,#d1d5db 25%,transparent 25%),linear-gradient(-45deg,#d1d5db 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d1d5db 75%),linear-gradient(-45deg,transparent 75%,#d1d5db 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0;box-shadow:0 3px 16px #11182724;width:1240px;height:600px;overflow:visible}.artboard.solid-preview{background-image:none}.safe-area{position:absolute;pointer-events:none;border:1px dashed #a7afb9;inset:3px;z-index:10}.objects-layer{position:absolute;inset:0}
 .ruler{position:absolute;color:#7b8490;font-size:8px;pointer-events:none}.ruler-x{left:0;right:0;height:20px;top:-24px;border-bottom:1px solid #b9c0c8}.ruler-y{top:0;bottom:0;width:25px;left:-29px;border-right:1px solid #b9c0c8}
 .ruler-mark-x,.ruler-mark-y{position:absolute;background:#9ca3af}.ruler-mark-x{width:1px;height:6px;bottom:0}.ruler-mark-y{height:1px;width:6px;right:0}.ruler-label-x,.ruler-label-y{font-size:11px;font-weight:800;color:#4b5563;line-height:1;text-shadow:0 1px 0 rgba(255,255,255,.9)}.ruler-label-x{position:absolute;bottom:7px;transform:translateX(-50%)}.ruler-label-y{position:absolute;right:8px;transform:translateY(-50%)}
 .design-object{
@@ -260,6 +260,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   box-shadow:0 -8px 16px rgba(255,255,255,.92);
 }
 .reset-project-btn:hover{background:#fef2f2;border-color:#f87171}
+.artboard-color-options{display:flex;align-items:center;gap:7px;margin-top:7px;flex-wrap:wrap}.artboard-color-swatch{width:30px;height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0;cursor:pointer;box-shadow:inset 0 0 0 2px #fff}.artboard-color-swatch.active{outline:2px solid #2563eb;outline-offset:1px}.artboard-color-swatch.checker{background-color:#fff;background-image:linear-gradient(45deg,#cbd5e1 25%,transparent 25%),linear-gradient(-45deg,#cbd5e1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#cbd5e1 75%),linear-gradient(-45deg,transparent 75%,#cbd5e1 75%);background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0}.artboard-custom-color{width:34px;height:32px;border:1px solid #cbd5e1;border-radius:7px;padding:2px;background:#fff;cursor:pointer}
 
 
 .design-object.dpi-optimal{outline-color:#16a34a}
@@ -1270,6 +1271,16 @@ body.bix-checkout-locked{cursor:progress}
         <label class="field">Margen
           <div class="unit-input"><input id="sheetMargin" type="number" value="0" min="0" step="0.1"><span>cm</span></div>
         </label>
+        <div class="field">Ayuda visual de la mesa
+          <div id="artboardColorOptions" class="artboard-color-options">
+            <button class="artboard-color-swatch checker active" type="button" data-artboard-color="checker" title="Transparencia" aria-label="Fondo de transparencia"></button>
+            <button class="artboard-color-swatch" type="button" data-artboard-color="#ffffff" style="background:#fff" title="Blanco" aria-label="Fondo blanco"></button>
+            <button class="artboard-color-swatch" type="button" data-artboard-color="#8b8b8b" style="background:#8b8b8b" title="Gris" aria-label="Fondo gris"></button>
+            <button class="artboard-color-swatch" type="button" data-artboard-color="#111111" style="background:#111" title="Negro" aria-label="Fondo negro"></button>
+            <input id="artboardCustomColor" class="artboard-custom-color" type="color" value="#737373" title="Color personalizado" aria-label="Color personalizado de la mesa">
+          </div>
+          <small style="display:block;margin-top:6px;color:#7a838d;line-height:1.35">Solo cambia la vista; no modifica el archivo final.</small>
+        </div>
         <label class="toggle-row"><input id="showResolution" type="checkbox" checked><span>Mostrar calidad de resolución</span></label>
         <label class="toggle-row"><input id="snapToggle" type="checkbox" checked><span>Snap a guías</span></label>
         <button id="applySettingsBtn" class="primary-btn wide">Aplicar ajustes</button>
@@ -1676,6 +1687,7 @@ const state = {
   viewport:{x:80,y:70},
   snap:true,
   showResolution:true,
+  artboardColor:"checker",
   assets:[],
   selectedId:null,
   selectedIds:[],
@@ -2452,6 +2464,7 @@ function buildSessionPayload(){
     viewport:{...state.viewport},
     snap:!!state.snap,
     showResolution:!!state.showResolution,
+    artboardColor:state.artboardColor||"checker",
     objectCount,
     sheetCount:sheets.length
   };
@@ -2541,6 +2554,7 @@ function applySessionPayload(payload){
   if(payload.viewport) state.viewport={x:+payload.viewport.x||0,y:+payload.viewport.y||0};
   if(typeof payload.snap==="boolean") state.snap=payload.snap;
   if(typeof payload.showResolution==="boolean") setShowOutlines(payload.showResolution,{skipRender:true});
+  if(typeof payload.artboardColor==="string") state.artboardColor=payload.artboardColor;
   syncSheetInputs();
   renderSheetsPanel?.();
   renderAll();
@@ -2976,6 +2990,7 @@ function cmToPx(v){return v*PX_PER_CM}
 function updateBoard(){
  artboard.style.width=cmToPx(state.sheet.w)+"px";
  artboard.style.height=cmToPx(state.sheet.h)+"px";
+ applyArtboardColor();
  $("#safeArea").style.inset=cmToPx(state.sheet.margin)+"px";
  applyViewport();
  buildRulers();
@@ -3191,6 +3206,20 @@ function clampObjectPositionToHardBounds(o){
   o.x+=dx;
   o.y+=dy;
   return true;
+}
+
+function fitSheetHeightToContent(){
+  const m=Math.max(0,+state.sheet.margin||0);
+  let required=MIN_SHEET_HEIGHT;
+  for(const item of state.objects){
+    ensureRotationModel(item);
+    const box=rotatedAABB(item);
+    required=Math.max(required,box.y+box.h+m);
+  }
+  required=Math.min(MAX_SHEET_HEIGHT,Math.max(MIN_SHEET_HEIGHT,Math.ceil(required*10)/10));
+  const changed=Math.abs(required-state.sheet.h)>.0001;
+  state.sheet.h=required;
+  return changed;
 }
 
 function ensureSheetHeightForObject(o){
@@ -4312,8 +4341,12 @@ function startDrag(e,o,resizing){
     o.y=Math.round(o.y*10)/10;
   }
 
-  // HARD BORDER: translation stops exactly at the printable edge.
+  // Manual drag defines the required sheet length. Grow before clamping so
+  // the current bottom edge does not block movement, then shrink again when
+  // the lowest artwork moves upward. Width and the 310 cm cap stay hard.
+  fitSheetHeightToContent();
   clampObjectPositionToHardBounds(o);
+  fitSheetHeightToContent();
 
   renderAll();
  };
@@ -8167,6 +8200,30 @@ $("#resetProjectBtn").onclick=()=>{
   setTimeout(fitViewport,20);
   toast("Hoja activa vacía");
 };
+function normalizeArtboardColor(value){
+  return value==="checker"||/^#[0-9a-f]{6}$/i.test(String(value||""))?value:"checker";
+}
+function applyArtboardColor(){
+  if(!artboard) return;
+  const color=normalizeArtboardColor(state.artboardColor);
+  state.artboardColor=color;
+  artboard.classList.toggle("solid-preview",color!=="checker");
+  artboard.style.backgroundColor=color==="checker"?"#ffffff":color;
+  $$("[data-artboard-color]").forEach(button=>button.classList.toggle("active",button.dataset.artboardColor===color));
+  const custom=$("#artboardCustomColor");
+  if(custom&&color!=="checker") custom.value=color;
+}
+$$("[data-artboard-color]").forEach(button=>button.addEventListener("click",()=>{
+  state.artboardColor=button.dataset.artboardColor;
+  applyArtboardColor();
+  scheduleSessionSave();
+}));
+$("#artboardCustomColor")?.addEventListener("input",event=>{
+  state.artboardColor=event.target.value;
+  applyArtboardColor();
+  scheduleSessionSave();
+});
+
 $("#applySettingsBtn").onclick=()=>{
  pushHistory();
  enforceFixedSheetWidth();
