@@ -1698,6 +1698,8 @@ const MAX_SHEET_HEIGHT=310;
 const PX_PER_CM = 20;
 /** Si el archivo no trae DPI, se asume el default de pantalla/Photoshop (72). */
 const ASSUMED_SOURCE_DPI=72;
+/** BixAI mejora a x4 y después limita la salida a esta densidad efectiva. */
+const BIX_AI_TARGET_DPI=300;
 
 // =====================================================================
 // SHAPE NEST V2 — nesting por la silueta alpha real, no por recuadros.
@@ -6067,8 +6069,14 @@ async function enhanceSelectedWithAi(){
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
    updateObjectProcessing(o.id,7,"Preparando imagen…");
    const inputBlob=await assetBlobForUpload(asset);
+   const targetWidthPx=Math.max(1,Math.round(o.w/2.54*BIX_AI_TARGET_DPI));
+   const targetHeightPx=Math.max(1,Math.round(o.h/2.54*BIX_AI_TARGET_DPI));
    stopPhaseMessages=startBixAiPhaseMessages(o.id);
-   const resultBlob=await requestBixAi("/upscale",inputBlob,asset.name,{alpha_mode:"binary"},stage=>{
+   const resultBlob=await requestBixAi("/upscale",inputBlob,asset.name,{
+     alpha_mode:"binary",
+     target_width_px:targetWidthPx,
+     target_height_px:targetHeightPx
+   },stage=>{
      if(stage==="connecting") updateObjectProcessing(o.id,9,"Conectando con BixAI…");
      if(stage==="receiving") updateObjectProcessing(o.id,86,"Recibiendo resultado…");
    });
@@ -6076,8 +6084,9 @@ async function enhanceSelectedWithAi(){
    const resultCanvas=await blobCanvas(resultBlob);
    const resultW=resultCanvas.width,resultH=resultCanvas.height;
    resultCanvas.width=0;resultCanvas.height=0;
-   if(asset.w&&asset.h&&(resultW!==asset.w*4||resultH!==asset.h*4)){
-     throw new Error(`BixAI devolvió ${resultW}×${resultH}px; se esperaba ${asset.w*4}×${asset.h*4}px.`);
+   if(!resultW||!resultH||resultW>targetWidthPx||resultH>targetHeightPx||
+      (asset.w&&resultW>asset.w*4)||(asset.h&&resultH>asset.h*4)){
+     throw new Error(`BixAI devolvió un tamaño inesperado: ${resultW}×${resultH}px.`);
    }
    updateObjectProcessing(o.id,94,"Finalizando…");
    const na=await createProcessedAsset(asset,resultBlob,resultW,resultH,"_IA",o.w,o.h,{alphaBinary:true});
