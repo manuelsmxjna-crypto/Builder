@@ -5571,6 +5571,14 @@ function cloneCanvasHQ(src,newW,newH){
 async function assetCanvas(asset){
  const im=await loadImageFromSrc(asset.src);const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;const x=c.getContext("2d",{willReadFrequently:true});x.clearRect(0,0,c.width,c.height);x.drawImage(im,0,0);return c;
 }
+async function blobCanvas(blob){
+ const src=URL.createObjectURL(blob);
+ try{
+   const im=await loadImageFromSrc(src);
+   const c=document.createElement("canvas");c.width=im.naturalWidth;c.height=im.naturalHeight;
+   const x=c.getContext("2d",{willReadFrequently:true});x.clearRect(0,0,c.width,c.height);x.drawImage(im,0,0);return c;
+ }finally{URL.revokeObjectURL(src)}
+}
 function canvasBlob(c){return new Promise((resolve,reject)=>c.toBlob(b=>b?resolve(b):reject(new Error("No se pudo generar PNG")),"image/png"))}
 async function rgbaToBlob(rgba,w,h){const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.putImageData(new ImageData(new Uint8ClampedArray(rgba),w,h),0,0);return canvasBlob(c)}
 /** Crop fully-transparent margins. Returns null if every pixel is empty. */
@@ -5644,6 +5652,65 @@ function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
 }
 // Persistent BiRefNet_lite 512 worker (WebGPU → WASM). Kept alive so the
 // ~94 MB ONNX is loaded once and reused across clicks.
+const BIX_AI_SERVER_URL="https://bixai-server-318403647962.europe-west1.run.app";
+const BIX_AI_TIMEOUT_MS=14*60*1000;
+let bixAiWarmupPromise=null;
+
+function bixAiRequestError(kind,message,status=null){
+ const error=new Error(message);error.kind=kind;if(status!==null)error.status=status;return error;
+}
+async function requestBixAi(endpoint,blob,name,query={},onStage=null){
+ if(!(blob instanceof Blob)||!blob.size) throw bixAiRequestError("input","La imagen que se enviará a BixAI está vacía.");
+ const url=new URL(endpoint,BIX_AI_SERVER_URL);
+ for(const [key,value] of Object.entries(query||{})) if(value!==undefined&&value!==null) url.searchParams.set(key,String(value));
+ const form=new FormData();form.append("image",blob,name||"bixstudio-image.png");
+ const controller=new AbortController();
+ const timeout=setTimeout(()=>controller.abort(),BIX_AI_TIMEOUT_MS);
+ try{
+   onStage?.("connecting");
+   const response=await fetch(url.toString(),{method:"POST",body:form,signal:controller.signal});
+   onStage?.("receiving");
+   if(!response.ok){
+     let detail="";
+     try{detail=(await response.text()).trim().slice(0,500)}catch{}
+     throw bixAiRequestError("server",`BixAI respondió HTTP ${response.status}${detail?`: ${detail}`:""}`,response.status);
+   }
+   const result=await response.blob();
+   if(!result.size) throw bixAiRequestError("server","BixAI devolvió una respuesta vacía.",response.status);
+   const type=(result.type||response.headers.get("content-type")||"").toLowerCase();
+   if(type&&!type.includes("image/png")) throw bixAiRequestError("server",`BixAI devolvió un formato inesperado (${type}).`,response.status);
+   return result;
+ }catch(error){
+   if(error?.kind) throw error;
+   if(error?.name==="AbortError") throw bixAiRequestError("timeout","BixAI superó el tiempo máximo de espera de 14 minutos.");
+   throw bixAiRequestError("connection","No fue posible conectar con BixAI. Revisa la conexión e inténtalo nuevamente.");
+ }finally{clearTimeout(timeout)}
+}
+function wakeBixAiServer(){
+ if(bixAiWarmupPromise) return bixAiWarmupPromise;
+ bixAiWarmupPromise=(async()=>{
+   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
+   try{await fetch(`${BIX_AI_SERVER_URL}/health`,{cache:"no-store",signal:controller.signal})}
+   catch{/* El arranque en frío no debe bloquear ni mostrar errores al usuario. */}
+   finally{clearTimeout(timeout)}
+ })();
+ return bixAiWarmupPromise;
+}
+function startBixAiPhaseMessages(objectId){
+ const timers=[
+   setTimeout(()=>updateObjectProcessing(objectId,12,"Iniciando servidor con GPU…"),1500),
+   setTimeout(()=>updateObjectProcessing(objectId,28,"Procesando con NVIDIA L4…"),4500)
+ ];
+ return ()=>timers.forEach(clearTimeout);
+}
+function showBixAiError(error,fallback){
+ if(error?.kind==="timeout") return error.message;
+ if(error?.kind==="server") return `Error del servidor: ${error.message}`;
+ if(error?.kind==="connection") return error.message;
+ return error?.message||fallback;
+}
+
+// Los workers WebGPU/WASM permanecen disponibles temporalmente como respaldo.
 const bgRemoveState={worker:null,ready:null,backend:null,gpuError:null,failed:null,pending:new Map(),preferGpu:null,modelUrl:null};
 const BG_MODEL_URL="./models/bg-remove.onnx";
 const BG_MODEL_LITE_URL="./models/bg-remove-lite.onnx"; // u2netp ~4.7 MB — Galaxy A16 / móvil
@@ -5841,9 +5908,9 @@ function ensureBgRemoveWorker(){
  return bgRemoveState.ready;
 }
 function preloadBgRemoveModel(){
- // En celular el modelo lite es pequeño; aún así no precargar para no pelear RAM con la UI.
- if(isConstrainedAiDevice()) return;
- ensureBgRemoveWorker().catch(()=>{/* silent warm-up; errors surface on first use */});
+ // Despierta Cloud Run sin bloquear la interfaz. Los modelos locales se
+ // conservan, pero ya no consumen memoria durante el arranque normal.
+ void wakeBixAiServer();
 }
 function runBgRemoveWorker(rgba,width,height,onProgress){
  return ensureBgRemoveWorker().then(()=>new Promise((resolve,reject)=>{
@@ -5876,51 +5943,25 @@ async function removeBackgroundSelected(){
  const btn=$("#removeBgBtn");
  if(btn.disabled)return;
  btn.disabled=true;
- const constrained=isConstrainedAiDevice();
+ let stopPhaseMessages=()=>{};
  try{
-   showObjectProcessing(o.id,"Preparando…",3);
+   showObjectProcessing(o.id,"Conectando con BixAI…",3);
    if(typeof closeMobileDrawers==="function") closeMobileDrawers();
-   // En móvil avisar antes (modelo lite). En PC cargar primero y avisar solo si cayó a WASM.
-   if(constrained){
-     const ok=await warnIfNoGpuAccel("Quitar fondo");
-     if(!ok){ hideObjectProcessing(o.id); return; }
-   }
-
-   showObjectProcessing(o.id,constrained?"Cargando IA (modo ahorro)…":"Cargando IA…",6);
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   if(constrained) await new Promise(r=>setTimeout(r,120));
-   await ensureBgRemoveWorker();
-   if(!constrained){
-     const ok=await warnIfNoGpuAccel("Quitar fondo",bgRemoveState.backend||null);
-     if(!ok){ hideObjectProcessing(o.id); resetBgRemoveWorker(); return; }
-   }
-
-   showObjectProcessing(o.id,"Quitando fondo…",10);
-   let c=await assetCanvas(asset);
-   const maxLong=bgRemoveMaxLongSide(),long=Math.max(c.width,c.height);
-   let downscaled=false;
-   if(long>maxLong){
-     updateObjectProcessing(o.id,12,"Reduciendo imagen…");
-     const k=maxLong/long;
-     c=cloneCanvasHQ(c,Math.round(c.width*k),Math.round(c.height*k));
-     downscaled=true;
-   }
-   const d=c.getContext("2d",{willReadFrequently:true}).getImageData(0,0,c.width,c.height);
-   const procW=d.width,procH=d.height;
-   c.width=0;c.height=0;c=null;
-   if(constrained) await new Promise(r=>setTimeout(r,40));
-
-   const r=await runBgRemoveWorker(d.data,procW,procH,m=>{
-     let pct=14;
-     if(m.stage==="init") pct=8+m.pct*0.10;
-     else if(m.stage==="preprocess") pct=18+m.pct*0.10;
-     else if(m.stage==="inference") pct=28+m.pct*0.48;
-     else if(m.stage==="postprocess") pct=76+m.pct*0.10;
-     else if(m.stage==="compose") pct=86+m.pct*0.08;
-     updateObjectProcessing(o.id,pct,bgRemoveStageLabel(m.stage));
+   updateObjectProcessing(o.id,7,"Preparando imagen…");
+   const inputBlob=await assetBlobForUpload(asset);
+   stopPhaseMessages=startBixAiPhaseMessages(o.id);
+   const resultBlob=await requestBixAi("/remove-background",inputBlob,asset.name,{alpha_mode:"multiply"},stage=>{
+     if(stage==="connecting") updateObjectProcessing(o.id,9,"Conectando con BixAI…");
+     if(stage==="receiving") updateObjectProcessing(o.id,86,"Recibiendo resultado…");
    });
+   stopPhaseMessages();stopPhaseMessages=()=>{};
+   updateObjectProcessing(o.id,90,"Preparando PNG…");
+   let c=await blobCanvas(resultBlob);
+   const d=c.getContext("2d",{willReadFrequently:true}).getImageData(0,0,c.width,c.height);
+   const resultW=c.width,resultH=c.height;c.width=0;c.height=0;c=null;
    updateObjectProcessing(o.id,94,"Recortando márgenes…");
-   const trimmed=trimTransparentRgba(r.rgba,r.width,r.height,{alphaMin:1,pad:1});
+   const trimmed=trimTransparentRgba(d.data,resultW,resultH,{alphaMin:1,pad:1});
    if(!trimmed) throw new Error("No se detectó contenido opaco tras quitar el fondo.");
    // Mantener el tamaño físico de la hoja; solo cambian los píxeles del asset.
    const sizeOverride={
@@ -5932,31 +5973,25 @@ async function removeBackgroundSelected(){
      sizeOverride.w=Math.max(0.2,o.w*(trimmed.width/trimmed.srcW));
      sizeOverride.h=Math.max(0.2,o.h*(trimmed.height/trimmed.srcH));
    }
-   updateObjectProcessing(o.id,97,"Generando PNG…");
+   updateObjectProcessing(o.id,97,"Finalizando…");
    const blob=await rgbaToBlob(trimmed.rgba,trimmed.width,trimmed.height);
-   const na=await createProcessedAsset(asset,blob,trimmed.width,trimmed.height,"_sin_fondo",sizeOverride.w,sizeOverride.h,{alphaBinary:true,autoTrimmed:true});
+   const na=await createProcessedAsset(asset,blob,trimmed.width,trimmed.height,"_sin_fondo",sizeOverride.w,sizeOverride.h,{autoTrimmed:true});
    pushHistory();
    applyProcessedAssetToObject(o,na,"bgremove",sizeOverride);
    showObjectProcessing(o.id,"Fondo eliminado",100);
-   const slow=bgRemoveState.backend && bgRemoveState.backend!=="webgpu"?" · sin GPU":"";
-   const liteNote=constrained?" · modelo ligero móvil":(downscaled?" · imagen reducida":"");
    toast(trimmed.trimmed
-     ?"Fondo eliminado · márgenes recortados"+slow+liteNote
-     :"Fondo eliminado · alpha sólido"+slow+liteNote);
+     ?"Fondo eliminado con BixAI · márgenes recortados"
+     :"Fondo eliminado con BixAI");
    await new Promise(r=>setTimeout(r,650));
  }catch(e){
    console.error(e);
    updateObjectProcessing(o.id,100,"No se pudo quitar el fondo");
-   const msg=e&&e.message?e.message:"No se pudo quitar el fondo de la imagen";
-   toast(constrained
-     ? (msg+" Si Chrome se cerró solo, este celular no tiene RAM suficiente: usa un PC.")
-     : msg);
+   toast(showBixAiError(e,"No se pudo quitar el fondo de la imagen"));
    await new Promise(r=>setTimeout(r,1100));
  }finally{
+   stopPhaseMessages();
    hideObjectProcessing(o.id);
    btn.disabled=false;
-   // Siempre liberar el modelo en celular tras el intento.
-   if(constrained) resetBgRemoveWorker();
  }
 }
 function runUpscaleWorkerSimple(rgba,width,height,onProgress){return new Promise((resolve,reject)=>{
@@ -5972,47 +6007,39 @@ async function enhanceSelectedWithAi(){
  const btn=$("#enhanceImageBtn");
  if(btn.disabled)return;
  btn.disabled=true;
+ let stopPhaseMessages=()=>{};
  try{
-   showObjectProcessing(o.id,"Comprobando GPU…",4);
-   const ok=await warnIfNoGpuAccel("Mejorar calidad");
-   if(!ok){ hideObjectProcessing(o.id); return; }
-   showObjectProcessing(o.id,"Mejorando calidad…",6);
-   // Give the overlay one frame to become visible before the heavy work begins.
+   showObjectProcessing(o.id,"Conectando con BixAI…",4);
    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-   let c=await assetCanvas(asset);
-   const maxLong=isConstrainedAiDevice()?960:1500,long=Math.max(c.width,c.height);
-   if(long>maxLong){
-     updateObjectProcessing(o.id,8,"Preparando imagen…");
-     const k=maxLong/long;
-     c=cloneCanvasHQ(c,Math.round(c.width*k),Math.round(c.height*k));
-   }
-   const d=c.getContext("2d",{willReadFrequently:true}).getImageData(0,0,c.width,c.height);
-   const procW=d.width,procH=d.height;
-   c.width=0;c.height=0;c=null;
-   const r=await runUpscaleWorkerSimple(d.data,procW,procH,m=>{
-     const pct=m.stage==="load" ? Math.min(14,4+m.pct*.10) : 14+m.pct*.78;
-     updateObjectProcessing(o.id,pct,"Mejorando calidad…");
+   updateObjectProcessing(o.id,7,"Preparando imagen…");
+   const inputBlob=await assetBlobForUpload(asset);
+   stopPhaseMessages=startBixAiPhaseMessages(o.id);
+   const resultBlob=await requestBixAi("/upscale",inputBlob,asset.name,{alpha_mode:"binary"},stage=>{
+     if(stage==="connecting") updateObjectProcessing(o.id,9,"Conectando con BixAI…");
+     if(stage==="receiving") updateObjectProcessing(o.id,86,"Recibiendo resultado…");
    });
-   if(r.backend && r.backend!=="webgpu" && !gpuAccelState.sessionWarned){
-     // El worker cayó a WASM aunque el navegador parecía tener GPU.
-     gpuAccelState.webgpu=false;
+   stopPhaseMessages();stopPhaseMessages=()=>{};
+   const resultCanvas=await blobCanvas(resultBlob);
+   const resultW=resultCanvas.width,resultH=resultCanvas.height;
+   resultCanvas.width=0;resultCanvas.height=0;
+   if(asset.w&&asset.h&&(resultW!==asset.w*4||resultH!==asset.h*4)){
+     throw new Error(`BixAI devolvió ${resultW}×${resultH}px; se esperaba ${asset.w*4}×${asset.h*4}px.`);
    }
    updateObjectProcessing(o.id,94,"Finalizando…");
-   const blob=await rgbaToBlob(r.rgba,r.width,r.height);
-   const na=await createProcessedAsset(asset,blob,r.width,r.height,"_IA",o.w,o.h,{alphaBinary:true});
+   const na=await createProcessedAsset(asset,resultBlob,resultW,resultH,"_IA",o.w,o.h,{alphaBinary:true});
    pushHistory();
    applyProcessedAssetToObject(o,na,"ai");
    // renderAll() recreates the object DOM, so show the completion state again.
    showObjectProcessing(o.id,"Calidad mejorada",100);
-   const backendNote=r.backend==="webgpu"?"":" · sin GPU (más lento)";
-   toast(`Calidad mejorada · ${Math.round(calcDpi(o))} DPI efectivos${backendNote}`);
+   toast(`Calidad mejorada con BixAI · ${Math.round(calcDpi(o))} DPI efectivos`);
    await new Promise(r=>setTimeout(r,650));
  }catch(e){
    console.error(e);
    updateObjectProcessing(o.id,100,"No se pudo mejorar");
-   toast("No se pudo mejorar la calidad de la imagen");
+   toast(showBixAiError(e,"No se pudo mejorar la calidad de la imagen"));
    await new Promise(r=>setTimeout(r,850));
  }finally{
+   stopPhaseMessages();
    hideObjectProcessing(o.id);
    btn.disabled=false;
  }
