@@ -260,7 +260,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   box-shadow:0 -8px 16px rgba(255,255,255,.92);
 }
 .reset-project-btn:hover{background:#fef2f2;border-color:#f87171}
-.artboard-color-options{display:flex;align-items:center;gap:7px;margin-top:7px;flex-wrap:wrap}.artboard-color-swatch{width:30px;height:30px;border:1px solid #cbd5e1;border-radius:7px;padding:0;cursor:pointer;box-shadow:inset 0 0 0 2px #fff}.artboard-color-swatch.active{outline:2px solid #2563eb;outline-offset:1px}.artboard-color-swatch.checker{background-color:#fff;background-image:linear-gradient(45deg,#cbd5e1 25%,transparent 25%),linear-gradient(-45deg,#cbd5e1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#cbd5e1 75%),linear-gradient(-45deg,transparent 75%,#cbd5e1 75%);background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0}.artboard-custom-color{width:34px;height:32px;border:1px solid #cbd5e1;border-radius:7px;padding:2px;background:#fff;cursor:pointer}
+.artboard-color-options{display:flex;align-items:center;gap:7px;margin-top:7px;flex-wrap:wrap}.artboard-color-swatch{flex:0 0 30px;width:30px;height:30px;min-height:0;border:1px solid #cbd5e1;border-radius:7px;padding:0;cursor:pointer;box-shadow:inset 0 0 0 2px #fff}.artboard-color-swatch.active{outline:2px solid #2563eb;outline-offset:1px}.artboard-color-swatch.transparency-preview{background-color:#fff;background-image:linear-gradient(45deg,#cbd5e1 25%,transparent 25%),linear-gradient(-45deg,#cbd5e1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#cbd5e1 75%),linear-gradient(-45deg,transparent 75%,#cbd5e1 75%);background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0}.artboard-custom-color{flex:0 0 34px;width:34px;height:32px;border:1px solid #cbd5e1;border-radius:7px;padding:2px;background:#fff;cursor:pointer}
 
 
 .design-object.dpi-optimal{outline-color:#16a34a}
@@ -1273,7 +1273,7 @@ body.bix-checkout-locked{cursor:progress}
         </label>
         <div class="field">Ayuda visual de la mesa
           <div id="artboardColorOptions" class="artboard-color-options">
-            <button class="artboard-color-swatch checker active" type="button" data-artboard-color="checker" title="Transparencia" aria-label="Fondo de transparencia"></button>
+            <button class="artboard-color-swatch transparency-preview active" type="button" data-artboard-color="checker" title="Transparencia" aria-label="Fondo de transparencia"></button>
             <button class="artboard-color-swatch" type="button" data-artboard-color="#ffffff" style="background:#fff" title="Blanco" aria-label="Fondo blanco"></button>
             <button class="artboard-color-swatch" type="button" data-artboard-color="#8b8b8b" style="background:#8b8b8b" title="Gris" aria-label="Fondo gris"></button>
             <button class="artboard-color-swatch" type="button" data-artboard-color="#111111" style="background:#111" title="Negro" aria-label="Fondo negro"></button>
