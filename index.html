@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bebas+Neue&family=Montserrat:ital,wght@0,400;0,700;1,400;1,700&family=Oswald:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
   <style>
 :root{
   --bg:#f5f6f8; --panel:#fff; --line:#dfe3e8; --text:#171a1f; --muted:#6b7280;
@@ -5653,8 +5654,55 @@ function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
 // Persistent BiRefNet_lite 512 worker (WebGPU → WASM). Kept alive so the
 // ~94 MB ONNX is loaded once and reused across clicks.
 const BIX_AI_SERVER_URL="https://bixai-server-318403647962.europe-west1.run.app";
+const BIX_AI_TURNSTILE_SITEKEY="0x4AAAAAAEdTx2G3lXqMuRGO";
 const BIX_AI_TIMEOUT_MS=14*60*1000;
 let bixAiWarmupPromise=null;
+let bixAiTurnstileQueue=Promise.resolve();
+
+function waitForTurnstile(){
+ return new Promise((resolve,reject)=>{
+   const started=Date.now();
+   const check=()=>{
+     if(window.turnstile?.render) return resolve(window.turnstile);
+     if(Date.now()-started>15000) return reject(bixAiRequestError("security","No se pudo cargar la verificación de seguridad. Revisa tu conexión e inténtalo nuevamente."));
+     setTimeout(check,100);
+   };
+   check();
+ });
+}
+function solveBixAiTurnstile(action){
+ return new Promise(async(resolve,reject)=>{
+   let widgetId=null;
+   const host=document.createElement("div");
+   host.setAttribute("aria-label","Verificación de seguridad");
+   Object.assign(host.style,{position:"fixed",right:"18px",bottom:"18px",zIndex:"100000"});
+   document.body.appendChild(host);
+   const cleanup=()=>{try{if(widgetId!==null)window.turnstile?.remove(widgetId)}catch{}host.remove()};
+   const fail=message=>{cleanup();reject(bixAiRequestError("security",message))};
+   try{
+     const api=await waitForTurnstile();
+     widgetId=api.render(host,{
+       sitekey:BIX_AI_TURNSTILE_SITEKEY,
+       action,
+       execution:"execute",
+       appearance:"interaction-only",
+       callback:token=>{cleanup();resolve(token)},
+       "error-callback":()=>fail("Cloudflare no pudo completar la verificación de seguridad."),
+       "expired-callback":()=>fail("La verificación de seguridad venció. Inténtalo nuevamente."),
+       "timeout-callback":()=>fail("La verificación de seguridad tardó demasiado. Inténtalo nuevamente.")
+     });
+     api.execute(widgetId);
+   }catch(error){
+     cleanup();
+     reject(error?.kind?error:bixAiRequestError("security","No se pudo iniciar la verificación de seguridad."));
+   }
+ });
+}
+function requestBixAiTurnstile(action){
+ const task=bixAiTurnstileQueue.then(()=>solveBixAiTurnstile(action));
+ bixAiTurnstileQueue=task.catch(()=>{});
+ return task;
+}
 
 function bixAiRequestError(kind,message,status=null){
  const error=new Error(message);error.kind=kind;if(status!==null)error.status=status;return error;
@@ -5663,7 +5711,13 @@ async function requestBixAi(endpoint,blob,name,query={},onStage=null){
  if(!(blob instanceof Blob)||!blob.size) throw bixAiRequestError("input","La imagen que se enviará a BixAI está vacía.");
  const url=new URL(endpoint,BIX_AI_SERVER_URL);
  for(const [key,value] of Object.entries(query||{})) if(value!==undefined&&value!==null) url.searchParams.set(key,String(value));
- const form=new FormData();form.append("image",blob,name||"bixstudio-image.png");
+ const action=endpoint==="/remove-background"?"remove_background":endpoint==="/upscale"?"upscale":null;
+ if(!action) throw bixAiRequestError("input","Operación BixAI no autorizada.");
+ onStage?.("verifying");
+ const turnstileToken=await requestBixAiTurnstile(action);
+ const form=new FormData();
+ form.append("image",blob,name||"bixstudio-image.png");
+ form.append("cf-turnstile-response",turnstileToken);
  const controller=new AbortController();
  const timeout=setTimeout(()=>controller.abort(),BIX_AI_TIMEOUT_MS);
  try{
