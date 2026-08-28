@@ -1012,11 +1012,16 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   .rightbar-mobile-head{display:flex}
   .stage-toolbar{
     height:auto;min-height:48px;padding:8px 12px;
-    gap:10px;overflow-x:auto;overflow-y:hidden;
+    display:flex;gap:5px;overflow-x:auto;overflow-y:hidden;
     -webkit-overflow-scrolling:touch;align-items:center
   }
+  .stage-toolbar .left{gap:4px;flex:0 0 auto}
   .stage-toolbar .mini-btn{min-height:32px;padding:5px 10px}
-  .stage-toolbar .packing-toolbar{flex-shrink:0}
+  .stage-toolbar #fitBtn{width:34px;padding:5px 0;font-size:0}
+  .stage-toolbar #fitBtn::after{content:"◎";font-size:15px}
+  .stage-toolbar .packing-toolbar{flex:1 1 auto;min-width:0;gap:5px;padding:0;justify-content:flex-end}
+  .stage-toolbar .packing-field>span,.stage-toolbar .packing-check>span{display:none}
+  .stage-toolbar .packing-select{width:112px;padding-left:5px;padding-right:18px}
   .stage-toolbar .packing-input-wrap{height:32px}
   .color-help-wrap{flex-shrink:0;display:none}
   .floating-shortcuts{display:none!important}
@@ -1060,12 +1065,19 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   .top-actions .mini-btn,.top-actions .ghost-btn{min-height:34px;padding:6px 10px}
   .stage-toolbar{min-height:50px;padding:9px 12px}
   .design-object.selected .resize-point{
-    width:18px;height:18px;margin:0;
+    width:44px;height:44px;min-height:0;margin:0;border:0;background:transparent;
+    box-shadow:none;touch-action:none;
+    transform:scale(var(--viewport-ui-scale,1));transform-origin:center;
   }
-  .resize-point.tl{left:-9px;top:-9px}
-  .resize-point.tr{right:-9px;top:-9px}
-  .resize-point.bl{left:-9px;bottom:-9px}
-  .resize-point.br{right:-9px;bottom:-9px}
+  .design-object.selected .resize-point::after{
+    content:"";position:absolute;left:50%;top:50%;width:16px;height:16px;
+    transform:translate(-50%,-50%);border:2px solid #111827;background:#fff;border-radius:50%;
+    box-sizing:border-box;box-shadow:0 1px 4px rgba(15,23,42,.2)
+  }
+  .resize-point.tl{left:-22px;top:-22px}
+  .resize-point.tr{right:-22px;top:-22px}
+  .resize-point.bl{left:-22px;bottom:-22px}
+  .resize-point.br{right:-22px;bottom:-22px}
   .rotation-point{width:20px;height:20px}
   .color-help-btn{font-size:10px;padding:6px 8px}
   .process-image-btn,.duplicate-primary-btn,.fill-selection-btn,.primary-btn.wide{
@@ -1073,6 +1085,12 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   }
   .num-stepper{height:40px}
   .text-style-btn{width:40px;height:38px}
+}
+@media(max-width:380px){
+  .stage-toolbar{padding-left:7px;padding-right:7px}
+  .stage-toolbar #zoomLabel{display:none}
+  .stage-toolbar .mini-btn{padding-left:8px;padding-right:8px}
+  .stage-toolbar .packing-select{width:102px}
 }
 
 @media(max-width:480px){
@@ -3025,6 +3043,7 @@ function applyViewport(){
  // Chrome/Edge render raster images more sharply this way.
  shell.style.transform="none";
  shell.style.zoom=String(state.zoom);
+ shell.style.setProperty("--viewport-ui-scale",String(1/Math.max(.01,state.zoom)));
  shell.style.left=(state.viewport.x/state.zoom)+"px";
  shell.style.top=(state.viewport.y/state.zoom)+"px";
 
@@ -3220,7 +3239,7 @@ function clampObjectPositionToHardBounds(o){
   return true;
 }
 
-function fitSheetHeightToContent(){
+function fitSheetHeightToContent({allowShrink=true}={}){
   const m=Math.max(0,+state.sheet.margin||0);
   let required=MIN_SHEET_HEIGHT;
   for(const item of state.objects){
@@ -3229,6 +3248,7 @@ function fitSheetHeightToContent(){
     required=Math.max(required,box.y+box.h+m);
   }
   required=Math.min(MAX_SHEET_HEIGHT,Math.max(MIN_SHEET_HEIGHT,Math.ceil(required*10)/10));
+  if(!allowShrink) required=Math.max(state.sheet.h,required);
   const changed=Math.abs(required-state.sheet.h)>.0001;
   state.sheet.h=required;
   return changed;
@@ -4129,11 +4149,26 @@ function renderObject(o){
  layer.appendChild(el);
 }
 function select(id){state.selectedId=id;state.selectedIds=id?[id]:[];renderAll()}
+let activeObjectGesture=null;
+function claimObjectGesture(pointerId,cancel){
+  if(activeObjectGesture && activeObjectGesture.pointerId!==pointerId) return false;
+  activeObjectGesture={pointerId,cancel};
+  return true;
+}
+function releaseObjectGesture(pointerId){
+  if(activeObjectGesture?.pointerId===pointerId) activeObjectGesture=null;
+}
+function cancelObjectGestureForPinch(){
+  const gesture=activeObjectGesture;
+  activeObjectGesture=null;
+  try{gesture?.cancel?.("pinch")}catch(error){console.warn("[BixStudio touch gesture]",error)}
+}
 
 
 function startResize(e,o,corner){
   e.preventDefault();
   e.stopPropagation();
+  if(activeObjectGesture && activeObjectGesture.pointerId!==e.pointerId) return;
   ensureAspect(o);
   ensureRotationModel(o);
 
@@ -4155,6 +4190,8 @@ function startResize(e,o,corner){
   };
   const center={x:start.x+start.w/2,y:start.y+start.h/2};
   let lastValid=objectTransformSnapshot(o);
+  const pointerId=e.pointerId;
+  try{stageScroller.setPointerCapture(pointerId)}catch{}
 
   const movingSigns={
     tl:{x:-1,y:-1},
@@ -4171,6 +4208,7 @@ function startResize(e,o,corner){
   const fixedWorld={x:center.x+fixedRot.x,y:center.y+fixedRot.y};
 
   const move=ev=>{
+    if(ev.pointerId!==pointerId || pinchSession) return;
     const pointer=pointToArtboardCm(ev.clientX,ev.clientY);
     const deltaWorld={x:pointer.x-fixedWorld.x,y:pointer.y-fixedWorld.y};
     const deltaLocal=inverseRotateVector(deltaWorld.x,deltaWorld.y,start.rot);
@@ -4220,20 +4258,36 @@ function startResize(e,o,corner){
     renderAll();
   };
 
-  const up=()=>{
+  const cleanup=()=>{
     window.removeEventListener("pointermove",move);
     window.removeEventListener("pointerup",up);
+    window.removeEventListener("pointercancel",cancel);
+    try{stageScroller.releasePointerCapture(pointerId)}catch{}
+    releaseObjectGesture(pointerId);
+  };
+  const cancel=ev=>{
+    if(ev?.pointerId!=null&&ev.pointerId!==pointerId) return;
+    cleanup();
+    updateDiagnostics();
+    renderAll();
+  };
+  const up=ev=>{
+    if(ev.pointerId!==pointerId) return;
+    cleanup();
     updateDiagnostics();
     renderAll();
   };
 
+  claimObjectGesture(pointerId,cancel);
   window.addEventListener("pointermove",move);
   window.addEventListener("pointerup",up);
+  window.addEventListener("pointercancel",cancel);
 }
 
 function startRotate(e,o){
   e.preventDefault();
   e.stopPropagation();
+  if(activeObjectGesture && activeObjectGesture.pointerId!==e.pointerId) return;
   ensureRotationModel(o);
 
   if(state.selectedId!==o.id){
@@ -4249,8 +4303,11 @@ function startRotate(e,o){
   const startPointer=pointToArtboardCm(e.clientX,e.clientY);
   const startAngle=Math.atan2(startPointer.y-centerWorld.y,startPointer.x-centerWorld.x)*180/Math.PI;
   const original=o.rot||0;
+  const pointerId=e.pointerId;
+  try{stageScroller.setPointerCapture(pointerId)}catch{}
 
   const move=ev=>{
+    if(ev.pointerId!==pointerId || pinchSession) return;
     const p=pointToArtboardCm(ev.clientX,ev.clientY);
     const a=Math.atan2(p.y-centerWorld.y,p.x-centerWorld.x)*180/Math.PI;
     let deg=original+(a-startAngle);
@@ -4264,9 +4321,23 @@ function startRotate(e,o){
     renderAll();
   };
 
-  const up=()=>{
+  const cleanup=()=>{
     window.removeEventListener("pointermove",move);
     window.removeEventListener("pointerup",up);
+    window.removeEventListener("pointercancel",cancel);
+    try{stageScroller.releasePointerCapture(pointerId)}catch{}
+    releaseObjectGesture(pointerId);
+  };
+  const cancel=ev=>{
+    if(ev?.pointerId!=null&&ev.pointerId!==pointerId) return;
+    cleanup();
+    restoreObjectTransform(o,before);
+    updateDiagnostics();
+    renderAll();
+  };
+  const up=ev=>{
+    if(ev.pointerId!==pointerId) return;
+    cleanup();
 
     // On release the hard border becomes strict again.
     // First, grow LENGTH only when the rotated footprint needs it.
@@ -4295,23 +4366,35 @@ function startRotate(e,o){
     renderAll();
   };
 
+  claimObjectGesture(pointerId,cancel);
   window.addEventListener("pointermove",move);
   window.addEventListener("pointerup",up);
+  window.addEventListener("pointercancel",cancel);
 }
 
 // Native dblclick dies because pointerup → renderAll() recreates the node
 // between the two clicks. We detect a double press by id + time instead.
 const inspectClick={id:null,t:0};
+function updateRenderedObjectPosition(o){
+  const el=layer.querySelector(`[data-id="${o.id}"]`);
+  if(!el) return false;
+  el.style.left=cmToPx(o.x)+"px";
+  el.style.top=cmToPx(o.y)+"px";
+  return true;
+}
 function startDrag(e,o,resizing){
  if(spaceHeld){
    beginViewportPan(e);
    return;
  }
  e.preventDefault();e.stopPropagation();
+ if(activeObjectGesture && activeObjectGesture.pointerId!==e.pointerId) return;
 
  // Alt + arrastrar = duplicar y mover la copia.
+ let historyCaptured=false;
  if(e.altKey){
    pushHistory();
+   historyCaptured=true;
    const cloned=JSON.parse(JSON.stringify(o));
    delete cloned.src;
    cloned.id=uid();
@@ -4328,6 +4411,8 @@ function startDrag(e,o,resizing){
  if(state.selectedId!==o.id){state.selectedId=o.id;state.selectedIds=[o.id];renderAll()}
  ensureRotationModel(o);
  const dragObjectId=o.id;
+ const pointerId=e.pointerId;
+ try{stageScroller.setPointerCapture(pointerId)}catch{}
  const start={
    x:e.clientX,y:e.clientY,
    ox:o.x,oy:o.y,
@@ -4338,9 +4423,11 @@ function startDrag(e,o,resizing){
  };
  let moved=false;
  const move=ev=>{
+  if(ev.pointerId!==pointerId || pinchSession) return;
   const pxDx=ev.clientX-start.x;
   const pxDy=ev.clientY-start.y;
   if(!moved && (pxDx*pxDx+pxDy*pxDy) < 16) return; // 4px threshold
+  if(!moved&&!historyCaptured){pushHistory();historyCaptured=true}
   moved=true;
   const dx=pxDx/(PX_PER_CM*state.zoom);
   const dy=pxDy/(PX_PER_CM*state.zoom);
@@ -4354,22 +4441,35 @@ function startDrag(e,o,resizing){
   }
 
   // Manual drag defines the required sheet length. Grow before clamping so
-  // the current bottom edge does not block movement, then shrink again when
-  // the lowest artwork moves upward. Width and the 310 cm cap stay hard.
-  fitSheetHeightToContent();
+  // the current bottom edge does not block movement. Shrink only on release
+  // so the artboard and camera remain stable beneath a moving finger.
+  const heightChanged=fitSheetHeightToContent({allowShrink:false});
   clampObjectPositionToHardBounds(o);
-  fitSheetHeightToContent();
-
-  renderAll();
+  if(heightChanged){syncSheetInputs();updateBoard()}
+  if(!updateRenderedObjectPosition(o)) renderAll();
  };
- const up=()=>{
+ const cleanup=()=>{
    window.removeEventListener("pointermove",move);
    window.removeEventListener("pointerup",up);
+   window.removeEventListener("pointercancel",cancel);
+   try{stageScroller.releasePointerCapture(pointerId)}catch{}
+   releaseObjectGesture(pointerId);
+ };
+ const cancel=ev=>{
+   if(ev?.pointerId!=null&&ev.pointerId!==pointerId) return;
+   cleanup();
+   fitSheetHeightToContent();
+   updateDiagnostics();
+   renderAll();
+ };
+ const up=ev=>{
+   if(ev.pointerId!==pointerId) return;
+   cleanup();
    if(moved){
      clampObjectPositionToHardBounds(o);
+     fitSheetHeightToContent();
      updateDiagnostics();
      renderAll();
-     pushHistory();
      inspectClick.id=null;
      return;
    }
@@ -4388,7 +4488,9 @@ function startDrag(e,o,resizing){
    updateSelectionPanel();
    if(isMobileLayout()) openMobileDrawer("right");
  };
+ claimObjectGesture(pointerId,cancel);
  window.addEventListener("pointermove",move);window.addEventListener("pointerup",up);
+ window.addEventListener("pointercancel",cancel);
 }
 let marqueeSession=null;
 
@@ -7970,12 +8072,120 @@ async function scanSemiTransparentAssetsFast(){
   };
 }
 
+async function drawOverlapAlphaTile(ctx,o,scale,offsetPxX,offsetPxY,imageCache){
+  ctx.save();
+  ctx.translate(-offsetPxX,-offsetPxY);
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality="high";
+
+  if(o.type==="text"){
+    drawCanvasTextObject(ctx,o,scale);
+  }else{
+    const src=objectSrc(o);
+    if(!src) throw new Error("Diseño sin imagen disponible");
+    let pending=imageCache.get(src);
+    if(!pending){
+      pending=loadImageFromSrc(src);
+      imageCache.set(src,pending);
+    }
+    const img=await pending;
+    const cx=(o.x+o.w/2)*scale;
+    const cy=(o.y+o.h/2)*scale;
+    ctx.translate(cx,cy);
+    ctx.rotate((o.rot||0)*Math.PI/180);
+    ctx.scale(o.flipX?-1:1,o.flipY?-1:1);
+    ctx.drawImage(img,-o.w*scale/2,-o.h*scale/2,o.w*scale,o.h*scale);
+  }
+
+  ctx.restore();
+}
+
+async function objectsShareOpaquePixelAtPrintResolution(a,b,imageCache){
+  const aa=rotatedAABB(a),bb=rotatedAABB(b);
+  const left=Math.max(aa.x,bb.x),top=Math.max(aa.y,bb.y);
+  const right=Math.min(aa.x+aa.w,bb.x+bb.w);
+  const bottom=Math.min(aa.y+aa.h,bb.y+bb.h);
+  if(right<=left||bottom<=top) return false;
+
+  if(a.type==="text") await ensureTextFontLoaded(a);
+  if(b.type==="text") await ensureTextFontLoaded(b);
+
+  const scale=300/2.54;
+  const x0=Math.floor(left*scale),y0=Math.floor(top*scale);
+  const x1=Math.ceil(right*scale),y1=Math.ceil(bottom*scale);
+  const tileSize=384;
+  const alphaThreshold=SHAPE_NEST_ALPHA_THRESHOLD;
+  const ca=document.createElement("canvas"),cb=document.createElement("canvas");
+  const xa=ca.getContext("2d",{willReadFrequently:true});
+  const xb=cb.getContext("2d",{willReadFrequently:true});
+  if(!xa||!xb) throw new Error("No se pudo preparar la revisión de superposición");
+  let tiles=0;
+
+  for(let py=y0;py<y1;py+=tileSize){
+    const h=Math.min(tileSize,y1-py);
+    for(let px=x0;px<x1;px+=tileSize){
+      const w=Math.min(tileSize,x1-px);
+      ca.width=cb.width=w;
+      ca.height=cb.height=h;
+      xa.clearRect(0,0,w,h);
+      xb.clearRect(0,0,w,h);
+      await drawOverlapAlphaTile(xa,a,scale,px,py,imageCache);
+      await drawOverlapAlphaTile(xb,b,scale,px,py,imageCache);
+      const da=xa.getImageData(0,0,w,h).data;
+      const db=xb.getImageData(0,0,w,h).data;
+      for(let k=3;k<da.length;k+=4){
+        if(da[k]>=alphaThreshold&&db[k]>=alphaThreshold){
+          ca.width=cb.width=0;
+          return true;
+        }
+      }
+      tiles++;
+      if(tiles%6===0) await new Promise(r=>setTimeout(r,0));
+    }
+  }
+
+  ca.width=cb.width=0;
+  return false;
+}
+
+async function scanPixelPerfectOverlaps(){
+  const candidates=[];
+  for(let i=0;i<state.objects.length;i++){
+    for(let j=i+1;j<state.objects.length;j++){
+      const a=state.objects[i],b=state.objects[j];
+      if(rectsOverlap(rotatedAABB(a),rotatedAABB(b))) candidates.push([a,b]);
+    }
+  }
+
+  const overlappingIds=new Set();
+  const imageCache=new Map();
+  let unknownPairs=0;
+  for(let i=0;i<candidates.length;i++){
+    const [a,b]=candidates[i];
+    try{
+      if(await objectsShareOpaquePixelAtPrintResolution(a,b,imageCache)){
+        overlappingIds.add(a.id);
+        overlappingIds.add(b.id);
+      }
+    }catch(error){
+      unknownPairs++;
+      console.warn("[BixStudio pixel overlap]",a.id,b.id,error);
+    }
+    if(i%3===2) await new Promise(r=>setTimeout(r,0));
+  }
+
+  state.objects.forEach(o=>{o.overlap=overlappingIds.has(o.id)});
+  return {objects:overlappingIds.size,candidatePairs:candidates.length,unknownPairs};
+}
+
 async function runQualityCheck(){
   updateDiagnostics();
 
+  const pixelOverlap=await scanPixelPerfectOverlaps();
+
   const lows=state.objects.filter(o=>calcDpi(o)<200).length;
   const warns=state.objects.filter(o=>calcDpi(o)>=200&&calcDpi(o)<300).length;
-  const overlaps=state.objects.filter(o=>o.overlap).length;
+  const overlaps=pixelOverlap.objects;
   const off=state.objects.filter(o=>o.offboard).length;
 
   const alpha=await scanSemiTransparentAssetsFast();
@@ -7993,7 +8203,7 @@ async function runQualityCheck(){
 
   const checks=[
     ["Resolución",lows?`${lows} diseño(s) por debajo de 200 DPI`:warns?`${warns} diseño(s) entre 200 y 299 DPI`:"Todas las imágenes tienen resolución óptima",lows?"bad":warns?"warn":"ok"],
-    ["Superposición",overlaps?`${overlaps} objetos se superponen`:"No hay imágenes superpuestas",overlaps?"bad":"ok"],
+    ["Superposición",overlaps?`${overlaps} objetos comparten píxeles impresos`:pixelOverlap.unknownPairs?`${pixelOverlap.unknownPairs} cruce(s) no pudieron verificarse`:"No hay píxeles de diseños superpuestos",overlaps?"bad":pixelOverlap.unknownPairs?"warn":"ok"],
     ["Fuera del área",off?`${off} objetos salen del área segura`:"Todos los objetos están dentro de la hoja",off?"bad":"ok"],
     ["Semitransparencias",alphaText,alphaStatus],
     ["Archivos",`${state.objects.length} objetos listos para exportar`,"ok"]
@@ -9827,7 +10037,8 @@ function touchMidpoint(a,b){
 stageScroller.addEventListener("touchstart",e=>{
   if(e.touches.length===2){
     e.preventDefault();
-    panSession=null;
+    cancelObjectGestureForPinch();
+    endPan({});
     stageScroller.classList.remove("panning");
     pinchSession={
       dist:touchDistance(e.touches[0],e.touches[1]),
