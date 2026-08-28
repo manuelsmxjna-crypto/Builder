@@ -368,6 +368,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   color:#7a838d;
   font-size:9px;
 }
+.packing-select{height:28px;border:1px solid #d7dce2;border-radius:6px;background:#fff;color:#374151;font-size:10px;padding:4px 24px 4px 7px;outline:0}
 .packing-check{
   display:flex;
   align-items:center;
@@ -1300,6 +1301,13 @@ body.bix-checkout-locked{cursor:progress}
 
         <div class="packing-toolbar">
           <label class="packing-field">
+            <span>Organización</span>
+            <select id="nestMode" class="packing-select" aria-label="Tipo de organización">
+              <option value="true-shape">True Shape (silueta)</option>
+              <option value="guillotine">Guillotina (recuadros)</option>
+            </select>
+          </label>
+          <label class="packing-field">
             <span>Separación</span>
             <div class="packing-input-wrap">
               <input id="nestGap" type="number" value="0.5" min="0" step="0.1">
@@ -1688,6 +1696,7 @@ const state = {
   snap:true,
   showResolution:true,
   artboardColor:"checker",
+  nestMode:"true-shape",
   assets:[],
   selectedId:null,
   selectedIds:[],
@@ -2465,6 +2474,7 @@ function buildSessionPayload(){
     snap:!!state.snap,
     showResolution:!!state.showResolution,
     artboardColor:state.artboardColor||"checker",
+    nestMode:state.nestMode||"true-shape",
     objectCount,
     sheetCount:sheets.length
   };
@@ -2555,6 +2565,8 @@ function applySessionPayload(payload){
   if(typeof payload.snap==="boolean") state.snap=payload.snap;
   if(typeof payload.showResolution==="boolean") setShowOutlines(payload.showResolution,{skipRender:true});
   if(typeof payload.artboardColor==="string") state.artboardColor=payload.artboardColor;
+  if(payload.nestMode==="guillotine"||payload.nestMode==="true-shape") state.nestMode=payload.nestMode;
+  if($("#nestMode")) $("#nestMode").value=state.nestMode;
   syncSheetInputs();
   renderSheetsPanel?.();
   renderAll();
@@ -7105,6 +7117,18 @@ async function getAdaptiveNestMask(item,q,grid){
   adaptiveNestMaskCache.set(key,result);
   return result;
 }
+async function getPackingNestMask(item,q,grid){
+  if(state.nestMode!=="guillotine") return getAdaptiveNestMask(item,q,grid);
+  const baseW=Math.max(.01,+item.baseW||+item.w||1);
+  const baseH=Math.max(.01,+item.baseH||+item.h||1);
+  let w=Math.max(1,Math.round(baseW*grid));
+  let h=Math.max(1,Math.round(baseH*grid));
+  if(((q%4)+4)%4%2===1) [w,h]=[h,w];
+  const data=new Uint8Array(w*h);
+  data.fill(1);
+  const key=["guillotine",w,h].join("|");
+  return {data,w,h,occupied:w*h,key};
+}
 function currentNestUsedHeight(){
   if(!state.objects.length) return 0;
   const m=state.sheet.margin;
@@ -7269,7 +7293,7 @@ let autoNestWarmRunning=false;
 
 function scheduleAutoNestWarmup(){
   clearTimeout(autoNestWarmTimer);
-  if(autoNestRunning || !state.objects?.length) return;
+  if(autoNestRunning || !state.objects?.length || state.nestMode==="guillotine") return;
 
   autoNestWarmTimer=setTimeout(()=>{
     const launch=()=>{ void warmAutoNestMasks(); };
@@ -8236,6 +8260,12 @@ $("#applySettingsBtn").onclick=()=>{
 };
 $("#showResolution").onchange=e=>setShowOutlines(e.target.checked);
 $("#snapToggle").onchange=e=>state.snap=e.target.checked;
+$("#nestMode")?.addEventListener("change",event=>{
+  state.nestMode=event.target.value==="guillotine"?"guillotine":"true-shape";
+  scheduleSessionSave();
+  if(state.nestMode==="true-shape") scheduleAutoNestWarmup();
+  toast(state.nestMode==="guillotine"?"Organización Guillotina: se usarán los recuadros":"Organización True Shape: se usarán las siluetas");
+});
 
 
 
@@ -10125,7 +10155,7 @@ window.BixNestBridge={
   MIN_SHEET_HEIGHT,
   MAX_SHEET_HEIGHT,
   ensureRotationModel:(o)=>ensureRotationModel(o),
-  getAdaptiveNestMask:(item,q,grid)=>getAdaptiveNestMask(item,q,grid),
+  getAdaptiveNestMask:(item,q,grid)=>getPackingNestMask(item,q,grid),
   pushHistory:()=>pushHistory(),
   recalcActiveSheetHeight:()=>recalcActiveSheetHeight(),
   updateDiagnostics:()=>updateDiagnostics(),
