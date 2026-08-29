@@ -4206,11 +4206,28 @@ function startResize(e,o,corner){
   };
   const fixedRot=rotateVector(fixedLocal.x,fixedLocal.y,start.rot);
   const fixedWorld={x:center.x+fixedRot.x,y:center.y+fixedRot.y};
+  // The pointer can land anywhere inside the (screen-sized) resize handle,
+  // especially when the canvas is zoomed out. Keep that initial grab offset
+  // instead of snapping the geometric corner to the pointer on the first move.
+  const movingLocal={
+    x:movingSigns.x*start.w/2,
+    y:movingSigns.y*start.h/2
+  };
+  const movingRot=rotateVector(movingLocal.x,movingLocal.y,start.rot);
+  const movingWorld={x:center.x+movingRot.x,y:center.y+movingRot.y};
+  const startPointer=pointToArtboardCm(e.clientX,e.clientY);
 
   const move=ev=>{
     if(ev.pointerId!==pointerId || pinchSession) return;
     const pointer=pointToArtboardCm(ev.clientX,ev.clientY);
-    const deltaWorld={x:pointer.x-fixedWorld.x,y:pointer.y-fixedWorld.y};
+    const targetMovingWorld={
+      x:movingWorld.x+(pointer.x-startPointer.x),
+      y:movingWorld.y+(pointer.y-startPointer.y)
+    };
+    const deltaWorld={
+      x:targetMovingWorld.x-fixedWorld.x,
+      y:targetMovingWorld.y-fixedWorld.y
+    };
     const deltaLocal=inverseRotateVector(deltaWorld.x,deltaWorld.y,start.rot);
 
     let newW=Math.max(.2,movingSigns.x*deltaLocal.x);
