@@ -4230,15 +4230,27 @@ function startResize(e,o,corner){
     };
     const deltaLocal=inverseRotateVector(deltaWorld.x,deltaWorld.y,start.rot);
 
-    let newW=Math.max(.2,movingSigns.x*deltaLocal.x);
-    let newH=Math.max(.2,movingSigns.y*deltaLocal.y);
+    let newW,newH;
 
     if(o.aspectLocked){
-      const sw=newW/start.w;
-      const sh=newH/start.h;
-      const scale=Math.max(.05,Math.abs(sw-1)>=Math.abs(sh-1)?sw:sh);
+      // Project the pointer onto the original fixed-to-moving diagonal.
+      // This produces one continuous scale factor. Choosing between the
+      // horizontal and vertical deltas made the size jump whenever a slightly
+      // irregular pointer path switched which axis had changed the most.
+      const diagonal={
+        x:movingSigns.x*start.w,
+        y:movingSigns.y*start.h
+      };
+      const diagonalLengthSq=diagonal.x*diagonal.x+diagonal.y*diagonal.y;
+      const projectedScale=(
+        deltaLocal.x*diagonal.x+deltaLocal.y*diagonal.y
+      )/Math.max(.0001,diagonalLengthSq);
+      const scale=Math.max(.05,projectedScale);
       newW=Math.max(.2,start.w*scale);
       newH=Math.max(.2,start.h*scale);
+    }else{
+      newW=Math.max(.2,movingSigns.x*deltaLocal.x);
+      newH=Math.max(.2,movingSigns.y*deltaLocal.y);
     }
 
     const localDelta={x:movingSigns.x*newW,y:movingSigns.y*newH};
