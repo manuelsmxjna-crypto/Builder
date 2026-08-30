@@ -4233,19 +4233,20 @@ function startResize(e,o,corner){
     let newW,newH;
 
     if(o.aspectLocked){
-      // Project the pointer onto the original fixed-to-moving diagonal.
-      // This produces one continuous scale factor. Choosing between the
-      // horizontal and vertical deltas made the size jump whenever a slightly
-      // irregular pointer path switched which axis had changed the most.
+      // Scale by the real fixed-corner-to-pointer distance. A projection onto
+      // the diagonal is continuous, but it still makes sideways movement feel
+      // almost inert on tall artwork (and vertical movement on wide artwork),
+      // so the handle appears to lag and then catch up with an imperfect path.
       const diagonal={
         x:movingSigns.x*start.w,
         y:movingSigns.y*start.h
       };
-      const diagonalLengthSq=diagonal.x*diagonal.x+diagonal.y*diagonal.y;
-      const projectedScale=(
-        deltaLocal.x*diagonal.x+deltaLocal.y*diagonal.y
-      )/Math.max(.0001,diagonalLengthSq);
-      const scale=Math.max(.05,projectedScale);
+      const diagonalLength=Math.max(.0001,Math.hypot(diagonal.x,diagonal.y));
+      const direction=deltaLocal.x*diagonal.x+deltaLocal.y*diagonal.y;
+      const radialScale=Math.hypot(deltaLocal.x,deltaLocal.y)/diagonalLength;
+      // Once the pointer crosses behind the fixed corner, keep the minimum
+      // legal size instead of allowing the artwork to invert unexpectedly.
+      const scale=Math.max(.05,direction>0?radialScale:.05);
       newW=Math.max(.2,start.w*scale);
       newH=Math.max(.2,start.h*scale);
     }else{
