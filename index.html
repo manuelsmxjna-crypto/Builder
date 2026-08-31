@@ -4082,6 +4082,7 @@ function renderAll(){
  state.objects.forEach(o=>{ensureAspect(o);ensureRotationModel(o);renderObject(o)}); updateSelectionPanel(); renderSheetsPanel(); syncSheetInputs();
  renderAssets();
  scheduleAutoNestWarmup();
+ schedulePixelOverlapDiagnostics();
 }
 function renderObject(o){
  const el=document.createElement("div");
@@ -4089,7 +4090,10 @@ function renderObject(o){
  const dpiCls=dpiClass(dpi);
  const isPrimary=o.id===state.selectedId;
  const isMulti=state.selectedIds.includes(o.id);
- el.className="design-object dpi-"+dpiCls+(isPrimary?" selected":"")+(isMulti?" multi-selected":"")+(o.overlap?" overlap":"")+(o.offboard?" offboard":"");
+ // `overlap` is intentionally reserved for Auto Organizar's conservative
+ // shape collision check. The visible warning uses the exact 300-DPI pixel
+ // scan so transparent padding never hides the resolution outline.
+ el.className="design-object dpi-"+dpiCls+(isPrimary?" selected":"")+(isMulti?" multi-selected":"")+(o.pixelOverlap?" overlap":"")+(o.offboard?" offboard":"");
  el.dataset.id=o.id;el.style.left=cmToPx(o.x)+"px";el.style.top=cmToPx(o.y)+"px";el.style.width=cmToPx(o.w)+"px";el.style.height=cmToPx(o.h)+"px";
  el.style.transform=`rotate(${o.rot||0}deg)`;el.style.transformOrigin="50% 50%";
  const visual=document.createElement("div");
@@ -4477,6 +4481,7 @@ function startDrag(e,o,resizing){
   clampObjectPositionToHardBounds(o);
   if(heightChanged){syncSheetInputs();updateBoard()}
   if(!updateRenderedObjectPosition(o)) renderAll();
+  else schedulePixelOverlapDiagnostics();
  };
  const cleanup=()=>{
    window.removeEventListener("pointermove",move);
@@ -8178,6 +8183,87 @@ async function objectsShareOpaquePixelAtPrintResolution(a,b,imageCache){
   return false;
 }
 
+let pixelOverlapScanRevision=0;
+let pixelOverlapScanTimer=null;
+let pixelOverlapScanRunning=false;
+let pixelOverlapScanPending=false;
+let pixelOverlapRequestedSignature="";
+
+function pixelOverlapLayoutSignature(){
+  return state.objects.map(o=>{
+    let content="";
+    if(o.type==="image"){
+      const src=objectSrc(o)||"";
+      // Blob URLs change whenever an image is processed/replaced. Limiting the
+      // sampled text also keeps legacy data URLs from making this check costly.
+      content=`${o.assetId||""}:${src.length}:${src.slice(0,48)}:${src.slice(-48)}`;
+    }else{
+      content=JSON.stringify([
+        o.text||"",o.fontFamily||"",o.fontWeight||"",o.fontStyle||"",
+        o.letterSpacing||0,o.lineHeight||0,o.strokeWidth||0
+      ]);
+    }
+    return [
+      o.id,o.type,o.x,o.y,o.w,o.h,o.rot||0,o.flipX?1:0,o.flipY?1:0,content
+    ].join("|");
+  }).join(";");
+}
+
+function applyVisiblePixelOverlaps(overlappingIds){
+  state.objects.forEach(o=>{
+    const overlaps=overlappingIds.has(o.id);
+    o.pixelOverlap=overlaps;
+    const el=layer.querySelector(`.design-object[data-id="${CSS.escape(String(o.id))}"]`);
+    if(el) el.classList.toggle("overlap",overlaps);
+  });
+}
+
+async function refreshVisiblePixelOverlaps(revision){
+  if(pixelOverlapScanRunning){
+    pixelOverlapScanPending=true;
+    return;
+  }
+
+  pixelOverlapScanRunning=true;
+  try{
+    const result=await scanPixelPerfectOverlaps();
+    // A drag/resize may have changed coordinates while canvas tiles were being
+    // inspected. Never paint results produced from an obsolete layout.
+    if(revision===pixelOverlapScanRevision){
+      applyVisiblePixelOverlaps(result.overlappingIds);
+    }
+  }catch(error){
+    pixelOverlapRequestedSignature="";
+    console.warn("[BixStudio visible pixel overlap]",error);
+  }finally{
+    pixelOverlapScanRunning=false;
+    if(pixelOverlapScanPending||revision!==pixelOverlapScanRevision){
+      pixelOverlapScanPending=false;
+      clearTimeout(pixelOverlapScanTimer);
+      const latestRevision=pixelOverlapScanRevision;
+      pixelOverlapScanTimer=setTimeout(()=>refreshVisiblePixelOverlaps(latestRevision),80);
+    }
+  }
+}
+
+function schedulePixelOverlapDiagnostics(){
+  const signature=pixelOverlapLayoutSignature();
+  if(signature===pixelOverlapRequestedSignature) return;
+  pixelOverlapRequestedSignature=signature;
+  pixelOverlapScanRevision++;
+  const revision=pixelOverlapScanRevision;
+  clearTimeout(pixelOverlapScanTimer);
+
+  if(state.objects.length<2){
+    applyVisiblePixelOverlaps(new Set());
+    return;
+  }
+
+  // renderAll runs repeatedly during several gestures. Debouncing keeps the
+  // editor fluid and performs the exact test once the coordinates settle.
+  pixelOverlapScanTimer=setTimeout(()=>refreshVisiblePixelOverlaps(revision),180);
+}
+
 async function scanPixelPerfectOverlaps(){
   const candidates=[];
   for(let i=0;i<state.objects.length;i++){
@@ -8204,14 +8290,14 @@ async function scanPixelPerfectOverlaps(){
     if(i%3===2) await new Promise(r=>setTimeout(r,0));
   }
 
-  state.objects.forEach(o=>{o.overlap=overlappingIds.has(o.id)});
-  return {objects:overlappingIds.size,candidatePairs:candidates.length,unknownPairs};
+  return {objects:overlappingIds.size,candidatePairs:candidates.length,unknownPairs,overlappingIds};
 }
 
 async function runQualityCheck(){
   updateDiagnostics();
 
   const pixelOverlap=await scanPixelPerfectOverlaps();
+  applyVisiblePixelOverlaps(pixelOverlap.overlappingIds);
 
   const lows=state.objects.filter(o=>calcDpi(o)<200).length;
   const warns=state.objects.filter(o=>calcDpi(o)>=200&&calcDpi(o)<300).length;
