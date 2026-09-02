@@ -6120,7 +6120,6 @@ function applyProcessedAssetToObject(o,newAsset,kind,sizeOverride=null){
 const BIX_AI_SERVER_URL="https://bixai-server-318403647962.europe-west1.run.app";
 const BIX_AI_TURNSTILE_SITEKEY="0x4AAAAAAEdTx2G3lXqMuRGO";
 const BIX_AI_TIMEOUT_MS=14*60*1000;
-let bixAiWarmupPromise=null;
 let bixAiTurnstileQueue=Promise.resolve();
 
 function waitForTurnstile(){
@@ -6203,16 +6202,6 @@ async function requestBixAi(endpoint,blob,name,query={},onStage=null){
    if(error?.name==="AbortError") throw bixAiRequestError("timeout","BixAI superó el tiempo máximo de espera de 14 minutos.");
    throw bixAiRequestError("connection","No fue posible conectar con BixAI. Revisa la conexión e inténtalo nuevamente.");
  }finally{clearTimeout(timeout)}
-}
-function wakeBixAiServer(){
- if(bixAiWarmupPromise) return bixAiWarmupPromise;
- bixAiWarmupPromise=(async()=>{
-   const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
-   try{await fetch(`${BIX_AI_SERVER_URL}/health`,{cache:"no-store",signal:controller.signal})}
-   catch{/* El arranque en frío no debe bloquear ni mostrar errores al usuario. */}
-   finally{clearTimeout(timeout)}
- })();
- return bixAiWarmupPromise;
 }
 function startBixAiPhaseMessages(objectId){
  const timers=[
@@ -6425,11 +6414,6 @@ function ensureBgRemoveWorker(){
  bgRemoveState.ready.catch(()=>{ bgRemoveState.failed=true; });
  return bgRemoveState.ready;
 }
-function preloadBgRemoveModel(){
- // Despierta Cloud Run sin bloquear la interfaz. Los modelos locales se
- // conservan, pero ya no consumen memoria durante el arranque normal.
- void wakeBixAiServer();
-}
 function runBgRemoveWorker(rgba,width,height,onProgress){
  return ensureBgRemoveWorker().then(()=>new Promise((resolve,reject)=>{
    if(!bgRemoveState.worker){
@@ -6611,7 +6595,6 @@ async function restoreSelectedOriginal(){
 }
 $("#enhanceImageBtn").onclick=enhanceSelectedWithAi;
 $("#removeBgBtn").onclick=removeBackgroundSelected;
-preloadBgRemoveModel();
 $("#halftoneImageBtn").onclick=()=>{
  if(!selectedImageObject())return;
  const intensity=$("#halftoneIntensity");if(intensity)intensity.value="light";
