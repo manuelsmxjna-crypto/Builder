@@ -21,6 +21,10 @@ const publishFiles = [
   "bixnest/worker.js"
 ];
 
+const publishDirectories = [
+  "pdfjs"
+];
+
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });
 
@@ -36,4 +40,13 @@ for (const relativeFile of publishFiles) {
   totalBytes += (await stat(source)).size;
 }
 
-console.log(`BixStudio Pages: ${publishFiles.length} archivos, ${(totalBytes / 1024).toFixed(1)} KiB`);
+for (const relativeDirectory of publishDirectories) {
+  const source = path.resolve(projectRoot, relativeDirectory);
+  const destination = path.resolve(outputDir, relativeDirectory);
+  if (!source.startsWith(`${projectRoot}${path.sep}`)) {
+    throw new Error(`Ruta fuera del proyecto: ${relativeDirectory}`);
+  }
+  await cp(source, destination, { recursive: true });
+}
+
+console.log(`BixStudio Pages: ${publishFiles.length} archivos base + recursos PDF.js, ${(totalBytes / 1024).toFixed(1)} KiB base`);

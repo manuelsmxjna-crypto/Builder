@@ -1139,6 +1139,21 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .checkout-confirm-actions{gap:8px}
 .checkout-confirm-actions .primary-btn{min-width:170px}
 
+.pdf-import-modal{width:min(820px,95vw)}
+.pdf-import-body{padding:16px 18px;min-height:260px;overflow:auto;max-height:min(68vh,650px)}
+.pdf-import-intro{margin:0 0 12px;color:#64748b;font-size:10px;line-height:1.45}
+.pdf-page-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:11px}
+.pdf-page-option{border:2px solid #e2e8f0;border-radius:9px;background:#f8fafc;padding:7px;cursor:pointer;text-align:left;color:#334155}
+.pdf-page-option:hover{border-color:#93c5fd}
+.pdf-page-option.active{border-color:#2563eb;box-shadow:0 0 0 2px rgba(37,99,235,.13)}
+.pdf-page-preview{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;background-color:#fff;background-image:linear-gradient(45deg,#e2e8f0 25%,transparent 25%),linear-gradient(-45deg,#e2e8f0 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e2e8f0 75%),linear-gradient(-45deg,transparent 75%,#e2e8f0 75%);background-size:10px 10px;background-position:0 0,0 5px,5px -5px,-5px 0;border-radius:5px;overflow:hidden}
+.pdf-page-preview canvas{display:block;max-width:100%;max-height:100%;box-shadow:0 1px 5px rgba(15,23,42,.18)}
+.pdf-page-option b{display:block;margin-top:7px;font-size:10px}
+.pdf-page-option span{display:block;margin-top:2px;font-size:8px;color:#64748b}
+.pdf-import-status{display:flex;align-items:center;justify-content:center;min-height:180px;color:#64748b;font-size:11px;text-align:center}
+.pdf-import-actions{gap:8px}
+.pdf-import-actions .primary-btn{min-width:155px}
+
 .checkout-processing-overlay{
   position:fixed;inset:0;z-index:5000;
   display:flex;align-items:center;justify-content:center;
@@ -1222,10 +1237,10 @@ body.bix-checkout-locked{cursor:progress}
 
       <div id="uploadsPanel" class="panel-view active">
         <label class="upload-zone">
-          <input id="fileInput" type="file" multiple accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden>
+          <input id="fileInput" type="file" multiple accept="image/png,image/jpeg,image/webp,image/svg+xml,application/pdf,.pdf" hidden>
           <div class="upload-icon">⬆</div>
-          <b>Subir imágenes</b>
-          <span>PNG, JPG, WEBP o SVG</span>
+          <b>Subir archivos</b>
+          <span>PNG, JPG, WEBP, SVG o PDF</span>
         </label>
         <div class="panel-row">
           <input id="searchFiles" class="text-input" placeholder="Buscar archivo…">
@@ -1572,6 +1587,24 @@ body.bix-checkout-locked{cursor:progress}
       <div class="modal-foot checkout-confirm-actions">
         <button id="checkoutConfirmCancelBtn" class="ghost-btn" type="button">Seguir editando</button>
         <button id="checkoutConfirmContinueBtn" class="primary-btn" type="button">Sí, agregar al carrito</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pdfImportModal" class="modal-backdrop hidden">
+    <div class="modal pdf-import-modal" role="dialog" aria-modal="true" aria-labelledby="pdfImportTitle">
+      <div class="modal-head">
+        <h2 id="pdfImportTitle">Elegir página del PDF</h2>
+        <button class="close-btn" id="pdfImportCloseBtn" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="pdf-import-body">
+        <p class="pdf-import-intro" id="pdfImportIntro">Selecciona la página que deseas añadir. Se convertirá a PNG a 300 DPI conservando su tamaño físico y transparencia.</p>
+        <div id="pdfImportStatus" class="pdf-import-status">Preparando PDF…</div>
+        <div id="pdfPageGrid" class="pdf-page-grid hidden"></div>
+      </div>
+      <div class="modal-foot pdf-import-actions">
+        <button id="pdfImportCancelBtn" class="ghost-btn" type="button">Cancelar</button>
+        <button id="pdfImportConfirmBtn" class="primary-btn" type="button" disabled>Importar página</button>
       </div>
     </div>
   </div>
@@ -2366,6 +2399,10 @@ async function persistAsset(asset,{skipPrune=false}={}){
         autoTrimmed:!!asset.autoTrimmed,
         renderUpload:asset._renderUpload||null,
         renderProjectId:asset._renderProjectId||null,
+        sourcePdfBlob:asset.sourcePdfFile instanceof Blob ? asset.sourcePdfFile : null,
+        sourcePdfName:asset.sourcePdfName||null,
+        sourcePdfPage:Number.isFinite(asset.sourcePdfPage)?asset.sourcePdfPage:null,
+        sourcePdfPageCount:Number.isFinite(asset.sourcePdfPageCount)?asset.sourcePdfPageCount:null,
         updatedAt:asset.updatedAt||Date.now()
       });
       tx.oncomplete=resolve;
@@ -2418,7 +2455,7 @@ async function pruneLocalAssetCache(){
           row.thumbnailBlob &&
           row.blob
         ){
-          store.put({...row,blob:null});
+          store.put({...row,blob:null,sourcePdfBlob:null});
         }
 
         // Metadata/thumbnails are tiny, but still cap historical local entries.
@@ -2695,6 +2732,10 @@ async function loadPersistedAssets(){
       autoTrimmed:!!row.autoTrimmed,
       _renderUpload:row.renderUpload||null,
       _renderProjectId:row.renderProjectId||null,
+      sourcePdfFile:row.sourcePdfBlob instanceof Blob ? row.sourcePdfBlob : null,
+      sourcePdfName:row.sourcePdfName||null,
+      sourcePdfPage:Number.isFinite(row.sourcePdfPage)?row.sourcePdfPage:null,
+      sourcePdfPageCount:Number.isFinite(row.sourcePdfPageCount)?row.sourcePdfPageCount:null,
       _thumbnailBlob:thumbBlob,
       _thumbnailUrl:thumbBlob ? URL.createObjectURL(thumbBlob) : null,
       _srcIsThumbnail:!fullBlob && !!thumbBlob,
@@ -4729,7 +4770,7 @@ async function ensureAssetAutoTrimmed(asset){
     return {trimmed:false,error:true};
   }
 }
-async function addAsset(file){
+async function addAsset(file,options={}){
   const dpi=await readEmbeddedDpi(file);
   const url=URL.createObjectURL(file);
   try{
@@ -4749,9 +4790,21 @@ async function addAsset(file){
       alphaThreshold:null,
       alphaBinary:false,
       autoTrimmed:false,
+      sourcePdfFile:options.sourcePdfFile instanceof Blob ? options.sourcePdfFile : null,
+      sourcePdfName:options.sourcePdfName||null,
+      sourcePdfPage:Number.isFinite(options.sourcePdfPage)?options.sourcePdfPage:null,
+      sourcePdfPageCount:Number.isFinite(options.sourcePdfPageCount)?options.sourcePdfPageCount:null,
       updatedAt:Date.now()
     };
-    const trimInfo=await ensureAssetAutoTrimmed(asset);
+    let trimInfo={trimmed:false};
+    if(options.skipAutoTrim){
+      // A PDF page is a physical canvas. Cropping transparent page margins
+      // would change the dimensions selected by the customer.
+      asset.autoTrimmed=true;
+      await persistAsset(asset);
+    }else{
+      trimInfo=await ensureAssetAutoTrimmed(asset);
+    }
     state.assets.unshift(asset);
     renderAssets();
 
@@ -4776,14 +4829,241 @@ async function addAsset(file){
     return null;
   }
 }
-async function importAndInsertFiles(files){
-  const images=[...files].filter(f=>f.type.startsWith("image/") || /\.svg$/i.test(f.name||""));
+const PDF_IMPORT_DPI=300;
+let pdfJsLibraryPromise=null;
 
-  for(const file of images){
-    const asset=await addAsset(file);
-    if(asset){
-      await insertAsset(asset);
+function isPdfFile(file){
+  return file?.type==="application/pdf" || /\.pdf$/i.test(file?.name||"");
+}
+
+async function loadPdfJsLibrary(){
+  if(!pdfJsLibraryPromise){
+    pdfJsLibraryPromise=import("./pdfjs/pdf.min.mjs").then(pdfjs=>{
+      pdfjs.GlobalWorkerOptions.workerSrc=new URL("./pdfjs/pdf.worker.min.mjs",document.baseURI).href;
+      return pdfjs;
+    }).catch(error=>{
+      pdfJsLibraryPromise=null;
+      throw error;
+    });
+  }
+  return pdfJsLibraryPromise;
+}
+
+async function openPdfForImport(file){
+  const pdfjs=await loadPdfJsLibrary();
+  const data=new Uint8Array(await file.arrayBuffer());
+  return pdfjs.getDocument({
+    data,
+    cMapUrl:new URL("./pdfjs/cmaps/",document.baseURI).href,
+    cMapPacked:true,
+    standardFontDataUrl:new URL("./pdfjs/standard_fonts/",document.baseURI).href,
+    wasmUrl:new URL("./pdfjs/wasm/",document.baseURI).href,
+    iccUrl:new URL("./pdfjs/iccs/",document.baseURI).href,
+    useWorkerFetch:true
+  }).promise;
+}
+
+function pdfPagePhysicalSize(page){
+  const viewport=page.getViewport({scale:1});
+  return {
+    w:viewport.width/72*2.54,
+    h:viewport.height/72*2.54
+  };
+}
+
+async function renderPdfPageThumbnail(page,host){
+  const base=page.getViewport({scale:1});
+  const scale=Math.min(1.25,118/Math.max(base.width,base.height));
+  const viewport=page.getViewport({scale});
+  const canvas=document.createElement("canvas");
+  canvas.width=Math.max(1,Math.ceil(viewport.width));
+  canvas.height=Math.max(1,Math.ceil(viewport.height));
+  const ctx=canvas.getContext("2d",{alpha:true});
+  if(!ctx) throw new Error("No se pudo preparar la vista previa del PDF.");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  await page.render({
+    canvasContext:ctx,
+    viewport,
+    background:"rgba(0,0,0,0)"
+  }).promise;
+  host.appendChild(canvas);
+}
+
+function choosePdfPage(pdf,file){
+  if(pdf.numPages===1) return Promise.resolve(1);
+
+  const modal=$("#pdfImportModal");
+  const intro=$("#pdfImportIntro");
+  const status=$("#pdfImportStatus");
+  const grid=$("#pdfPageGrid");
+  const close=$("#pdfImportCloseBtn");
+  const cancel=$("#pdfImportCancelBtn");
+  const confirm=$("#pdfImportConfirmBtn");
+  let selectedPage=null;
+  let finished=false;
+
+  intro.textContent=`${file.name} tiene ${pdf.numPages} páginas. Selecciona la que deseas convertir a PNG a 300 DPI.`;
+  status.textContent="Preparando páginas…";
+  status.classList.remove("hidden");
+  grid.classList.add("hidden");
+  grid.innerHTML="";
+  close.disabled=false;
+  cancel.disabled=false;
+  confirm.disabled=true;
+  modal.classList.remove("hidden");
+
+  return new Promise((resolve,reject)=>{
+    const finish=value=>{
+      if(finished) return;
+      finished=true;
+      modal.classList.add("hidden");
+      close.onclick=null;
+      cancel.onclick=null;
+      confirm.onclick=null;
+      modal.removeEventListener("click",onBackdrop);
+      window.removeEventListener("keydown",onKey);
+      resolve(value);
+    };
+    const fail=error=>{
+      if(finished) return;
+      finished=true;
+      modal.classList.add("hidden");
+      close.onclick=null;
+      cancel.onclick=null;
+      confirm.onclick=null;
+      modal.removeEventListener("click",onBackdrop);
+      window.removeEventListener("keydown",onKey);
+      reject(error);
+    };
+    const onBackdrop=e=>{if(e.target===modal) finish(null)};
+    const onKey=e=>{if(e.key==="Escape") finish(null)};
+    close.onclick=()=>finish(null);
+    cancel.onclick=()=>finish(null);
+    confirm.onclick=()=>finish(selectedPage);
+    modal.addEventListener("click",onBackdrop);
+    window.addEventListener("keydown",onKey);
+
+    (async()=>{
+      try{
+        for(let pageNumber=1;pageNumber<=pdf.numPages;pageNumber++){
+          if(finished) return;
+          status.textContent=`Preparando página ${pageNumber} de ${pdf.numPages}…`;
+          const page=await pdf.getPage(pageNumber);
+          const size=pdfPagePhysicalSize(page);
+          const option=document.createElement("button");
+          option.type="button";
+          option.className="pdf-page-option";
+          option.innerHTML=`<div class="pdf-page-preview"></div><b>Página ${pageNumber}</b><span>${size.w.toFixed(1)} × ${size.h.toFixed(1)} cm</span>`;
+          option.onclick=()=>{
+            selectedPage=pageNumber;
+            grid.querySelectorAll(".pdf-page-option").forEach(el=>el.classList.toggle("active",el===option));
+            confirm.disabled=false;
+          };
+          grid.appendChild(option);
+          await renderPdfPageThumbnail(page,option.querySelector(".pdf-page-preview"));
+          page.cleanup();
+          if(pageNumber===1){
+            status.classList.add("hidden");
+            grid.classList.remove("hidden");
+          }
+          await new Promise(r=>setTimeout(r,0));
+        }
+      }catch(error){
+        fail(error);
+      }
+    })();
+  });
+}
+
+function showPdfImportBusy(file,pageNumber){
+  const modal=$("#pdfImportModal");
+  $("#pdfImportIntro").textContent=`${file.name} · página ${pageNumber}`;
+  $("#pdfPageGrid").classList.add("hidden");
+  const status=$("#pdfImportStatus");
+  status.textContent="Convirtiendo la página a PNG a 300 DPI…";
+  status.classList.remove("hidden");
+  $("#pdfImportCloseBtn").disabled=true;
+  $("#pdfImportCancelBtn").disabled=true;
+  $("#pdfImportConfirmBtn").disabled=true;
+  modal.classList.remove("hidden");
+}
+
+function hidePdfImportBusy(){
+  $("#pdfImportModal").classList.add("hidden");
+  $("#pdfImportCloseBtn").disabled=false;
+  $("#pdfImportCancelBtn").disabled=false;
+}
+
+async function rasterizePdfPageAt300Dpi(pdf,pageNumber){
+  const page=await pdf.getPage(pageNumber);
+  const viewport=page.getViewport({scale:PDF_IMPORT_DPI/72});
+  const canvas=document.createElement("canvas");
+  canvas.width=Math.max(1,Math.ceil(viewport.width));
+  canvas.height=Math.max(1,Math.ceil(viewport.height));
+  const ctx=canvas.getContext("2d",{alpha:true});
+  if(!ctx) throw new Error("No se pudo preparar la página PDF.");
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  try{
+    await page.render({
+      canvasContext:ctx,
+      viewport,
+      background:"rgba(0,0,0,0)"
+    }).promise;
+    const png=await canvasBlob(canvas);
+    return await forcePngDpi(png,PDF_IMPORT_DPI);
+  }finally{
+    page.cleanup();
+    canvas.width=0;
+    canvas.height=0;
+  }
+}
+
+async function importPdfFile(file){
+  let pdf=null;
+  try{
+    pdf=await openPdfForImport(file);
+    const pageNumber=await choosePdfPage(pdf,file);
+    if(!pageNumber) return null;
+    showPdfImportBusy(file,pageNumber);
+    const blob=await rasterizePdfPageAt300Dpi(pdf,pageNumber);
+    const base=(file.name||"documento").replace(/\.pdf$/i,"");
+    const suffix=pdf.numPages>1?`_pagina_${pageNumber}`:"";
+    const pngFile=new File([blob],`${base}${suffix}_300dpi.png`,{
+      type:"image/png",
+      lastModified:file.lastModified||Date.now()
+    });
+    const asset=await addAsset(pngFile,{
+      skipAutoTrim:true,
+      sourcePdfFile:file,
+      sourcePdfName:file.name,
+      sourcePdfPage:pageNumber,
+      sourcePdfPageCount:pdf.numPages
+    });
+    if(asset) await insertAsset(asset);
+    return asset;
+  }catch(error){
+    console.error("[BixStudio PDF]",error);
+    toast(`No se pudo importar ${file.name}`);
+    return null;
+  }finally{
+    hidePdfImportBusy();
+    try{await pdf?.destroy()}catch{}
+  }
+}
+
+async function importAndInsertFiles(files){
+  const supported=[...files].filter(file=>
+    isPdfFile(file) || file.type.startsWith("image/") || /\.svg$/i.test(file.name||"")
+  );
+
+  for(const file of supported){
+    if(isPdfFile(file)){
+      await importPdfFile(file);
+      continue;
     }
+    const asset=await addAsset(file);
+    if(asset) await insertAsset(asset);
   }
 
   // Allow choosing the same file again later.
