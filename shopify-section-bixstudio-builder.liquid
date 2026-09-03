@@ -1,0 +1,163 @@
+<div class="bixstudio-shopify-host">
+  <iframe
+    id="bixstudio-frame"
+    src="https://bixstudio-builder.pages.dev/"
+    title="BixStudio Gang Sheet Builder"
+    allow="clipboard-read; clipboard-write"
+  ></iframe>
+</div>
+
+<style>
+  #shopify-section-{{ section.id }} { width:100%; height:100%; min-height:0; margin:0; padding:0; }
+  .bixstudio-shopify-host { position:fixed; inset:0; width:100vw; height:100dvh; overflow:hidden; background:#f5f6f8; z-index:1; }
+  #bixstudio-frame { display:block; width:100%; height:100%; border:0; margin:0; padding:0; background:#f5f6f8; }
+</style>
+
+<script>
+(() => {
+  const frame = document.getElementById('bixstudio-frame');
+  if (!frame) return;
+
+  const BUILDER_ORIGIN = 'https://bixstudio-builder.pages.dev';
+  const REQUEST_TIMEOUT_MS = 25000;
+  const MAX_ATTEMPTS = 3;
+  const inFlight = new Map();
+  const completed = new Map();
+
+  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  function reply(source, origin, type, requestId, extra = {}) {
+    source.postMessage({ type, requestId, ...extra }, origin);
+  }
+
+  async function fetchWithTimeout(url, options) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async function responseMessage(response, fallback) {
+    try {
+      const data = await response.json();
+      return data?.description || data?.message || fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  async function prepareCart(root, data) {
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        // The complete clear + add sequence is repeated. This makes a retry
+        // safe even if Shopify accepted an add whose response was lost.
+        const clearResponse = await fetchWithTimeout(root + 'cart/clear.js', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type':'application/json', 'Accept':'application/json' }
+        });
+
+        if (!clearResponse.ok) {
+          const error = new Error(await responseMessage(clearResponse, `Shopify respondió ${clearResponse.status} al preparar el carrito`));
+          error.status = clearResponse.status;
+          throw error;
+        }
+
+        const addResponse = await fetchWithTimeout(root + 'cart/add.js', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
+          body: JSON.stringify({
+            items: [{
+              id: Number(data.variantId),
+              quantity: Number(data.quantity),
+              properties: data.properties || {}
+            }]
+          })
+        });
+
+        if (!addResponse.ok) {
+          const error = new Error(await responseMessage(addResponse, `Shopify respondió ${addResponse.status} al añadir el pedido`));
+          error.status = addResponse.status;
+          throw error;
+        }
+
+        return;
+      } catch (error) {
+        lastError = error;
+        const status = Number(error?.status || 0);
+        const retryable = error?.name === 'AbortError' || !status || status === 408 || status === 429 || status >= 500;
+        if (!retryable || attempt === MAX_ATTEMPTS) break;
+        await wait(1000 * attempt);
+      }
+    }
+
+    if (lastError?.name === 'AbortError') {
+      throw new Error('Shopify tardó demasiado en responder. Intenta nuevamente.');
+    }
+    throw lastError || new Error('No se pudo preparar el carrito.');
+  }
+
+  window.addEventListener('message', event => {
+    const data = event.data || {};
+    if (data.type !== 'BIXSTUDIO_ADD_TO_CART') return;
+    if (event.source !== frame.contentWindow || event.origin !== BUILDER_ORIGIN) return;
+
+    const source = event.source;
+    const origin = event.origin;
+    const requestId = String(data.requestId || `legacy-${Date.now()}`);
+
+    // Immediate acknowledgement lets the Builder distinguish a slow Shopify
+    // request from a broken iframe bridge.
+    reply(source, origin, 'BIXSTUDIO_CART_RECEIVED', requestId);
+
+    if (completed.has(requestId)) {
+      const saved = completed.get(requestId);
+      reply(source, origin, saved.type, requestId, saved.extra);
+      return;
+    }
+    if (inFlight.has(requestId)) return;
+
+    const quantity = Number(data.quantity);
+    const variantId = Number(data.variantId);
+    if (!Number.isFinite(quantity) || quantity < 1 || !Number.isFinite(variantId) || variantId < 1) {
+      reply(source, origin, 'BIXSTUDIO_CART_ERROR', requestId, { error:'Datos del pedido inválidos.' });
+      return;
+    }
+
+    const root = window.Shopify?.routes?.root || '/';
+    const operation = prepareCart(root, data)
+      .then(() => {
+        const saved = { type:'BIXSTUDIO_CART_OK', extra:{ quantity } };
+        completed.set(requestId, saved);
+        reply(source, origin, saved.type, requestId, saved.extra);
+        setTimeout(() => window.location.assign(root + 'checkout'), 350);
+      })
+      .catch(error => {
+        const extra = { error:error?.message || String(error) };
+        completed.set(requestId, { type:'BIXSTUDIO_CART_ERROR', extra });
+        reply(source, origin, 'BIXSTUDIO_CART_ERROR', requestId, extra);
+      })
+      .finally(() => inFlight.delete(requestId));
+
+    inFlight.set(requestId, operation);
+  });
+
+  frame.addEventListener('load', () => {
+    frame.contentWindow.postMessage({ type:'BIXSTUDIO_SHOPIFY_READY' }, BUILDER_ORIGIN);
+  });
+})();
+</script>
+
+{% schema %}
+{
+  "name": "BixStudio Builder",
+  "settings": [],
+  "presets": [{ "name": "BixStudio Builder" }]
+}
+{% endschema %}

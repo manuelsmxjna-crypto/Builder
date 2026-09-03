@@ -9423,6 +9423,44 @@ async function ensureCloudProject(){
 let shopifyCartBusy=false;
 let checkoutConfirmBusy=false;
 let checkoutConfirmPromise=null;
+let shopifyCartRequest=null;
+let shopifyPreparedCart=null;
+
+function shopifyRequestId(){
+  if(globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `bix-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function clearShopifyCartRequest(){
+  if(shopifyCartRequest?.timeout) clearTimeout(shopifyCartRequest.timeout);
+  shopifyCartRequest=null;
+}
+
+function shopifyOrderSignature(orderSheets){
+  return JSON.stringify(orderSheets.map(({record})=>({
+    id:record.id,
+    sheet:record.sheet,
+    objects:record.objects
+  })));
+}
+
+function dispatchShopifyCartMessage(cartMessage){
+  clearShopifyCartRequest();
+  shopifyCartRequest={id:cartMessage.requestId,acknowledged:false,timeout:null};
+  window.parent.postMessage(cartMessage,"https://bixprint.mx");
+
+  shopifyCartRequest.timeout=setTimeout(()=>{
+    if(!shopifyCartBusy || shopifyCartRequest?.id!==cartMessage.requestId) return;
+    const acknowledged=!!shopifyCartRequest.acknowledged;
+    clearShopifyCartRequest();
+    shopifyCartBusy=false;
+    setCheckoutLocked(false);
+    updateShopifyCartUi();
+    toast(acknowledged
+      ? "Shopify recibió el pedido, pero tardó demasiado en confirmarlo. Puedes reintentarlo sin volver a preparar los archivos."
+      : "No se recibió respuesta del carrito. Revisa tu conexión y vuelve a intentarlo.");
+  },150000);
+}
 
 
 function setCheckoutLocked(locked,{title=null,sub=null}={}){
@@ -10234,51 +10272,62 @@ async function addActiveSheetToShopifyCart(){
   await checkoutPaint();
 
   try{
-    await ensureCloudProject();
+    const signature=shopifyOrderSignature(orderSheets);
+    let cartMessage=shopifyPreparedCart?.signature===signature
+      ? shopifyPreparedCart.message
+      : null;
 
-    let ready=0;
-    const uploads=await Promise.all(
-      orderSheets.map(async({record})=>{
-        const info=await queueSheetRender(record,{
-          onProgress:()=>{
-            ready++;
-            if(btn) btn.textContent="⏳ Sincronizando diseños…";
-            const sub=$("#checkoutProcessingSub");
-            if(sub) sub.textContent=`Preparando archivos… ${Math.min(ready,totalResources)}/${totalResources}`;
-          }
-        });
-        return info;
-      })
-    );
+    if(cartMessage){
+      setCheckoutLocked(true,{
+        title:"Reintentando carrito…",
+        sub:"Usando los archivos que ya se prepararon."
+      });
+      await checkoutPaint();
+    }else{
+      await ensureCloudProject();
+
+      let ready=0;
+      const uploads=await Promise.all(
+        orderSheets.map(async({record})=>{
+          const info=await queueSheetRender(record,{
+            onProgress:()=>{
+              ready++;
+              if(btn) btn.textContent="⏳ Sincronizando diseños…";
+              const sub=$("#checkoutProcessingSub");
+              if(sub) sub.textContent=`Preparando archivos… ${Math.min(ready,totalResources)}/${totalResources}`;
+            }
+          });
+          return info;
+        })
+      );
+
+      cartMessage={
+        type:"BIXSTUDIO_ADD_TO_CART",
+        requestId:shopifyRequestId(),
+        variantId:SHOPIFY_DTF_VARIANT_ID,
+        quantity,
+        properties:shopifyLineProperties(uploads),
+        total:quantity*SHOPIFY_PRICE_PER_CM,
+        sheetCount:orderSheets.length,
+        projectId:state.projectId,
+        renderJobs:uploads.map(x=>x.renderJobId)
+      };
+      shopifyPreparedCart={signature,message:cartMessage};
+    }
 
     if(btn) btn.textContent="🛒 Añadiendo al carrito…";
     setCheckoutLocked(true,{
       title:"Añadiendo al carrito…",
-      sub:"Tus archivos ya están en proceso. Espera un momento."
+      sub:"Tus archivos están listos. Espera la confirmación de Shopify."
     });
     await checkoutPaint();
 
-    // Se continúa directamente. No se abre Revisar lienzo ni otra revisión previa.
-    window.parent.postMessage({
-      type:"BIXSTUDIO_ADD_TO_CART",
-      variantId:SHOPIFY_DTF_VARIANT_ID,
-      quantity,
-      properties:shopifyLineProperties(uploads),
-      total:quantity*SHOPIFY_PRICE_PER_CM,
-      sheetCount:orderSheets.length,
-      projectId:state.projectId,
-      renderJobs:uploads.map(x=>x.renderJobId)
-    },"*");
-
-    setTimeout(()=>{
-      if(!shopifyCartBusy) return;
-      shopifyCartBusy=false;
-      setCheckoutLocked(false);
-      updateShopifyCartUi();
-      toast("El carrito tardó demasiado en responder. Puedes intentarlo nuevamente.");
-    },60000);
+    // Se continúa directamente. Shopify acknowledges receipt immediately and
+    // deduplicates this request ID if the customer needs to retry.
+    dispatchShopifyCartMessage(cartMessage);
   }catch(e){
     console.error("[BixStudio async render/cart]",e);
+    clearShopifyCartRequest();
     shopifyCartBusy=false;
     setCheckoutLocked(false);
     updateShopifyCartUi();
@@ -10300,9 +10349,20 @@ if(shopifyObjectsLayer){
 }
 
 window.addEventListener("message",e=>{
+  if(e.source!==window.parent || e.origin!=="https://bixprint.mx") return;
   const d=e.data||{};
 
-  if(d.type==="BIXSTUDIO_CART_OK"){
+  if(d.type==="BIXSTUDIO_CART_RECEIVED"){
+    if(!shopifyCartRequest || d.requestId!==shopifyCartRequest.id) return;
+    shopifyCartRequest.acknowledged=true;
+    setCheckoutLocked(true,{
+      title:"Shopify recibió tu pedido…",
+      sub:"Estamos preparando el carrito. No cierres esta ventana."
+    });
+  }else if(d.type==="BIXSTUDIO_CART_OK"){
+    if(shopifyCartRequest && d.requestId && d.requestId!==shopifyCartRequest.id) return;
+    clearShopifyCartRequest();
+    shopifyPreparedCart=null;
     const count=shopifyOrderSheets().length;
     setCheckoutLocked(true,{
       title:"✓ Pedido añadido",
@@ -10318,6 +10378,14 @@ window.addEventListener("message",e=>{
       updateShopifyCartUi();
     },10000);
   }else if(d.type==="BIXSTUDIO_CART_ERROR"){
+    if(shopifyCartRequest && d.requestId && d.requestId!==shopifyCartRequest.id) return;
+    clearShopifyCartRequest();
+    if(shopifyPreparedCart?.message){
+      shopifyPreparedCart.message={
+        ...shopifyPreparedCart.message,
+        requestId:shopifyRequestId()
+      };
+    }
     shopifyCartBusy=false;
     setCheckoutLocked(false);
     updateShopifyCartUi();
