@@ -3,7 +3,7 @@
 <head>
   <!-- SHAPE_NEST_VERSION: v5.8.2 · ENTER_SINGLE_PRESS · TEXT_INK_HITBOX · TEXT_ENTER · TEXT_SHAPE_NEST · TEXT_SCALE_FIX · TEXT_LIMITS · CHECKOUT_CONFIRM_SINGLETON · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>BixStudio — Gang Sheet Builder</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -942,7 +942,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));
   background:#fff;border-top:1px solid #e5e8ec;
   box-shadow:0 -8px 24px rgba(15,23,42,.08);
-  grid-template-columns:repeat(3,1fr);gap:4px;align-items:stretch
+  grid-template-columns:repeat(4,1fr);gap:4px;align-items:stretch
 }
 .mobile-bottom-nav button{
   border:0;background:transparent;border-radius:9px;color:#475569;
@@ -951,6 +951,16 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 }
 .mobile-bottom-nav button span{font-size:16px;line-height:1}
 .mobile-bottom-nav button.active,.mobile-bottom-nav button:active{background:#f1f5f9;color:#111827}
+.mobile-bottom-nav button.quality-cta{
+  color:#075985;background:#e0f2fe;border:1px solid #7dd3fc;
+  box-shadow:0 2px 9px rgba(14,165,233,.2)
+}
+.mobile-bottom-nav button.quality-cta span{font-size:18px}
+.mobile-bottom-nav button.quality-cta:active{background:#bae6fd;color:#0c4a6e}
+#qualityBtn{
+  border-color:#7dd3fc;background:#f0f9ff;color:#075985;font-weight:800;
+  box-shadow:0 0 0 2px rgba(14,165,233,.08)
+}
 @keyframes propsNavPulse{
   0%,100%{background:transparent;color:#475569;box-shadow:none;transform:scale(1)}
   30%{background:#dbeafe;color:#1d4ed8;box-shadow:0 0 0 4px #2563eb2e;transform:scale(1.08)}
@@ -1060,7 +1070,12 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   .brand-title{font-size:14px}
   .workspace{height:calc(100% - 54px - var(--mobile-nav-h));margin-top:0}
   .top-actions .divider{display:none}
-  .top-actions #exportBtn{padding:7px 10px;font-size:12px}
+  .brand{min-width:0;flex:0 1 auto;gap:6px}
+  .top-actions{min-width:0;gap:4px;flex:1 1 auto;justify-content:flex-end}
+  .top-actions #exportBtn{
+    min-width:0;max-width:min(148px,40vw);padding:7px 9px;font-size:11px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  }
   .icon-btn{width:38px;min-height:38px}
   .top-actions .mini-btn,.top-actions .ghost-btn{min-height:34px;padding:6px 10px}
   .stage-toolbar{min-height:50px;padding:9px 12px}
@@ -1087,6 +1102,9 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   .text-style-btn{width:40px;height:38px}
 }
 @media(max-width:380px){
+  .brand-title{display:none}
+  .brand{flex:0 0 auto}
+  .top-actions #exportBtn{max-width:42vw;padding-left:7px;padding-right:7px}
   .stage-toolbar{padding-left:7px;padding-right:7px}
   .stage-toolbar #zoomLabel{display:none}
   .stage-toolbar .mini-btn{padding-left:8px;padding-right:8px}
@@ -1558,6 +1576,7 @@ body.bix-checkout-locked{cursor:progress}
     <button type="button" data-mobile-nav="files"><span>▣</span>Archivos</button>
     <button type="button" data-mobile-nav="props"><span>☰</span>Props</button>
     <button type="button" data-mobile-nav="nest"><span>✦</span>Organizar</button>
+    <button type="button" class="quality-cta" data-mobile-nav="quality"><span>✓</span>Lienzo</button>
   </nav>
 
   <div id="checkoutProcessingOverlay" class="checkout-processing-overlay" hidden aria-live="polite" aria-busy="true">
@@ -1721,7 +1740,7 @@ body.bix-checkout-locked{cursor:progress}
           <button id="inspect100Btn" class="inspect-tool-btn" type="button">100%</button>
         </div>
         <div class="right">
-          <span class="inspect-hint">Rueda = zoom · Arrastrar = mover · Esc = cerrar</span>
+          <span class="inspect-hint">Pellizcar o rueda = zoom · Arrastrar = mover</span>
         </div>
       </div>
       <div id="inspectStage" class="inspect-stage">
@@ -5828,7 +5847,8 @@ function modalClose(id){const el=$("#"+id);if(el)el.classList.add("hidden")}
 // =====================================================================
 const inspect = {
   open:false, scale:1, x:0, y:0, nw:0, nh:0, minScale:0.05, maxScale:64,
-  panning:false, panX:0, panY:0, originX:0, originY:0, objectId:null
+  panning:false, panX:0, panY:0, originX:0, originY:0, objectId:null,
+  pointers:new Map(), pinch:null
 };
 function isInspectOpen(){
   const el=$("#inspectModal");
@@ -5875,6 +5895,8 @@ function closeInspectPreview(){
   inspect.open=false;
   inspect.objectId=null;
   inspect.panning=false;
+  inspect.pointers.clear();
+  inspect.pinch=null;
   const stage=$("#inspectStage");
   if(stage) stage.classList.remove("panning");
   modalClose("inspectModal");
@@ -5932,11 +5954,43 @@ function wireInspectPreview(){
     inspectZoomAt(e.clientX, e.clientY, inspect.scale * factor);
   },{passive:false});
 
+  const pinchMetrics=()=>{
+    const points=[...inspect.pointers.values()].slice(0,2);
+    if(points.length<2) return null;
+    const dx=points[1].x-points[0].x;
+    const dy=points[1].y-points[0].y;
+    return {
+      distance:Math.max(1,Math.hypot(dx,dy)),
+      clientX:(points[0].x+points[1].x)/2,
+      clientY:(points[0].y+points[1].y)/2
+    };
+  };
+
   stage.addEventListener("pointerdown",e=>{
     if(!isInspectOpen()) return;
     if(e.button!==0 && e.pointerType==="mouse") return;
     e.preventDefault();
     stage.setPointerCapture(e.pointerId);
+
+    if(e.pointerType==="touch"){
+      inspect.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(inspect.pointers.size>=2){
+        const metrics=pinchMetrics();
+        const rect=stage.getBoundingClientRect();
+        const px=metrics.clientX-rect.left;
+        const py=metrics.clientY-rect.top;
+        inspect.pinch={
+          distance:metrics.distance,
+          scale:inspect.scale,
+          imageX:(px-inspect.x)/inspect.scale,
+          imageY:(py-inspect.y)/inspect.scale
+        };
+        inspect.panning=false;
+        stage.classList.remove("panning");
+        return;
+      }
+    }
+
     inspect.panning=true;
     inspect.panX=e.clientX;
     inspect.panY=e.clientY;
@@ -5945,15 +5999,49 @@ function wireInspectPreview(){
     stage.classList.add("panning");
   });
   stage.addEventListener("pointermove",e=>{
+    if(e.pointerType==="touch" && inspect.pointers.has(e.pointerId)){
+      inspect.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+      if(inspect.pinch && inspect.pointers.size>=2){
+        e.preventDefault();
+        const metrics=pinchMetrics();
+        const rect=stage.getBoundingClientRect();
+        const next=Math.max(inspect.minScale,Math.min(inspect.maxScale,
+          inspect.pinch.scale*(metrics.distance/inspect.pinch.distance)));
+        const px=metrics.clientX-rect.left;
+        const py=metrics.clientY-rect.top;
+        inspect.scale=next;
+        inspect.x=px-inspect.pinch.imageX*next;
+        inspect.y=py-inspect.pinch.imageY*next;
+        applyInspectTransform();
+        return;
+      }
+    }
     if(!inspect.panning) return;
     inspect.x=inspect.originX + (e.clientX - inspect.panX);
     inspect.y=inspect.originY + (e.clientY - inspect.panY);
     applyInspectTransform();
   });
   const endPan=e=>{
-    if(!inspect.panning) return;
-    inspect.panning=false;
-    stage.classList.remove("panning");
+    if(e.pointerType==="touch"){
+      inspect.pointers.delete(e.pointerId);
+      inspect.pinch=null;
+      const remaining=[...inspect.pointers.values()][0];
+      if(remaining){
+        inspect.panning=true;
+        inspect.panX=remaining.x;
+        inspect.panY=remaining.y;
+        inspect.originX=inspect.x;
+        inspect.originY=inspect.y;
+        stage.classList.add("panning");
+      }else{
+        inspect.panning=false;
+        stage.classList.remove("panning");
+      }
+    }else{
+      if(!inspect.panning) return;
+      inspect.panning=false;
+      stage.classList.remove("panning");
+    }
     try{stage.releasePointerCapture(e.pointerId)}catch{}
   };
   stage.addEventListener("pointerup",endPan);
@@ -8709,6 +8797,9 @@ function wireMobileChrome(){
       }else if(action==="nest"){
         closeMobileDrawers();
         $("#autoNestTopBtn")?.click();
+      }else if(action==="quality"){
+        closeMobileDrawers();
+        quality();
       }
     });
   });
