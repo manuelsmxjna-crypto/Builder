@@ -30,6 +30,11 @@
     source.postMessage({ type, requestId, ...extra }, origin);
   }
 
+  function openCheckout(root) {
+    const checkoutUrl = new URL('checkout', new URL(root, window.location.origin)).href;
+    window.location.assign(checkoutUrl);
+  }
+
   async function fetchWithTimeout(url, options) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -136,7 +141,7 @@
         const saved = { type:'BIXSTUDIO_CART_OK', extra:{ quantity } };
         completed.set(requestId, saved);
         reply(source, origin, saved.type, requestId, saved.extra);
-        setTimeout(() => window.location.assign(root + 'checkout'), 350);
+        setTimeout(() => openCheckout(root), 350);
       })
       .catch(error => {
         const extra = { error:error?.message || String(error) };

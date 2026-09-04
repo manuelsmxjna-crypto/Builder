@@ -10455,19 +10455,12 @@ window.addEventListener("message",e=>{
     clearShopifyCartRequest();
     shopifyPreparedCart=null;
     const count=shopifyOrderSheets().length;
-    setCheckoutLocked(true,{
-      title:"✓ Pedido añadido",
-      sub:"Abriendo tu carrito…"
-    });
-    if($("#exportBtn")) $("#exportBtn").textContent="✓ Pedido añadido";
+    // Shopify ya confirmó la escritura. Libera el builder de inmediato para
+    // que una navegación lenta o bloqueada del tema no deje el spinner encima.
+    shopifyCartBusy=false;
+    setCheckoutLocked(false);
+    updateShopifyCartUi();
     toast(`✓ Pedido añadido al carrito · ${count} hoja(s) · el archivo final seguirá procesándose en servidor`);
-
-    setTimeout(()=>{
-      if(!shopifyCartBusy) return;
-      shopifyCartBusy=false;
-      setCheckoutLocked(false);
-      updateShopifyCartUi();
-    },10000);
   }else if(d.type==="BIXSTUDIO_CART_ERROR"){
     if(shopifyCartRequest && d.requestId && d.requestId!==shopifyCartRequest.id) return;
     clearShopifyCartRequest();
