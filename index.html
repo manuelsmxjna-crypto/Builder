@@ -926,6 +926,16 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   image-rendering:pixelated;
   image-rendering:crisp-edges;
 }
+.tool-nav.quick-create-nav{color:#bfdbfe;border:1px solid rgba(59,130,246,.38);background:rgba(37,99,235,.12)}
+.tool-nav.quick-create-nav:hover{color:#fff;background:rgba(37,99,235,.28);border-color:rgba(96,165,250,.7)}
+.auto-create-modal{width:min(1180px,96vw);height:min(780px,92vh);display:flex;flex-direction:column}
+.auto-create-body{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:0;flex:1}
+.auto-create-assets{border-right:1px solid #e2e8f0;padding:14px;overflow:auto;background:#f8fafc}.auto-create-assets h3,.auto-create-plan h3{margin:0 0 5px;font-size:14px}.auto-create-assets p,.auto-create-plan p{margin:0 0 12px;font-size:10px;line-height:1.45;color:#64748b}
+.auto-create-asset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.auto-create-asset{border:1px solid #dbe2ea;border-radius:9px;background:#fff;padding:6px;min-width:0;text-align:left}.auto-create-asset img{display:block;width:100%;aspect-ratio:1;object-fit:contain;background:#eef2f7;border-radius:6px}.auto-create-asset b{display:block;margin-top:5px;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.auto-create-asset span{font-size:8px;color:#64748b}
+.auto-create-plan{padding:14px;overflow:auto;min-width:0}.auto-create-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px;border:1px solid #e2e8f0;border-radius:9px;background:#f8fafc;margin-bottom:12px;font-size:11px}.auto-create-toolbar label{display:flex;align-items:center;gap:6px}.auto-create-toolbar input[type=number]{width:72px;padding:6px;border:1px solid #cbd5e1;border-radius:6px}
+.auto-create-rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.auto-create-row{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;border:1px solid #dbe2ea;border-radius:10px;padding:9px;background:#fff;position:relative}.auto-create-row img{width:88px;height:88px;object-fit:contain;background:#eef2f7;border-radius:7px}.auto-create-row-fields{display:grid;grid-template-columns:repeat(3,minmax(62px,1fr));gap:7px;align-content:start}.auto-create-row-fields label{font-size:9px;color:#64748b}.auto-create-row-fields input[type=number]{display:block;width:100%;margin-top:3px;padding:6px;border:1px solid #cbd5e1;border-radius:6px}.auto-create-row-name{grid-column:1/-1;font-size:10px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:24px}.auto-create-row-actions{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:9px}.auto-create-row-actions button{border:1px solid #cbd5e1;border-radius:6px;background:#fff;padding:5px 7px;font-size:9px}.auto-create-remove{color:#b91c1c!important;border-color:#fecaca!important;background:#fff7f7!important}.auto-create-empty{grid-column:1/-1;border:1px dashed #cbd5e1;border-radius:10px;padding:45px 20px;text-align:center;color:#64748b;font-size:12px}.auto-create-summary{margin-right:auto;font-size:11px;color:#475569;font-weight:750}
+@media(max-width:900px){.auto-create-body{grid-template-columns:1fr;grid-template-rows:minmax(150px,34dvh) minmax(0,1fr);overflow:hidden}.auto-create-assets{border-right:0;border-bottom:1px solid #e2e8f0;max-height:none;min-height:0;overflow:auto}.auto-create-asset-grid{grid-template-columns:repeat(4,1fr)}.auto-create-plan{min-height:0;overflow:auto;-webkit-overflow-scrolling:touch}.auto-create-rows{grid-template-columns:1fr}.auto-create-modal{height:100dvh!important}}
+@media(max-width:480px){.auto-create-asset-grid{grid-template-columns:repeat(3,1fr)}}
 @keyframes bixAiSpin{to{transform:rotate(360deg)}}
 @keyframes bixAiSweep{from{transform:translateX(-65%)}to{transform:translateX(65%)}}
 
@@ -1241,6 +1251,7 @@ body.bix-checkout-locked{cursor:progress}
       <button class="tool-nav active" data-panel="uploads"><span>▣</span><b>Archivos</b></button>
       <button class="tool-nav" data-panel="text"><span>T</span><b>Texto</b></button>
       <button class="tool-nav" data-panel="settings"><span>⚙</span><b>Ajustes</b></button>
+      <button class="tool-nav quick-create-nav" id="autoCreateLaunchBtn" type="button" title="Definir cantidades y medidas antes de organizar"><span>▦</span><b>Añadido rápido</b></button>
       <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Iniciar de nuevo</b></button>
     </aside>
 
@@ -1578,6 +1589,37 @@ body.bix-checkout-locked{cursor:progress}
     <button type="button" data-mobile-nav="nest"><span>✦</span>Organizar</button>
     <button type="button" class="quality-cta" data-mobile-nav="quality"><span>✓</span>Lienzo</button>
   </nav>
+
+  <div id="autoCreateModal" class="modal-backdrop hidden">
+    <div class="modal auto-create-modal" role="dialog" aria-modal="true" aria-labelledby="autoCreateTitle">
+      <div class="modal-head">
+        <div><h2 id="autoCreateTitle">Añadido rápido</h2><div class="muted" style="font-size:10px;margin-top:3px">Define medidas y cantidades antes de construir el lienzo.</div></div>
+        <button id="autoCreateCloseBtn" class="close-btn" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="auto-create-body">
+        <aside class="auto-create-assets">
+          <h3>Imágenes disponibles</h3>
+          <p>Toca una imagen para agregar una configuración. Puedes agregarla varias veces con medidas diferentes.</p>
+          <div id="autoCreateAssetGrid" class="auto-create-asset-grid"></div>
+        </aside>
+        <section class="auto-create-plan">
+          <h3>Lista de producción</h3>
+          <p>Cada tarjeta representa una medida. Indica cuántas copias necesitas de cada una.</p>
+          <div class="auto-create-toolbar">
+            <label>Separación <input id="autoCreateGap" type="number" min="0" max="10" step="0.1" value="0.5"> cm</label>
+            <label><input id="autoCreateRotate" type="checkbox" checked> Permitir rotación</label>
+            <label><input id="autoCreateReplace" type="checkbox"> Reemplazar el lienzo actual</label>
+          </div>
+          <div id="autoCreateRows" class="auto-create-rows"></div>
+        </section>
+      </div>
+      <div class="modal-foot">
+        <span id="autoCreateSummary" class="auto-create-summary">0 diseños</span>
+        <button id="autoCreateCancelBtn" class="ghost-btn" type="button">Cancelar</button>
+        <button id="autoCreateRunBtn" class="primary-btn" type="button">Crear y organizar</button>
+      </div>
+    </div>
+  </div>
 
   <div id="checkoutProcessingOverlay" class="checkout-processing-overlay" hidden aria-live="polite" aria-busy="true">
     <div class="checkout-processing-card">
@@ -7841,9 +7883,12 @@ async function warmAutoNestMasks(){
   }
 }
 
-async function autoNest(){
+async function autoNest(options={}){
   if(autoNestRunning) return toast("Ya se está organizando…");
   if(!state.objects.length) return toast("No hay diseños para organizar.");
+
+  const forceLayout=!!options.force;
+  const skipHistory=!!options.skipHistory;
 
   const count=state.objects.length;
   const allowRotate=!!$("#allowRotate")?.checked;
@@ -7860,10 +7905,10 @@ async function autoNest(){
   // IMPORTANT: a compact layout is not a "good" layout if artwork overlaps
   // or sits outside the printable area. Refresh diagnostics immediately
   // because manual resize/rotation may have changed the layout moments ago.
-  updateDiagnostics();
-  const currentHasOverlap=state.objects.some(o=>o.overlap);
-  const currentHasOffboard=state.objects.some(o=>o.offboard);
-  const currentLayoutInvalid=currentHasOverlap||currentHasOffboard;
+  if(!forceLayout) updateDiagnostics();
+  const currentHasOverlap=forceLayout||state.objects.some(o=>o.overlap);
+  const currentHasOffboard=!forceLayout&&state.objects.some(o=>o.offboard);
+  const currentLayoutInvalid=forceLayout||currentHasOverlap||currentHasOffboard;
   const currentH=currentNestUsedHeight();
 
   const items=state.objects.map(o=>{
@@ -7957,7 +8002,7 @@ async function autoNest(){
       );
     }
 
-    pushHistory();
+    if(!skipHistory) pushHistory();
     const byId=new Map(result.placed.map(p=>[p.id,p]));
 
     for(const o of state.objects){
@@ -8011,6 +8056,192 @@ async function autoNest(){
 }
 
 $("#autoNestTopBtn").onclick=()=>{autoNest()};
+
+// =====================================================================
+// AÑADIDO RÁPIDO · LISTA DE MEDIDAS Y CANTIDADES
+// =====================================================================
+const autoCreatePlan=[];
+
+function autoCreateNaturalSize(asset){
+  applyAssumedDpiIfMissing(asset);
+  const dpiX=asset.dpiX||ASSUMED_SOURCE_DPI;
+  const dpiY=asset.dpiY||dpiX;
+  return {
+    w:Math.max(.1,asset.physicalWcm||asset.w/dpiX*2.54),
+    h:Math.max(.1,asset.physicalHcm||asset.h/dpiY*2.54)
+  };
+}
+
+function addAutoCreateRow(assetId,seed=null){
+  const asset=assetById(assetId);
+  if(!asset) return;
+  const natural=autoCreateNaturalSize(asset);
+  const w=Math.max(.1,+(seed?.w??natural.w));
+  const h=Math.max(.1,+(seed?.h??natural.h));
+  autoCreatePlan.push({
+    id:uid(),assetId,w,h,qty:Math.max(1,Math.round(seed?.qty??1)),
+    locked:seed?.locked!==false,ratio:w/Math.max(.001,h)
+  });
+  renderAutoCreatePlan();
+}
+
+function renderAutoCreateAssets(){
+  const grid=$("#autoCreateAssetGrid");
+  if(!grid) return;
+  grid.innerHTML="";
+  if(!state.assets.length){
+    grid.innerHTML='<div class="auto-create-empty">Primero sube imágenes desde Archivos.</div>';
+    return;
+  }
+  state.assets.forEach(asset=>{
+    const size=autoCreateNaturalSize(asset);
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="auto-create-asset";
+    button.innerHTML=`<img src="${assetLibraryPreviewSrc(asset)}" alt=""><b>${escapeHtml(asset.name)}</b><span>${size.w.toFixed(1)} × ${size.h.toFixed(1)} cm</span>`;
+    button.onclick=()=>addAutoCreateRow(asset.id);
+    grid.appendChild(button);
+  });
+}
+
+function renderAutoCreatePlan(){
+  const host=$("#autoCreateRows");
+  const summary=$("#autoCreateSummary");
+  if(!host) return;
+  host.innerHTML="";
+  const total=autoCreatePlan.reduce((sum,row)=>sum+Math.max(0,Math.round(+row.qty||0)),0);
+  if(summary) summary.textContent=`${total} diseño${total===1?"":"s"} · ${autoCreatePlan.length} medida${autoCreatePlan.length===1?"":"s"}`;
+  if(!autoCreatePlan.length){
+    host.innerHTML='<div class="auto-create-empty">Selecciona una imagen de la columna izquierda para comenzar.</div>';
+    return;
+  }
+
+  autoCreatePlan.forEach(row=>{
+    const asset=assetById(row.assetId);
+    if(!asset) return;
+    const card=document.createElement("div");
+    card.className="auto-create-row";
+    card.innerHTML=`
+      <img src="${assetLibraryPreviewSrc(asset)}" alt="">
+      <div class="auto-create-row-fields">
+        <div class="auto-create-row-name">${escapeHtml(asset.name)}</div>
+        <label>Ancho (cm)<input data-field="w" type="number" min="0.1" max="310" step="0.1" value="${row.w.toFixed(2)}"></label>
+        <label>Alto (cm)<input data-field="h" type="number" min="0.1" max="310" step="0.1" value="${row.h.toFixed(2)}"></label>
+        <label>Cantidad<input data-field="qty" type="number" min="1" max="500" step="1" value="${row.qty}"></label>
+        <div class="auto-create-row-actions">
+          <label><input data-field="locked" type="checkbox" ${row.locked?"checked":""}> Bloquear proporción</label>
+          <span><button data-action="duplicate" type="button">＋ Otra medida</button> <button data-action="remove" class="auto-create-remove" type="button">Eliminar</button></span>
+        </div>
+      </div>`;
+
+    const width=card.querySelector('[data-field="w"]');
+    const height=card.querySelector('[data-field="h"]');
+    const quantity=card.querySelector('[data-field="qty"]');
+    const locked=card.querySelector('[data-field="locked"]');
+    width.oninput=()=>{
+      row.w=Math.max(.1,+width.value||.1);
+      if(row.locked){row.h=row.w/row.ratio;height.value=row.h.toFixed(2)}
+    };
+    height.oninput=()=>{
+      row.h=Math.max(.1,+height.value||.1);
+      if(row.locked){row.w=row.h*row.ratio;width.value=row.w.toFixed(2)}
+    };
+    quantity.oninput=()=>{
+      row.qty=Math.max(1,Math.min(500,Math.round(+quantity.value||1)));
+      const next=autoCreatePlan.reduce((sum,item)=>sum+Math.max(1,Math.round(+item.qty||1)),0);
+      if(summary) summary.textContent=`${next} diseños · ${autoCreatePlan.length} medidas`;
+    };
+    locked.onchange=()=>{row.locked=locked.checked;row.ratio=row.w/Math.max(.001,row.h)};
+    card.querySelector('[data-action="duplicate"]').onclick=()=>addAutoCreateRow(row.assetId,{...row,qty:1});
+    card.querySelector('[data-action="remove"]').onclick=()=>{
+      const index=autoCreatePlan.findIndex(item=>item.id===row.id);
+      if(index>=0) autoCreatePlan.splice(index,1);
+      renderAutoCreatePlan();
+    };
+    host.appendChild(card);
+  });
+}
+
+function openAutoCreate(){
+  renderAutoCreateAssets();
+  renderAutoCreatePlan();
+  $("#autoCreateGap").value=nestGapValue();
+  $("#autoCreateRotate").checked=!!$("#allowRotate")?.checked;
+  modalOpen("autoCreateModal");
+}
+function closeAutoCreate(){modalClose("autoCreateModal")}
+
+async function runAutoCreate(){
+  const total=autoCreatePlan.reduce((sum,row)=>sum+Math.max(1,Math.round(+row.qty||1)),0);
+  if(!autoCreatePlan.length || !total) return toast("Agrega al menos una imagen a la lista.");
+  if(total>600) return toast("El máximo es de 600 diseños por operación.");
+
+  const runBtn=$("#autoCreateRunBtn");
+  runBtn.disabled=true;
+  runBtn.textContent="Preparando…";
+  try{
+    const prepared=new Map();
+    for(const row of autoCreatePlan){
+      let asset=assetById(row.assetId);
+      if(!asset) throw new Error("Una imagen de la lista ya no está disponible.");
+      asset=await ensureAssetOriginalAvailable(asset);
+      if(!asset.autoTrimmed) await ensureAssetAutoTrimmed(asset);
+      prepared.set(row.assetId,asset);
+    }
+
+    const gap=Math.max(0,+$("#autoCreateGap").value||0);
+    const allowRotate=!!$("#autoCreateRotate").checked;
+    $("#nestGap").value=gap;
+    $("#allowRotate").checked=allowRotate;
+
+    const pending=[];
+    for(const row of autoCreatePlan){
+      const asset=prepared.get(row.assetId);
+      const w=Math.max(.1,+row.w||.1),h=Math.max(.1,+row.h||.1);
+      const probe={x:0,y:0,w,h,rot:0,baseW:w,baseH:h};
+      if(!objectCanEverFitSheet(probe)){
+        throw new Error(`${asset.name}: ${w.toFixed(1)} × ${h.toFixed(1)} cm no cabe en el ancho útil.`);
+      }
+      for(let i=0;i<Math.max(1,Math.round(+row.qty||1));i++) pending.push({asset,w,h});
+    }
+
+    pushHistory();
+    if($("#autoCreateReplace").checked){
+      state.objects=[];state.selectedId=null;state.selectedIds=[];
+    }
+    for(const {asset,w,h} of pending){
+      state.objects.push({
+        id:uid(),type:"image",name:asset.name,assetId:asset.id,
+        naturalW:asset.w,naturalH:asset.h,
+        sourceDpiX:asset.dpiX,sourceDpiY:asset.dpiY,dpiDefined:!asset.dpiAssumed,
+        sourceWidthCm:asset.physicalWcm,sourceHeightCm:asset.physicalHcm,
+        x:state.sheet.margin+.05,y:state.sheet.margin+.05,
+        w,h,rot:0,flipX:false,flipY:false,
+        aspectLocked:true,aspectRatio:w/h,baseW:w,baseH:h
+      });
+    }
+    state.selectedId=state.objects.at(-1)?.id||null;
+    state.selectedIds=state.selectedId?[state.selectedId]:[];
+    renderAll();
+    closeAutoCreate();
+    toast(`Creando y organizando ${pending.length} diseños…`);
+    await autoNest({force:true,skipHistory:true});
+  }catch(error){
+    console.error("[Añadido rápido]",error);
+    toast(String(error?.message||error).slice(0,170));
+  }finally{
+    runBtn.disabled=false;
+    runBtn.textContent="Crear y organizar";
+  }
+}
+
+$("#autoCreateLaunchBtn").onclick=openAutoCreate;
+$("#autoCreateCloseBtn").onclick=closeAutoCreate;
+$("#autoCreateCancelBtn").onclick=closeAutoCreate;
+$("#autoCreateRunBtn").onclick=runAutoCreate;
+$("#autoCreateModal").addEventListener("click",event=>{
+  if(event.target===$("#autoCreateModal")) closeAutoCreate();
+});
 
 
 // Auto Rellenar — Shape Nest: conserva lo existente y rellena huecos alpha reales.
