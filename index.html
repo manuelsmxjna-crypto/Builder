@@ -8507,8 +8507,6 @@ async function runAutoCreate(){
       );
       if(!fallbackOk) throw new Error("No fue posible colocar todos los diseños; se restauró el lienzo anterior.");
     }
-    autoCreatePlan.splice(0,autoCreatePlan.length);
-    renderAutoCreatePlan();
   }catch(error){
     console.error("[Añadido rápido]",error);
     if(beforeLayout){
