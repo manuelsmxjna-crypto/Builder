@@ -1618,7 +1618,7 @@ body.bix-checkout-locked{cursor:progress}
           <div class="auto-create-toolbar">
             <label>Separación <input id="autoCreateGap" type="number" min="0" max="10" step="0.1" value="0.5"> cm</label>
             <label><input id="autoCreateRotate" type="checkbox" checked> Permitir rotación</label>
-            <label><input id="autoCreateReplace" type="checkbox"> Reemplazar el lienzo actual</label>
+            <label><input id="autoCreateReplace" type="checkbox" checked> Reemplazar el lienzo actual</label>
           </div>
           <div id="autoCreateRows" class="auto-create-rows"></div>
         </section>
@@ -8349,7 +8349,7 @@ function renderAutoCreatePlan(){
   if(!host) return;
   host.innerHTML="";
   const total=autoCreatePlan.reduce((sum,row)=>sum+Math.max(0,Math.round(+row.qty||0)),0);
-  if(summary) summary.textContent=`${total} diseño${total===1?"":"s"} · ${autoCreatePlan.length} medida${autoCreatePlan.length===1?"":"s"}`;
+  if(summary) summary.textContent=`Se crearán ${total} diseño${total===1?"":"s"} · ${autoCreatePlan.length} medida${autoCreatePlan.length===1?"":"s"}`;
   if(!autoCreatePlan.length){
     host.innerHTML='<div class="auto-create-empty">Selecciona una imagen de la columna izquierda para comenzar.</div>';
     return;
@@ -8369,7 +8369,7 @@ function renderAutoCreatePlan(){
         <label>Cantidad<input data-field="qty" type="number" min="1" max="500" step="1" value="${row.qty}"></label>
         <div class="auto-create-row-actions">
           <label><input data-field="locked" type="checkbox" ${row.locked?"checked":""}> Bloquear proporción</label>
-          <span><button data-action="duplicate" type="button">＋ Otra medida</button> <button data-action="remove" class="auto-create-remove" type="button">Eliminar</button></span>
+          <span><button data-action="duplicate" type="button" title="Agrega otra fila además de esta cantidad">＋ Misma imagen, otra medida</button> <button data-action="remove" class="auto-create-remove" type="button">Eliminar</button></span>
         </div>
       </div>`;
 
@@ -8388,7 +8388,7 @@ function renderAutoCreatePlan(){
     quantity.oninput=()=>{
       row.qty=Math.max(1,Math.min(500,Math.round(+quantity.value||1)));
       const next=autoCreatePlan.reduce((sum,item)=>sum+Math.max(1,Math.round(+item.qty||1)),0);
-      if(summary) summary.textContent=`${next} diseños · ${autoCreatePlan.length} medidas`;
+      if(summary) summary.textContent=`Se crearán ${next} diseños · ${autoCreatePlan.length} medidas`;
     };
     locked.onchange=()=>{row.locked=locked.checked;row.ratio=row.w/Math.max(.001,row.h)};
     card.querySelector('[data-action="duplicate"]').onclick=()=>addAutoCreateRow(row.assetId,{...row,qty:1});
@@ -8507,6 +8507,8 @@ async function runAutoCreate(){
       );
       if(!fallbackOk) throw new Error("No fue posible colocar todos los diseños; se restauró el lienzo anterior.");
     }
+    autoCreatePlan.splice(0,autoCreatePlan.length);
+    renderAutoCreatePlan();
   }catch(error){
     console.error("[Añadido rápido]",error);
     if(beforeLayout){
