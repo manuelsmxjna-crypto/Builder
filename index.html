@@ -8494,6 +8494,10 @@ async function runAutoCreate(){
     state.selectedId=state.objects.at(-1)?.id||null;
     state.selectedIds=state.selectedId?[state.selectedId]:[];
     renderAll();
+    // Release the batch editor before Auto Organizar opens its own overlay.
+    // Keeping both modal layers visible made the progress animation appear
+    // behind Añadido rápido and left the interface looking blocked.
+    closeAutoCreate();
     toast(`Creando y organizando ${pending.length} diseños…`);
     const organized=await autoNest({force:true,skipHistory:true});
     if(!organized){
@@ -8503,7 +8507,6 @@ async function runAutoCreate(){
       );
       if(!fallbackOk) throw new Error("No fue posible colocar todos los diseños; se restauró el lienzo anterior.");
     }
-    closeAutoCreate();
   }catch(error){
     console.error("[Añadido rápido]",error);
     if(beforeLayout){
