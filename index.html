@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <!-- SHAPE_NEST_VERSION: v5.8.2 · ENTER_SINGLE_PRESS · TEXT_INK_HITBOX · TEXT_ENTER · TEXT_SHAPE_NEST · TEXT_SCALE_FIX · TEXT_LIMITS · CHECKOUT_CONFIRM_SINGLETON · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
+  <!-- SHAPE_NEST_VERSION: v5.9.0 · QUICK_QUOTE · TRANSACTIONAL_AUTO_CREATE · ROTATED_OVERSIZE_FALLBACK · ENTER_SINGLE_PRESS · TEXT_INK_HITBOX · TEXT_ENTER · TEXT_SHAPE_NEST · TEXT_SCALE_FIX · TEXT_LIMITS · CHECKOUT_CONFIRM_SINGLETON · OVERSIZE_IMPORT · CHECKOUT_CONFIRM · CUSTOM_FONTS · CHECKOUT_LOCK · STABLE_DPI · BIXNEST_V3_1_MULTI_SHEET · RECENTS_DELETE_GROUP · FAST_PREFLIGHT · WIDTH_LOCK_62 · BULK_DUPLICATE_FAST_PATH_V2 · ADAPTIVE_STRATEGY · BITBOARDS · RANDOM_BRKGA · LIGHT_LIBRARY · CLOUD_RUN_SERVER_RENDER -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>BixStudio — Gang Sheet Builder</title>
@@ -928,6 +928,15 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 }
 .tool-nav.quick-create-nav{color:#bfdbfe;border:1px solid rgba(59,130,246,.38);background:rgba(37,99,235,.12)}
 .tool-nav.quick-create-nav:hover{color:#fff;background:rgba(37,99,235,.28);border-color:rgba(96,165,250,.7)}
+.tool-nav.quick-quote-nav{color:#bbf7d0;border:1px solid rgba(34,197,94,.38);background:rgba(22,163,74,.12)}
+.tool-nav.quick-quote-nav:hover{color:#fff;background:rgba(22,163,74,.28);border-color:rgba(74,222,128,.7)}
+.quick-quote-modal{width:min(1080px,96vw);height:min(760px,92vh);display:flex;flex-direction:column}
+.quick-quote-body{display:grid;grid-template-columns:minmax(340px,.85fr) minmax(380px,1.15fr);gap:0;min-height:0;flex:1}
+.quick-quote-form{padding:16px;overflow:auto;border-right:1px solid #e2e8f0}.quick-quote-preview{padding:16px;overflow:auto;background:#f8fafc;display:flex;flex-direction:column;gap:12px}
+.quick-quote-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.quick-quote-toolbar label{font-size:10px;color:#475569;display:flex;align-items:center;gap:6px}.quick-quote-toolbar input[type=number]{width:68px;padding:6px;border:1px solid #cbd5e1;border-radius:6px}
+.quick-quote-rows{display:flex;flex-direction:column;gap:8px}.quick-quote-row{display:grid;grid-template-columns:minmax(0,1fr) 86px 86px 78px 34px;gap:7px;align-items:end;border:1px solid #dbe2ea;border-radius:9px;padding:9px;background:#fff}.quick-quote-row label{font-size:9px;color:#64748b}.quick-quote-row input{display:block;width:100%;margin-top:3px;padding:7px;border:1px solid #cbd5e1;border-radius:6px}.quick-quote-swatch{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:-2px}.quick-quote-remove{height:33px;border:1px solid #fecaca;background:#fff7f7;color:#b91c1c;border-radius:6px;font-weight:900}
+.quick-quote-results{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.quick-quote-stat{padding:10px;border:1px solid #dbe2ea;border-radius:8px;background:#fff}.quick-quote-stat small{display:block;color:#64748b;font-size:9px}.quick-quote-stat b{font-size:17px;color:#0f172a}.quick-quote-canvas{position:relative;width:100%;min-height:320px;background:#e5e7eb;border:1px solid #cbd5e1;border-radius:8px;overflow:auto}.quick-quote-sheet{position:relative;margin:12px auto;background-color:#fff;background-image:linear-gradient(45deg,#d1d5db 25%,transparent 25%),linear-gradient(-45deg,#d1d5db 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d1d5db 75%),linear-gradient(-45deg,transparent 75%,#d1d5db 75%);background-size:12px 12px;background-position:0 0,0 6px,6px -6px,-6px 0;border:1px solid #94a3b8}.quick-quote-piece{position:absolute;border:1px solid rgba(15,23,42,.55);display:grid;place-items:center;color:#0f172a;font-size:8px;font-weight:800;overflow:hidden}.quick-quote-note{font-size:10px;line-height:1.45;color:#64748b}
+@media(max-width:800px){.quick-quote-modal{height:100dvh!important}.quick-quote-body{grid-template-columns:1fr;grid-template-rows:auto minmax(330px,1fr);overflow:auto}.quick-quote-form{border-right:0;border-bottom:1px solid #e2e8f0;overflow:visible}.quick-quote-preview{overflow:visible}.quick-quote-row{grid-template-columns:minmax(100px,1fr) repeat(3,70px) 34px}.quick-quote-results{grid-template-columns:1fr 1fr}.quick-quote-stat:last-child{grid-column:1/-1}}
 .auto-create-modal{width:min(1180px,96vw);height:min(780px,92vh);display:flex;flex-direction:column}
 .auto-create-body{display:grid;grid-template-columns:250px minmax(0,1fr);min-height:0;flex:1}
 .auto-create-assets{border-right:1px solid #e2e8f0;padding:14px;overflow:auto;background:#f8fafc}.auto-create-assets h3,.auto-create-plan h3{margin:0 0 5px;font-size:14px}.auto-create-assets p,.auto-create-plan p{margin:0 0 12px;font-size:10px;line-height:1.45;color:#64748b}
@@ -1252,6 +1261,7 @@ body.bix-checkout-locked{cursor:progress}
       <button class="tool-nav" data-panel="text"><span>T</span><b>Texto</b></button>
       <button class="tool-nav" data-panel="settings"><span>⚙</span><b>Ajustes</b></button>
       <button class="tool-nav quick-create-nav" id="autoCreateLaunchBtn" type="button" title="Definir cantidades y medidas antes de organizar"><span>▦</span><b>Añadido rápido</b></button>
+      <button class="tool-nav quick-quote-nav" id="quickQuoteLaunchBtn" type="button" title="Cotizar cantidades y medidas sin subir imágenes"><span>▤</span><b>Cotizado rápido</b></button>
       <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Iniciar de nuevo</b></button>
     </aside>
 
@@ -1617,6 +1627,35 @@ body.bix-checkout-locked{cursor:progress}
         <span id="autoCreateSummary" class="auto-create-summary">0 diseños</span>
         <button id="autoCreateCancelBtn" class="ghost-btn" type="button">Cancelar</button>
         <button id="autoCreateRunBtn" class="primary-btn" type="button">Crear y organizar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="quickQuoteModal" class="modal-backdrop hidden">
+    <div class="modal quick-quote-modal" role="dialog" aria-modal="true" aria-labelledby="quickQuoteTitle">
+      <div class="modal-head">
+        <div><h2 id="quickQuoteTitle">Cotizado rápido</h2><div class="muted" style="font-size:10px;margin-top:3px">Calcula material y precio sin subir imágenes.</div></div>
+        <button id="quickQuoteCloseBtn" class="close-btn" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="quick-quote-body">
+        <section class="quick-quote-form">
+          <div class="quick-quote-toolbar">
+            <label>Separación <input id="quickQuoteGap" type="number" min="0" max="10" step="0.1" value="0.5"> cm</label>
+            <label><input id="quickQuoteRotate" type="checkbox" checked> Permitir rotación</label>
+          </div>
+          <div id="quickQuoteRows" class="quick-quote-rows"></div>
+          <button id="quickQuoteAddBtn" class="ghost-btn wide" type="button" style="margin-top:10px">＋ Agregar otra medida</button>
+        </section>
+        <section class="quick-quote-preview">
+          <div id="quickQuoteResults" class="quick-quote-results"></div>
+          <div id="quickQuoteCanvas" class="quick-quote-canvas"></div>
+          <p class="quick-quote-note">Estimación rectangular tipo guillotina. Al cargar los diseños reales, True Shape podría aprovechar mejor los espacios transparentes.</p>
+        </section>
+      </div>
+      <div class="modal-foot">
+        <span class="auto-create-summary">Ancho fijo de producción: 62 cm</span>
+        <button id="quickQuoteCancelBtn" class="ghost-btn" type="button">Cerrar</button>
+        <button id="quickQuoteCalculateBtn" class="primary-btn" type="button">Calcular cotización</button>
       </div>
     </div>
   </div>
@@ -7884,8 +7923,8 @@ async function warmAutoNestMasks(){
 }
 
 async function autoNest(options={}){
-  if(autoNestRunning) return toast("Ya se está organizando…");
-  if(!state.objects.length) return toast("No hay diseños para organizar.");
+  if(autoNestRunning){toast("Ya se está organizando…");return false}
+  if(!state.objects.length){toast("No hay diseños para organizar.");return false}
 
   const forceLayout=!!options.force;
   const skipHistory=!!options.skipHistory;
@@ -7981,7 +8020,7 @@ async function autoNest(options={}){
 
     if(!result||!result.placed?.length){
       toast("No fue posible acomodar todo dentro del límite máximo de la hoja.");
-      return;
+      return false;
     }
 
     const proposedH=result.usedH/grid;
@@ -7991,7 +8030,7 @@ async function autoNest(options={}){
     // even if the valid arrangement needs more length than the invalid one.
     if(!currentLayoutInvalid && currentH>0 && proposedH>=currentH-.05){
       toast(`La distribución actual ya es igual o mejor · ${currentH.toFixed(1)} cm`);
-      return;
+      return true;
     }
 
     if(currentLayoutInvalid){
@@ -8038,16 +8077,20 @@ async function autoNest(options={}){
     // A remaining diagnostic must never be reported as "optimal".
     if(remainingOverlap){
       toast("Auto Organizar terminó, pero aún detectó una superposición. Intenta nuevamente.");
+      return false;
     }else if(remainingOffboard){
       toast("Auto Organizar terminó, pero aún hay un diseño fuera de la mesa.");
+      return false;
     }
     const saved=Math.max(0,currentH-proposedH);
     toast(`Auto Organizar listo · ${proposedH.toFixed(1)} cm${saved>.05?` · ahorrados ${saved.toFixed(1)} cm`:""}`);
+    return true;
   }catch(e){
     console.error("[Auto Organizar]",e);
     const msg=String(e?.message||e||"");
     if(msg.includes("cancelled")) toast("Organización cancelada");
     else toast(`Auto Organizar: ${msg.slice(0,160) || "error desconocido"}`);
+    return false;
   }finally{
     autoNestRunning=false;
     hideAutoNestProcessing();
@@ -8056,6 +8099,202 @@ async function autoNest(options={}){
 }
 
 $("#autoNestTopBtn").onclick=()=>{autoNest()};
+
+// =====================================================================
+// COTIZADO RÁPIDO · RECTÁNGULOS VIRTUALES SIN ARCHIVOS
+// =====================================================================
+const quickQuotePlan=[];
+const QUICK_QUOTE_COLORS=["#bfdbfe","#bbf7d0","#fde68a","#fecaca","#ddd6fe","#a5f3fc","#fed7aa"];
+
+function addQuickQuoteRow(seed={}){
+  quickQuotePlan.push({
+    id:uid(),name:seed.name||("Medida "+(quickQuotePlan.length+1)),
+    w:Math.max(.1,+seed.w||10),h:Math.max(.1,+seed.h||10),
+    qty:Math.max(1,Math.min(600,Math.round(+seed.qty||1))),
+    color:seed.color||QUICK_QUOTE_COLORS[quickQuotePlan.length%QUICK_QUOTE_COLORS.length]
+  });
+  renderQuickQuoteRows();
+}
+
+function renderQuickQuoteRows(){
+  const host=$("#quickQuoteRows");
+  if(!host) return;
+  host.innerHTML="";
+  quickQuotePlan.forEach(row=>{
+    const el=document.createElement("div");
+    el.className="quick-quote-row";
+    el.innerHTML=
+      '<label><span class="quick-quote-swatch" style="background:'+row.color+'"></span>Concepto<input data-field="name" type="text" value="'+escapeHtml(row.name)+'"></label>'+
+      '<label>Ancho (cm)<input data-field="w" type="number" min="0.1" max="310" step="0.1" value="'+row.w+'"></label>'+
+      '<label>Alto (cm)<input data-field="h" type="number" min="0.1" max="310" step="0.1" value="'+row.h+'"></label>'+
+      '<label>Cantidad<input data-field="qty" type="number" min="1" max="600" step="1" value="'+row.qty+'"></label>'+
+      '<button class="quick-quote-remove" data-remove type="button" title="Eliminar">×</button>';
+    for(const field of ["name","w","h","qty"]){
+      const input=el.querySelector('[data-field="'+field+'"]');
+      input.oninput=()=>{
+        if(field==="name") row.name=input.value;
+        else if(field==="qty") row.qty=Math.max(1,Math.min(600,Math.round(+input.value||1)));
+        else row[field]=Math.max(.1,+input.value||.1);
+      };
+    }
+    el.querySelector("[data-remove]").onclick=()=>{
+      const index=quickQuotePlan.findIndex(item=>item.id===row.id);
+      if(index>=0) quickQuotePlan.splice(index,1);
+      renderQuickQuoteRows();
+      if(!quickQuotePlan.length) renderQuickQuoteEmpty();
+    };
+    host.appendChild(el);
+  });
+}
+
+function quickQuoteIntersects(a,b){
+  return a.x<b.x+b.w-.0001&&a.x+a.w>b.x+.0001&&a.y<b.y+b.h-.0001&&a.y+a.h>b.y+.0001;
+}
+function quickQuoteContained(a,b){
+  return a.x>=b.x-.0001&&a.y>=b.y-.0001&&a.x+a.w<=b.x+b.w+.0001&&a.y+a.h<=b.y+b.h+.0001;
+}
+function quickQuoteSplitFreeRects(freeRects,used){
+  const next=[];
+  for(const free of freeRects){
+    if(!quickQuoteIntersects(free,used)){next.push(free);continue}
+    if(used.x>free.x+.0001) next.push({x:free.x,y:free.y,w:used.x-free.x,h:free.h});
+    if(used.x+used.w<free.x+free.w-.0001) next.push({x:used.x+used.w,y:free.y,w:free.x+free.w-used.x-used.w,h:free.h});
+    if(used.y>free.y+.0001) next.push({x:free.x,y:free.y,w:free.w,h:used.y-free.y});
+    if(used.y+used.h<free.y+free.h-.0001) next.push({x:free.x,y:used.y+used.h,w:free.w,h:free.y+free.h-used.y-used.h});
+  }
+  const valid=next.filter(r=>r.w>.001&&r.h>.001);
+  return valid.filter((rect,i)=>!valid.some((other,j)=>i!==j&&quickQuoteContained(rect,other)));
+}
+function quickQuoteOrder(items,mode,seed=0){
+  const hash=item=>{
+    const s=String(item.id)+"|"+item.copy+"|"+seed;
+    let h=2166136261;
+    for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}
+    return h>>>0;
+  };
+  return [...items].sort((a,b)=>{
+    if(mode==="height") return Math.max(b.h,b.w)-Math.max(a.h,a.w)||b.w*b.h-a.w*a.h;
+    if(mode==="width") return Math.max(b.w,b.h)-Math.max(a.w,a.h)||b.w*b.h-a.w*a.h;
+    if(mode==="perimeter") return (b.w+b.h)-(a.w+a.h)||b.w*b.h-a.w*a.h;
+    if(mode==="short") return Math.min(b.w,b.h)-Math.min(a.w,a.h)||b.w*b.h-a.w*a.h;
+    if(mode==="random") return hash(a)-hash(b);
+    return b.w*b.h-a.w*a.h;
+  });
+}
+function quickQuoteMaxRects(items,width,maxHeight,gap,allowRotate,sortMode,seed=0){
+  const pending=quickQuoteOrder(items,sortMode,seed);
+  const sheets=[];
+  while(pending.length){
+    let freeRects=[{x:0,y:0,w:width+gap,h:maxHeight+gap}];
+    const placed=[];
+    let usedHeight=0,progress=true;
+    while(progress&&pending.length){
+      progress=false;
+      let best=null;
+      const itemIndex=0;
+      const item=pending[itemIndex];
+      const options=[{w:item.w,h:item.h,rotated:false}];
+      if(allowRotate&&Math.abs(item.w-item.h)>.001) options.push({w:item.h,h:item.w,rotated:true});
+      for(const option of options){
+        const packedW=option.w+gap,packedH=option.h+gap;
+        for(let freeIndex=0;freeIndex<freeRects.length;freeIndex++){
+          const free=freeRects[freeIndex];
+          if(packedW>free.w+.0001||packedH>free.h+.0001) continue;
+          const newHeight=Math.max(usedHeight,free.y+option.h);
+          const shortWaste=Math.min(free.w-packedW,free.h-packedH);
+          const longWaste=Math.max(free.w-packedW,free.h-packedH);
+          const score=[newHeight,free.y,shortWaste,longWaste,free.x];
+          if(!best||score.some((v,i)=>v<best.score[i]&&score.slice(0,i).every((n,j)=>n===best.score[j]))){
+            best={itemIndex,freeIndex,option,packedW,packedH,score,x:free.x,y:free.y};
+          }
+        }
+      }
+      if(best){
+        const item=pending.splice(best.itemIndex,1)[0];
+        const occupied={x:best.x,y:best.y,w:best.packedW,h:best.packedH};
+        freeRects=quickQuoteSplitFreeRects(freeRects,occupied);
+        placed.push({...item,x:best.x,y:best.y,w:best.option.w,h:best.option.h,rotated:best.option.rotated});
+        usedHeight=Math.max(usedHeight,best.y+best.option.h);
+        progress=true;
+      }
+    }
+    if(!placed.length){
+      const item=pending[0];
+      return {error:item.name+": "+item.w.toFixed(1)+" × "+item.h.toFixed(1)+" cm no cabe en una hoja de 62 cm."};
+    }
+    sheets.push({placed,height:Math.max(1,usedHeight)});
+  }
+  return {sheets,totalCm:sheets.reduce((sum,s)=>sum+Math.ceil(s.height-1e-9),0)};
+}
+
+function calculateQuickQuote(){
+  const gap=Math.max(0,+$("#quickQuoteGap").value||0);
+  const allowRotate=!!$("#quickQuoteRotate").checked;
+  const total=quickQuotePlan.reduce((sum,row)=>sum+Math.max(1,Math.round(+row.qty||1)),0);
+  if(!quickQuotePlan.length||!total) return toast("Agrega al menos una medida.");
+  if(total>1200) return toast("La cotización admite hasta 1,200 piezas.");
+  const items=[];
+  for(const row of quickQuotePlan){
+    const w=Math.max(.1,+row.w||.1),h=Math.max(.1,+row.h||.1);
+    for(let i=0;i<Math.max(1,Math.round(+row.qty||1));i++) items.push({...row,w,h,copy:i+1});
+  }
+  const strategies=["area","height","width","perimeter","short"];
+  const attempts=strategies.map(mode=>quickQuoteMaxRects(items,FIXED_SHEET_WIDTH_CM,MAX_SHEET_HEIGHT,gap,allowRotate,mode));
+  for(let seed=1;seed<=8;seed++) attempts.push(quickQuoteMaxRects(items,FIXED_SHEET_WIDTH_CM,MAX_SHEET_HEIGHT,gap,allowRotate,"random",seed));
+  const error=attempts.find(result=>result.error);
+  const valid=attempts.filter(result=>!result.error).sort((a,b)=>a.totalCm-b.totalCm||a.sheets.length-b.sheets.length);
+  if(!valid.length){toast(error?.error||"No fue posible calcular la distribución.");return}
+  renderQuickQuoteResult(valid[0],total);
+}
+
+function renderQuickQuoteEmpty(){
+  const results=$("#quickQuoteResults"),canvas=$("#quickQuoteCanvas");
+  if(results) results.innerHTML='<div class="quick-quote-stat"><small>Resultado</small><b>Sin calcular</b></div>';
+  if(canvas) canvas.innerHTML='<div class="auto-create-empty" style="margin:16px">Agrega medidas y calcula para ver la distribución.</div>';
+}
+
+function renderQuickQuoteResult(result,totalPieces){
+  const results=$("#quickQuoteResults"),canvas=$("#quickQuoteCanvas");
+  const totalCm=result.totalCm;
+  results.innerHTML=
+    '<div class="quick-quote-stat"><small>Material facturable</small><b>'+totalCm+' cm</b></div>'+
+    '<div class="quick-quote-stat"><small>Hojas necesarias</small><b>'+result.sheets.length+'</b></div>'+
+    '<div class="quick-quote-stat"><small>Precio estimado</small><b>'+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)+'</b></div>';
+  canvas.innerHTML="";
+  result.sheets.forEach((sheet,index)=>{
+    const scale=5;
+    const wrap=document.createElement("div");
+    wrap.innerHTML='<div style="font-size:10px;font-weight:800;margin:10px 12px 3px">Hoja '+(index+1)+' · '+Math.ceil(sheet.height-1e-9)+' cm facturables</div>';
+    const board=document.createElement("div");
+    board.className="quick-quote-sheet";
+    board.style.width=(FIXED_SHEET_WIDTH_CM*scale)+"px";
+    board.style.height=(Math.max(1,sheet.height)*scale)+"px";
+    for(const p of sheet.placed){
+      const piece=document.createElement("div");
+      piece.className="quick-quote-piece";
+      piece.style.cssText="left:"+(p.x*scale)+"px;top:"+(p.y*scale)+"px;width:"+(p.w*scale)+"px;height:"+(p.h*scale)+"px;background:"+p.color;
+      piece.title=p.name+" · "+p.w.toFixed(1)+" × "+p.h.toFixed(1)+" cm"+(p.rotated?" · girada":"");
+      if(p.w*scale>42&&p.h*scale>20) piece.textContent=p.w.toFixed(1)+"×"+p.h.toFixed(1);
+      board.appendChild(piece);
+    }
+    wrap.appendChild(board);canvas.appendChild(wrap);
+  });
+  toast(totalPieces+" piezas · "+totalCm+" cm · "+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM));
+}
+
+function openQuickQuote(){
+  if(!quickQuotePlan.length) addQuickQuoteRow({w:10,h:10,qty:1});
+  $("#quickQuoteGap").value=nestGapValue();
+  $("#quickQuoteRotate").checked=!!$("#allowRotate")?.checked;
+  renderQuickQuoteRows();renderQuickQuoteEmpty();modalOpen("quickQuoteModal");
+}
+function closeQuickQuote(){modalClose("quickQuoteModal")}
+$("#quickQuoteLaunchBtn").onclick=openQuickQuote;
+$("#quickQuoteAddBtn").onclick=()=>addQuickQuoteRow();
+$("#quickQuoteCalculateBtn").onclick=calculateQuickQuote;
+$("#quickQuoteCloseBtn").onclick=closeQuickQuote;
+$("#quickQuoteCancelBtn").onclick=closeQuickQuote;
+$("#quickQuoteModal").addEventListener("click",event=>{if(event.target===$("#quickQuoteModal")) closeQuickQuote()});
 
 // =====================================================================
 // AÑADIDO RÁPIDO · LISTA DE MEDIDAS Y CANTIDADES
@@ -8171,6 +8410,44 @@ function openAutoCreate(){
 }
 function closeAutoCreate(){modalClose("autoCreateModal")}
 
+function makeAutoCreateObject(asset,w,h,allowRotate){
+  const usableW=state.sheet.w-state.sheet.margin*2;
+  const mustRotate=allowRotate&&w>usableW+.001&&h<=usableW+.001;
+  return {
+    id:uid(),type:"image",name:asset.name,assetId:asset.id,
+    naturalW:asset.w,naturalH:asset.h,
+    sourceDpiX:asset.dpiX,sourceDpiY:asset.dpiY,dpiDefined:!asset.dpiAssumed,
+    sourceWidthCm:asset.physicalWcm,sourceHeightCm:asset.physicalHcm,
+    x:state.sheet.margin+.05,y:state.sheet.margin+.05,
+    w,h,rot:mustRotate?90:0,flipX:false,flipY:false,
+    aspectLocked:true,aspectRatio:w/h,baseW:w,baseH:h
+  };
+}
+
+async function autoCreateSafeFallback(pending,beforeLayout,replace,allowRotate){
+  restore(beforeLayout);
+  if(replace){
+    state.objects=[];state.selectedId=null;state.selectedIds=[];
+  }
+  const created=[];
+  for(const item of pending){
+    const o=makeAutoCreateObject(item.asset,item.w,item.h,allowRotate);
+    const placed=await placeObjectWithShapeAutoGrowth(o);
+    if(!placed){
+      restore(beforeLayout);
+      return false;
+    }
+    state.objects.push(o);
+    created.push(o);
+  }
+  state.selectedId=created.at(-1)?.id||null;
+  state.selectedIds=state.selectedId?[state.selectedId]:[];
+  recalcActiveSheetHeight();
+  renderAll();
+  setTimeout(fitViewport,20);
+  return true;
+}
+
 async function runAutoCreate(){
   const total=autoCreatePlan.reduce((sum,row)=>sum+Math.max(1,Math.round(+row.qty||1)),0);
   if(!autoCreatePlan.length || !total) return toast("Agrega al menos una imagen a la lista.");
@@ -8179,6 +8456,8 @@ async function runAutoCreate(){
   const runBtn=$("#autoCreateRunBtn");
   runBtn.disabled=true;
   runBtn.textContent="Preparando…";
+  let beforeLayout=null;
+  let historyAdded=false;
   try{
     const prepared=new Map();
     for(const row of autoCreatePlan){
@@ -8205,29 +8484,32 @@ async function runAutoCreate(){
       for(let i=0;i<Math.max(1,Math.round(+row.qty||1));i++) pending.push({asset,w,h});
     }
 
+    beforeLayout=snapshot();
     pushHistory();
+    historyAdded=true;
     if($("#autoCreateReplace").checked){
       state.objects=[];state.selectedId=null;state.selectedIds=[];
     }
-    for(const {asset,w,h} of pending){
-      state.objects.push({
-        id:uid(),type:"image",name:asset.name,assetId:asset.id,
-        naturalW:asset.w,naturalH:asset.h,
-        sourceDpiX:asset.dpiX,sourceDpiY:asset.dpiY,dpiDefined:!asset.dpiAssumed,
-        sourceWidthCm:asset.physicalWcm,sourceHeightCm:asset.physicalHcm,
-        x:state.sheet.margin+.05,y:state.sheet.margin+.05,
-        w,h,rot:0,flipX:false,flipY:false,
-        aspectLocked:true,aspectRatio:w/h,baseW:w,baseH:h
-      });
-    }
+    for(const {asset,w,h} of pending) state.objects.push(makeAutoCreateObject(asset,w,h,allowRotate));
     state.selectedId=state.objects.at(-1)?.id||null;
     state.selectedIds=state.selectedId?[state.selectedId]:[];
     renderAll();
-    closeAutoCreate();
     toast(`Creando y organizando ${pending.length} diseños…`);
-    await autoNest({force:true,skipHistory:true});
+    const organized=await autoNest({force:true,skipHistory:true});
+    if(!organized){
+      toast("Usando acomodo seguro de respaldo…");
+      const fallbackOk=await autoCreateSafeFallback(
+        pending,beforeLayout,$("#autoCreateReplace").checked,allowRotate
+      );
+      if(!fallbackOk) throw new Error("No fue posible colocar todos los diseños; se restauró el lienzo anterior.");
+    }
+    closeAutoCreate();
   }catch(error){
     console.error("[Añadido rápido]",error);
+    if(beforeLayout){
+      restore(beforeLayout);
+      if(historyAdded) state.history.pop();
+    }
     toast(String(error?.message||error).slice(0,170));
   }finally{
     runBtn.disabled=false;
