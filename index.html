@@ -1153,6 +1153,9 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   background:#f0fdf4;color:#166534;font-size:11px;font-weight:900;
   white-space:nowrap;font-variant-numeric:tabular-nums
 }
+.regular-price{text-decoration:line-through;color:#94a3b8;font-weight:700;margin-right:5px;font-size:.78em}
+.offer-badge{display:inline-flex;align-items:center;border-radius:999px;background:#dc2626;color:#fff;padding:2px 5px;font-size:9px;font-weight:950;line-height:1;vertical-align:middle}
+.shopify-cart-btn .offer-badge{margin-left:4px;background:#fff;color:#15803d}
 .shopify-cart-btn{
   background:#16a34a!important;border-color:#16a34a!important;
   min-width:150px;white-space:nowrap
@@ -1247,7 +1250,7 @@ body.bix-checkout-locked{cursor:progress}
       <button class="icon-btn" id="undoBtn" title="Deshacer">↶</button>
       <button class="icon-btn" id="redoBtn" title="Rehacer">↷</button>
       <div class="divider"></div>
-      <label class="variant-label">Hoja activa <span id="activeSheetSize" class="sheet-size-chip">62 × 30 cm</span></label>
+      <label class="variant-label">Hoja activa <span id="activeSheetSize" class="sheet-size-chip">58 × 30 cm</span></label>
       <button class="ghost-btn" id="qualityBtn">✓ Revisar lienzo</button>
       <button class="autonest-top-btn" id="autoNestTopBtn">✦ Auto Organizar</button>
       <span id="shopifyPriceChip" class="shopify-price-chip" title="Precio de la hoja activa">—</span>
@@ -1336,7 +1339,7 @@ body.bix-checkout-locked{cursor:progress}
       </div>
 <div id="settingsPanel" class="panel-view">
         <label class="field">Ancho
-          <div class="unit-input"><input id="sheetWidth" type="number" value="62" readonly aria-readonly="true" title="El ancho DTF está fijado en 62 cm"><span>cm</span></div>
+          <div class="unit-input"><input id="sheetWidth" type="number" value="58" readonly aria-readonly="true" title="El ancho DTF está fijado en 58 cm"><span>cm</span></div>
         </label>
         <label class="field">Alto
           <div class="unit-input"><input id="sheetHeight" type="number" value="30" min="30" max="310" step="0.1"><span>cm</span></div>
@@ -1653,7 +1656,7 @@ body.bix-checkout-locked{cursor:progress}
         </section>
       </div>
       <div class="modal-foot">
-        <span class="auto-create-summary">Ancho fijo de producción: 62 cm</span>
+        <span class="auto-create-summary">Ancho fijo de producción: 58 cm</span>
         <button id="quickQuoteCancelBtn" class="ghost-btn" type="button">Cerrar</button>
         <button id="quickQuoteCalculateBtn" class="primary-btn" type="button">Calcular cotización</button>
       </div>
@@ -1840,7 +1843,7 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const state = {
   projectId:null,
-  sheets:[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}],
+  sheets:[{id:"gs1",name:"Gang Sheet 1",sheet:{w:58,h:30,margin:0},objects:[]}],
   activeSheetIndex:0,
   zoom:1,
   viewport:{x:80,y:70},
@@ -2302,7 +2305,7 @@ async function placeObjectWithShapeAutoGrowth(o,excludeId=null){
   createNewSheet();
   pos=await findShapePlacementForObject(o,MAX_SHEET_HEIGHT,null);
   if(!pos){
-    toast('El diseño no pudo colocarse en una Gang Sheet nueva de 62 × 310 cm.');
+    toast(`El diseño no pudo colocarse en una Gang Sheet nueva de ${FIXED_SHEET_WIDTH_CM} × 310 cm.`);
     return false;
   }
   o.x=pos.x;o.y=pos.y;o.rot=pos.rot;
@@ -2698,7 +2701,7 @@ function applySessionPayload(payload){
   state.sheets=payload.sheets.map((s,i)=>({
     id:s.id||("gs"+(i+1)),
     name:s.name||("Gang Sheet "+(i+1)),
-    sheet:{w:62,h:30,margin:0,...(s.sheet||{})},
+    sheet:{w:58,h:30,margin:0,...(s.sheet||{})},
     objects:Array.isArray(s.objects)?s.objects.map(o=>({...o})):[]
   }));
   state.activeSheetIndex=Math.max(0,Math.min(payload.activeSheetIndex||0,state.sheets.length-1));
@@ -2729,7 +2732,7 @@ function applySessionPayload(payload){
 }
 function resetToFreshSession(){
   state.projectId=null;
-  state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}];
+  state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:{w:58,h:30,margin:0},objects:[]}];
   state.activeSheetIndex=0;
   state.nextSheetId=2;
   state.nextId=1;
@@ -3107,7 +3110,7 @@ function restore(raw){
     state.activeSheetIndex=Math.max(0,Math.min(d.activeSheetIndex||0,state.sheets.length-1));
     state.nextSheetId=d.nextSheetId||state.sheets.length+1;
   }else{
-    state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:d.sheet||{w:62,h:30,margin:0},objects:d.objects||[]}];
+    state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:d.sheet||{w:58,h:30,margin:0},objects:d.objects||[]}];
     state.activeSheetIndex=0;
   }
   state.selectedId=null;
@@ -3119,7 +3122,7 @@ function restore(raw){
 function undo(){if(!state.history.length)return;state.future.push(snapshot());restore(state.history.pop())}
 function redo(){if(!state.future.length)return;state.history.push(snapshot());restore(state.future.pop())}
 
-const FIXED_SHEET_WIDTH_CM=62;
+const FIXED_SHEET_WIDTH_CM=58;
 function enforceFixedSheetWidth(){
   for(const record of state.sheets||[]){
     if(record?.sheet) record.sheet.w=FIXED_SHEET_WIDTH_CM;
@@ -3399,10 +3402,10 @@ function ensureSheetHeightForObject(o){
   const m=Math.max(0,+state.sheet.margin||0);
   const box=rotatedAABB(o);
 
-  // Width is hard-limited by the current sheet width (normally 62 cm)
+  // Width is hard-limited by the current sheet width (normally 58 cm)
   // and by the printable margins. Never auto-expand width.
   // Exact printable width:
-  // 62 cm sheet - (margin × 2). With margin 0, all 62 cm are usable.
+  // 58 cm sheet - (margin × 2). With margin 0, all 58 cm are usable.
   const printableW=Math.max(0,state.sheet.w-(m*2));
   if(box.w>printableW+0.0001){
     return {ok:false,reason:"width",requiredWidth:box.w,availableWidth:printableW};
@@ -5391,7 +5394,7 @@ function deleteSheet(index){
     state.sheets=[{
       id:"gs"+state.nextSheetId++,
       name:"Gang Sheet 1",
-      sheet:{w:62,h:MIN_SHEET_HEIGHT,margin:0},
+      sheet:{w:FIXED_SHEET_WIDTH_CM,h:MIN_SHEET_HEIGHT,margin:0},
       objects:[]
     }];
     state.activeSheetIndex=0;
@@ -5762,7 +5765,7 @@ function placeObjectWithAutoGrowth(o,excludeId=null){
   ensureRotationModel(o);
 
   // Before talking about "capacity", verify that the design can physically
-  // fit inside a 62 x 310 cm sheet in at least one allowed orientation.
+  // fit inside a 58 x 310 cm sheet in at least one allowed orientation.
   if(!objectCanEverFitSheet(o)){
     toast("Este diseño es demasiado grande para el ancho útil de la Gang Sheet, incluso con la rotación permitida.");
     return false;
@@ -5787,7 +5790,7 @@ function placeObjectWithAutoGrowth(o,excludeId=null){
   // Retry from scratch on the empty new sheet, including the optional 90° fallback.
   attempt=placementAttemptWithRotation(o,null);
   if(!attempt.placed){
-    toast("El diseño no pudo colocarse en una Gang Sheet nueva de 62 × 310 cm.");
+    toast(`El diseño no pudo colocarse en una Gang Sheet nueva de ${FIXED_SHEET_WIDTH_CM} × 310 cm.`);
     return false;
   }
 
@@ -5868,7 +5871,7 @@ async function insertAsset(a,sizeOverride=null){
    // Oversize import mode:
    // Keep the source's real physical dimensions instead of rejecting/scaling it.
    // It is deliberately placed from the top-left and may extend outside the
-   // 62 cm artboard. The customer can then resize it manually to the desired size.
+   // 58 cm artboard. The customer can then resize it manually to the desired size.
    o.x=state.sheet.margin+0.05;
    o.y=state.sheet.margin+0.05;
    o.rot=0;
@@ -5896,7 +5899,7 @@ async function insertAsset(a,sizeOverride=null){
 
    toast(
      `Diseño importado a tamaño original (${reasons.join(" · ")}). `+
-     `Redimensiónalo para colocarlo dentro de la Gang Sheet de 62 cm.`
+     `Redimensiónalo para colocarlo dentro de la Gang Sheet de ${FIXED_SHEET_WIDTH_CM} cm.`
    );
    return;
  }
@@ -8179,7 +8182,7 @@ function renderQuickQuoteResult(result,totalPieces){
   results.innerHTML=
     '<div class="quick-quote-stat"><small>Material facturable</small><b>'+totalCm+' cm</b></div>'+
     '<div class="quick-quote-stat"><small>Hojas necesarias</small><b>'+result.sheets.length+'</b></div>'+
-    '<div class="quick-quote-stat"><small>Precio estimado</small><b>'+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)+'</b></div>';
+    '<div class="quick-quote-stat"><small>Precio estimado · oferta 25% OFF</small><b>'+shopifyOfferPriceHtml(totalCm*SHOPIFY_PRICE_PER_CM)+'</b></div>';
   canvas.innerHTML="";
   result.sheets.forEach((sheet,index)=>{
     const scale=5;
@@ -8199,7 +8202,7 @@ function renderQuickQuoteResult(result,totalPieces){
     }
     wrap.appendChild(board);canvas.appendChild(wrap);
   });
-  toast(totalPieces+" piezas · "+totalCm+" cm · "+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM));
+  toast(totalPieces+" piezas · "+totalCm+" cm · "+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)+" · oferta 25% OFF");
 }
 
 function openQuickQuote(){
@@ -9907,6 +9910,7 @@ async function exportPng(){
 // ============================================================
 const SHOPIFY_DTF_VARIANT_ID = 52961074610357;
 const SHOPIFY_PRICE_PER_CM = 2.00;
+const SHOPIFY_OFFER_DISCOUNT = 0.25;
 const GANGSHEET_UPLOAD_URL = "https://qrpxaqvybfmpkkkgqaoe.supabase.co/functions/v1/rapid-function";
 const BIX_RENDERER_URL = "https://bixstudio-renderer-318403647962.us-central1.run.app";
 
@@ -9935,7 +9939,7 @@ async function ensureCloudProject(){
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        totalWidthCm:62,
+        totalWidthCm:FIXED_SHEET_WIDTH_CM,
         totalHeightCm:Math.max(30,totalHeight||30)
       })
     });
@@ -10038,6 +10042,14 @@ function shopifyMoney(v){
   }).format(v);
 }
 
+function shopifyRegularPrice(offerPrice){
+  return offerPrice/(1-SHOPIFY_OFFER_DISCOUNT);
+}
+
+function shopifyOfferPriceHtml(total){
+  return `<span class="regular-price">${shopifyMoney(shopifyRegularPrice(total))}</span> ${shopifyMoney(total)} <span class="offer-badge">OFERTA −25%</span>`;
+}
+
 function updateShopifyCartUi(){
   const btn=$("#exportBtn"), chip=$("#shopifyPriceChip");
   if(!btn) return;
@@ -10054,10 +10066,10 @@ function updateShopifyCartUi(){
 
   const cm=shopifyBillableCm();
   const total=cm*SHOPIFY_PRICE_PER_CM;
-  if(chip) chip.textContent=shopifyMoney(total);
+  if(chip) chip.innerHTML=shopifyOfferPriceHtml(total);
 
   const sheetLabel=orderSheets.length>1 ? ` · ${orderSheets.length} hojas` : "";
-  btn.textContent=`🛒 Agregar · ${shopifyMoney(total)}${sheetLabel}`;
+  btn.innerHTML=`🛒 Agregar · ${shopifyMoney(total)}${sheetLabel} <span class="offer-badge">−25%</span>`;
   btn.disabled=false;
 }
 
@@ -10687,7 +10699,7 @@ function confirmCheckout(orderSheets){
     summary.textContent=
       `${orderSheets.length} Gang Sheet${orderSheets.length===1?"":"s"} · `+
       `${objectCount} diseño${objectCount===1?"":"s"} · `+
-      `${totalCm} cm facturables`;
+      `${totalCm} cm facturables · ${shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)} · OFERTA −25%`;
   }
 
   checkoutConfirmBusy=true;
@@ -11334,6 +11346,7 @@ window.BixNestBridge={
   nestGapValue:()=>nestGapValue(),
   MIN_SHEET_HEIGHT,
   MAX_SHEET_HEIGHT,
+  FIXED_SHEET_WIDTH_CM,
   ensureRotationModel:(o)=>ensureRotationModel(o),
   getAdaptiveNestMask:(item,q,grid)=>getPackingNestMask(item,q,grid),
   pushHistory:()=>pushHistory(),

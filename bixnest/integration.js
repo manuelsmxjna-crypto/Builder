@@ -14,6 +14,7 @@ const toast=BRIDGE.toast;
 const nestGapValue=BRIDGE.nestGapValue;
 const MIN_SHEET_HEIGHT=BRIDGE.MIN_SHEET_HEIGHT||30;
 const MAX_SHEET_HEIGHT=BRIDGE.MAX_SHEET_HEIGHT;
+const SHEET_WIDTH=BRIDGE.FIXED_SHEET_WIDTH_CM||58;
 const ensureRotationModel=BRIDGE.ensureRotationModel;
 const getAdaptiveNestMask=BRIDGE.getAdaptiveNestMask;
 const pushHistory=BRIDGE.pushHistory;
@@ -122,7 +123,7 @@ async function buildProblem(plan,objects,maxHeight=MAX_SHEET_HEIGHT,options={}){
   const gapCm=options.gapCm ?? nestGapValue();
   const gap=Math.max(0,Math.round(Math.max(0,gapCm)*grid));
   const margin=0;
-  const printableW=62;
+  const printableW=SHEET_WIDTH;
   const printableH=maxHeight;
   const gw=Math.max(1,Math.floor(printableW*grid));
   const gh=Math.max(1,Math.floor(printableH*grid));
@@ -253,7 +254,7 @@ function applyAllSheetsResult(result,problem,sourceObjects){
   const newSheets=Array.from({length:result.sheetCount},(_,i)=>({
     id:`gs${i+1}`,
     name:`Gang Sheet ${i+1}`,
-    sheet:{w:62,h:MIN_SHEET_HEIGHT,margin:0},
+    sheet:{w:SHEET_WIDTH,h:MIN_SHEET_HEIGHT,margin:0},
     objects:[]
   }));
 
@@ -458,8 +459,8 @@ async function quoteRectangles(rows,{gapCm=0,allowRotate=true}={}){
     const qty=Math.max(1,Math.round(Number(row.qty)||1));
     const w=Math.max(.1,Number(row.w)||.1);
     const h=Math.max(.1,Number(row.h)||.1);
-    if(Math.min(w,h)>62 || Math.max(w,h)>MAX_SHEET_HEIGHT){
-      throw new Error(`${row.name||"Medida"}: ${w.toFixed(1)} × ${h.toFixed(1)} cm no cabe en una hoja de 62 cm.`);
+    if(Math.min(w,h)>SHEET_WIDTH || Math.max(w,h)>MAX_SHEET_HEIGHT){
+      throw new Error(`${row.name||"Medida"}: ${w.toFixed(1)} × ${h.toFixed(1)} cm no cabe en una hoja de ${SHEET_WIDTH} cm.`);
     }
     for(let copy=1;copy<=qty;copy++) objects.push({
       id:`quote:${row.id}:${copy}`,
