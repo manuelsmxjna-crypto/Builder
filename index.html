@@ -1260,7 +1260,7 @@ body.bix-checkout-locked{cursor:progress}
       <button class="tool-nav active" data-panel="uploads"><span>▣</span><b>Archivos</b></button>
       <button class="tool-nav" data-panel="text"><span>T</span><b>Texto</b></button>
       <button class="tool-nav" data-panel="settings"><span>⚙</span><b>Ajustes</b></button>
-      <button class="tool-nav quick-create-nav" id="autoCreateLaunchBtn" type="button" title="Definir cantidades y medidas antes de organizar"><span>▦</span><b>Añadido rápido</b></button>
+      <button class="tool-nav quick-create-nav" id="autoCreateLaunchBtn" type="button" title="Definir cantidades y medidas antes de organizar"><span>▦</span><b>Creación rápida</b></button>
       <button class="tool-nav quick-quote-nav" id="quickQuoteLaunchBtn" type="button" title="Cotizar cantidades y medidas sin subir imágenes"><span>▤</span><b>Cotizado rápido</b></button>
       <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Iniciar de nuevo</b></button>
     </aside>
@@ -1603,7 +1603,7 @@ body.bix-checkout-locked{cursor:progress}
   <div id="autoCreateModal" class="modal-backdrop hidden">
     <div class="modal auto-create-modal" role="dialog" aria-modal="true" aria-labelledby="autoCreateTitle">
       <div class="modal-head">
-        <div><h2 id="autoCreateTitle">Añadido rápido</h2><div class="muted" style="font-size:10px;margin-top:3px">Define medidas y cantidades antes de construir el lienzo.</div></div>
+        <div><h2 id="autoCreateTitle">Creación rápida</h2><div class="muted" style="font-size:10px;margin-top:3px">Define medidas y cantidades antes de construir el lienzo.</div></div>
         <button id="autoCreateCloseBtn" class="close-btn" type="button" aria-label="Cerrar">×</button>
       </div>
       <div class="auto-create-body">
@@ -8297,7 +8297,7 @@ $("#quickQuoteCancelBtn").onclick=closeQuickQuote;
 $("#quickQuoteModal").addEventListener("click",event=>{if(event.target===$("#quickQuoteModal")) closeQuickQuote()});
 
 // =====================================================================
-// AÑADIDO RÁPIDO · LISTA DE MEDIDAS Y CANTIDADES
+// CREACIÓN RÁPIDA · LISTA DE MEDIDAS Y CANTIDADES
 // =====================================================================
 const autoCreatePlan=[];
 
@@ -8496,7 +8496,7 @@ async function runAutoCreate(){
     renderAll();
     // Release the batch editor before Auto Organizar opens its own overlay.
     // Keeping both modal layers visible made the progress animation appear
-    // behind Añadido rápido and left the interface looking blocked.
+    // behind Creación rápida and left the interface looking blocked.
     closeAutoCreate();
     toast(`Creando y organizando ${pending.length} diseños…`);
     const organized=await autoNest({force:true,skipHistory:true});
@@ -8508,7 +8508,7 @@ async function runAutoCreate(){
       if(!fallbackOk) throw new Error("No fue posible colocar todos los diseños; se restauró el lienzo anterior.");
     }
   }catch(error){
-    console.error("[Añadido rápido]",error);
+    console.error("[Creación rápida]",error);
     if(beforeLayout){
       restore(beforeLayout);
       if(historyAdded) state.history.pop();
