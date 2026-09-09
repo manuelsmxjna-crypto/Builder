@@ -114,12 +114,13 @@ function runWorker(problem,opts,onMessage){
   });
 }
 
-async function buildProblem(plan,objects,maxHeight=MAX_SHEET_HEIGHT){
+async function buildProblem(plan,objects,maxHeight=MAX_SHEET_HEIGHT,options={}){
   const list=Array.isArray(objects)?objects:[];
   const count=list.length;
   const grid=plan.grid;
-  const allowRotate=!!q("#allowRotate")?.checked;
-  const gap=Math.max(0,Math.round(Math.max(0,nestGapValue())*grid));
+  const allowRotate=options.allowRotate ?? !!q("#allowRotate")?.checked;
+  const gapCm=options.gapCm ?? nestGapValue();
+  const gap=Math.max(0,Math.round(Math.max(0,gapCm)*grid));
   const margin=0;
   const printableW=62;
   const printableH=maxHeight;
@@ -132,7 +133,7 @@ async function buildProblem(plan,objects,maxHeight=MAX_SHEET_HEIGHT){
 
   for(let i=0;i<list.length;i++){
     const o=list[i];
-    ensureRotationModel(o);
+    if(!options.rectangular) ensureRotationModel(o);
 
     const groupKey=STRATEGY.groupKeyForObject(o);
     const instance=groupSeen.get(groupKey)||0;
@@ -152,7 +153,16 @@ async function buildProblem(plan,objects,maxHeight=MAX_SHEET_HEIGHT){
 
     const qs=allowRotate?[0,1,2,3]:[0];
     for(const qtr of qs){
-      const shape=await getAdaptiveNestMask(item,qtr,grid);
+      let shape;
+      if(options.rectangular){
+        const rotated=qtr%2===1;
+        const w=Math.max(1,Math.ceil((rotated?item.baseH:item.baseW)*grid));
+        const h=Math.max(1,Math.ceil((rotated?item.baseW:item.baseH)*grid));
+        const key=`rect:${w}x${h}`;
+        shape={key,q:qtr,w,h,occupied:w*h,data:new Uint8Array(w*h).fill(1)};
+      }else{
+        shape=await getAdaptiveNestMask(item,qtr,grid);
+      }
       item["k"+qtr]=shape.key;
 
       if(!shapeDefs.has(shape.key)){
@@ -218,10 +228,10 @@ function positionObjectFromPlacement(o,p,problem){
   o.y=cy-o.h/2;
 }
 
-function applyCurrentResult(result,problem){
+function applyCurrentResult(result,problem,{skipHistory=false}={}){
   const byId=new Map(result.placed.map(p=>[p.id,p]));
 
-  pushHistory();
+  if(!skipHistory) pushHistory();
 
   for(const o of state.objects){
     const p=byId.get(o.id);
@@ -362,20 +372,22 @@ async function runBRKGA(problem,plan,randomBest,{multiSheet=false}={}){
   };
 }
 
-async function optimize(objects,{multiSheet=false}={}){
-  for(const o of objects) ensureRotationModel(o);
+async function optimize(objects,{multiSheet=false,problemOptions={},quiet=false}={}){
+  if(!problemOptions.rectangular){
+    for(const o of objects) ensureRotationModel(o);
+  }
 
   const analysis=STRATEGY.analyze(objects);
   const plan=multiSheet
     ? STRATEGY.planAllSheets(analysis)
     : STRATEGY.plan(analysis);
 
-  const problem=await buildProblem(plan,objects,MAX_SHEET_HEIGHT);
+  const problem=await buildProblem(plan,objects,MAX_SHEET_HEIGHT,problemOptions);
 
-  toast(multiSheet
-    ? `Organizando ${objects.length} diseños entre todas las hojas…`
-    : "Buscando una buena distribución…"
-  );
+  if(!quiet) toast(multiSheet
+      ? `Organizando ${objects.length} diseños entre todas las hojas…`
+      : "Buscando una buena distribución…"
+    );
 
   const random=await runRandom(problem,plan,{multiSheet});
   if(!random.best){
@@ -385,7 +397,7 @@ async function optimize(objects,{multiSheet=false}={}){
   let brkga={best:null,evaluations:0,elapsedMs:0,stopReasons:["skipped"]};
 
   if(plan.brkgaWorkers && plan.brkgaBudgetMs){
-    toast("Optimizando espacio…");
+    if(!quiet) toast("Optimizando espacio…");
     brkga=await runBRKGA(problem,plan,random.best,{multiSheet});
   }
 
@@ -399,16 +411,16 @@ async function optimize(objects,{multiSheet=false}={}){
   return {analysis,plan,problem,random,brkga,winner,winnerName};
 }
 
-async function autoOrganizeCurrent(){
+async function autoOrganizeCurrent({skipHistory=false,quiet=false}={}){
   const objects=state.objects||[];
   if(!objects.length) return toast("No hay diseños para organizar.");
 
   const t0=performance.now();
-  const result=await optimize(objects,{multiSheet:false});
-  applyCurrentResult(result.winner,result.problem);
+  const result=await optimize(objects,{multiSheet:false,quiet});
+  applyCurrentResult(result.winner,result.problem,{skipHistory});
 
   const bestCm=result.winner.usedH/result.problem.grid;
-  toast(`Auto Organizar listo · ${bestCm.toFixed(1)} cm`);
+  if(!quiet) toast(`Auto Organizar listo · ${bestCm.toFixed(1)} cm`);
 
   console.info("[BixNest v3.1 current]",{
     version:VERSION,
@@ -418,6 +430,66 @@ async function autoOrganizeCurrent(){
     bestCm:+bestCm.toFixed(2),
     elapsedMs:+(performance.now()-t0).toFixed(0)
   });
+}
+
+async function organizeCurrent(options={}){
+  if(running) return false;
+  const objects=state.objects||[];
+  if(!objects.length) return false;
+  running=true;
+  if(options.showBusy!==false) showBusy(true,"Optimizando espacio…");
+  await paint();
+  try{
+    await autoOrganizeCurrent(options);
+    return true;
+  }catch(e){
+    console.error("[BixNest v3.1 programmatic]",e);
+    if(!options.quiet) toast(`Auto Organizar: ${String(e?.message||e).slice(0,160)}`);
+    return false;
+  }finally{
+    running=false;
+    if(options.showBusy!==false) showBusy(false);
+  }
+}
+
+async function quoteRectangles(rows,{gapCm=0,allowRotate=true}={}){
+  const objects=[];
+  for(const row of rows||[]){
+    const qty=Math.max(1,Math.round(Number(row.qty)||1));
+    const w=Math.max(.1,Number(row.w)||.1);
+    const h=Math.max(.1,Number(row.h)||.1);
+    if(Math.min(w,h)>62 || Math.max(w,h)>MAX_SHEET_HEIGHT){
+      throw new Error(`${row.name||"Medida"}: ${w.toFixed(1)} × ${h.toFixed(1)} cm no cabe en una hoja de 62 cm.`);
+    }
+    for(let copy=1;copy<=qty;copy++) objects.push({
+      id:`quote:${row.id}:${copy}`,
+      type:"rect",assetId:row.id,baseW:w,baseH:h,w,h,
+      name:row.name,color:row.color,copy
+    });
+  }
+  if(!objects.length) throw new Error("Agrega al menos una medida.");
+  const result=await optimize(objects,{
+    multiSheet:true,quiet:true,
+    problemOptions:{rectangular:true,gapCm,allowRotate}
+  });
+  const byId=new Map(objects.map(o=>[o.id,o]));
+  const sheets=Array.from({length:result.winner.sheetCount},(_,sheetIndex)=>({
+    placed:[],height:(result.winner.sheetHeights?.[sheetIndex]||0)/result.problem.grid
+  }));
+  for(const p of result.winner.placed){
+    const source=byId.get(p.id);
+    sheets[p.sheetIndex].placed.push({
+      ...source,
+      x:p.x/result.problem.grid,y:p.y/result.problem.grid,
+      w:p.w/result.problem.grid,h:p.h/result.problem.grid,
+      rotated:(p.q%2)===1
+    });
+  }
+  return {
+    sheets,
+    totalCm:sheets.reduce((sum,s)=>sum+Math.ceil(s.height-1e-9),0),
+    engine:VERSION
+  };
 }
 
 async function autoOrganizeAll(){
@@ -556,6 +628,8 @@ function install(){
   btn.title="Auto Organizar";
   console.info(`[BixNest] ${VERSION} instalado`);
 }
+
+window.BixNestAPI={organizeCurrent,quoteRectangles,version:VERSION};
 
 if(document.readyState==="loading"){
   document.addEventListener("DOMContentLoaded",()=>setTimeout(install,0));

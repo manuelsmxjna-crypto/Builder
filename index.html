@@ -8147,104 +8147,24 @@ function renderQuickQuoteRows(){
   });
 }
 
-function quickQuoteIntersects(a,b){
-  return a.x<b.x+b.w-.0001&&a.x+a.w>b.x+.0001&&a.y<b.y+b.h-.0001&&a.y+a.h>b.y+.0001;
-}
-function quickQuoteContained(a,b){
-  return a.x>=b.x-.0001&&a.y>=b.y-.0001&&a.x+a.w<=b.x+b.w+.0001&&a.y+a.h<=b.y+b.h+.0001;
-}
-function quickQuoteSplitFreeRects(freeRects,used){
-  const next=[];
-  for(const free of freeRects){
-    if(!quickQuoteIntersects(free,used)){next.push(free);continue}
-    if(used.x>free.x+.0001) next.push({x:free.x,y:free.y,w:used.x-free.x,h:free.h});
-    if(used.x+used.w<free.x+free.w-.0001) next.push({x:used.x+used.w,y:free.y,w:free.x+free.w-used.x-used.w,h:free.h});
-    if(used.y>free.y+.0001) next.push({x:free.x,y:free.y,w:free.w,h:used.y-free.y});
-    if(used.y+used.h<free.y+free.h-.0001) next.push({x:free.x,y:used.y+used.h,w:free.w,h:free.y+free.h-used.y-used.h});
-  }
-  const valid=next.filter(r=>r.w>.001&&r.h>.001);
-  return valid.filter((rect,i)=>!valid.some((other,j)=>i!==j&&quickQuoteContained(rect,other)));
-}
-function quickQuoteOrder(items,mode,seed=0){
-  const hash=item=>{
-    const s=String(item.id)+"|"+item.copy+"|"+seed;
-    let h=2166136261;
-    for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}
-    return h>>>0;
-  };
-  return [...items].sort((a,b)=>{
-    if(mode==="height") return Math.max(b.h,b.w)-Math.max(a.h,a.w)||b.w*b.h-a.w*a.h;
-    if(mode==="width") return Math.max(b.w,b.h)-Math.max(a.w,a.h)||b.w*b.h-a.w*a.h;
-    if(mode==="perimeter") return (b.w+b.h)-(a.w+a.h)||b.w*b.h-a.w*a.h;
-    if(mode==="short") return Math.min(b.w,b.h)-Math.min(a.w,a.h)||b.w*b.h-a.w*a.h;
-    if(mode==="random") return hash(a)-hash(b);
-    return b.w*b.h-a.w*a.h;
-  });
-}
-function quickQuoteMaxRects(items,width,maxHeight,gap,allowRotate,sortMode,seed=0){
-  const pending=quickQuoteOrder(items,sortMode,seed);
-  const sheets=[];
-  while(pending.length){
-    let freeRects=[{x:0,y:0,w:width+gap,h:maxHeight+gap}];
-    const placed=[];
-    let usedHeight=0,progress=true;
-    while(progress&&pending.length){
-      progress=false;
-      let best=null;
-      const itemIndex=0;
-      const item=pending[itemIndex];
-      const options=[{w:item.w,h:item.h,rotated:false}];
-      if(allowRotate&&Math.abs(item.w-item.h)>.001) options.push({w:item.h,h:item.w,rotated:true});
-      for(const option of options){
-        const packedW=option.w+gap,packedH=option.h+gap;
-        for(let freeIndex=0;freeIndex<freeRects.length;freeIndex++){
-          const free=freeRects[freeIndex];
-          if(packedW>free.w+.0001||packedH>free.h+.0001) continue;
-          const newHeight=Math.max(usedHeight,free.y+option.h);
-          const shortWaste=Math.min(free.w-packedW,free.h-packedH);
-          const longWaste=Math.max(free.w-packedW,free.h-packedH);
-          const score=[newHeight,free.y,shortWaste,longWaste,free.x];
-          if(!best||score.some((v,i)=>v<best.score[i]&&score.slice(0,i).every((n,j)=>n===best.score[j]))){
-            best={itemIndex,freeIndex,option,packedW,packedH,score,x:free.x,y:free.y};
-          }
-        }
-      }
-      if(best){
-        const item=pending.splice(best.itemIndex,1)[0];
-        const occupied={x:best.x,y:best.y,w:best.packedW,h:best.packedH};
-        freeRects=quickQuoteSplitFreeRects(freeRects,occupied);
-        placed.push({...item,x:best.x,y:best.y,w:best.option.w,h:best.option.h,rotated:best.option.rotated});
-        usedHeight=Math.max(usedHeight,best.y+best.option.h);
-        progress=true;
-      }
-    }
-    if(!placed.length){
-      const item=pending[0];
-      return {error:item.name+": "+item.w.toFixed(1)+" × "+item.h.toFixed(1)+" cm no cabe en una hoja de 62 cm."};
-    }
-    sheets.push({placed,height:Math.max(1,usedHeight)});
-  }
-  return {sheets,totalCm:sheets.reduce((sum,s)=>sum+Math.ceil(s.height-1e-9),0)};
-}
-
-function calculateQuickQuote(){
+async function calculateQuickQuote(){
   const gap=Math.max(0,+$("#quickQuoteGap").value||0);
   const allowRotate=!!$("#quickQuoteRotate").checked;
   const total=quickQuotePlan.reduce((sum,row)=>sum+Math.max(1,Math.round(+row.qty||1)),0);
   if(!quickQuotePlan.length||!total) return toast("Agrega al menos una medida.");
   if(total>1200) return toast("La cotización admite hasta 1,200 piezas.");
-  const items=[];
-  for(const row of quickQuotePlan){
-    const w=Math.max(.1,+row.w||.1),h=Math.max(.1,+row.h||.1);
-    for(let i=0;i<Math.max(1,Math.round(+row.qty||1));i++) items.push({...row,w,h,copy:i+1});
+  const btn=$("#quickQuoteCalculateBtn");
+  btn.disabled=true;btn.textContent="Calculando…";
+  try{
+    if(!window.BixNestAPI?.quoteRectangles) throw new Error("El motor de organización todavía no está disponible.");
+    const result=await window.BixNestAPI.quoteRectangles(quickQuotePlan,{gapCm:gap,allowRotate});
+    renderQuickQuoteResult(result,total);
+  }catch(error){
+    console.error("[Cotizado rápido]",error);
+    toast(String(error?.message||error).slice(0,170));
+  }finally{
+    btn.disabled=false;btn.textContent="Calcular cotización";
   }
-  const strategies=["area","height","width","perimeter","short"];
-  const attempts=strategies.map(mode=>quickQuoteMaxRects(items,FIXED_SHEET_WIDTH_CM,MAX_SHEET_HEIGHT,gap,allowRotate,mode));
-  for(let seed=1;seed<=8;seed++) attempts.push(quickQuoteMaxRects(items,FIXED_SHEET_WIDTH_CM,MAX_SHEET_HEIGHT,gap,allowRotate,"random",seed));
-  const error=attempts.find(result=>result.error);
-  const valid=attempts.filter(result=>!result.error).sort((a,b)=>a.totalCm-b.totalCm||a.sheets.length-b.sheets.length);
-  if(!valid.length){toast(error?.error||"No fue posible calcular la distribución.");return}
-  renderQuickQuoteResult(valid[0],total);
 }
 
 function renderQuickQuoteEmpty(){
@@ -8499,7 +8419,9 @@ async function runAutoCreate(){
     // behind Creación rápida and left the interface looking blocked.
     closeAutoCreate();
     toast(`Creando y organizando ${pending.length} diseños…`);
-    const organized=await autoNest({force:true,skipHistory:true});
+    const organized=window.BixNestAPI?.organizeCurrent
+      ? await window.BixNestAPI.organizeCurrent({skipHistory:true})
+      : await autoNest({force:true,skipHistory:true});
     if(!organized){
       toast("Usando acomodo seguro de respaldo…");
       const fallbackOk=await autoCreateSafeFallback(
