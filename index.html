@@ -1243,7 +1243,7 @@ body.bix-checkout-locked{cursor:progress}
       <button class="icon-btn" id="undoBtn" title="Deshacer">↶</button>
       <button class="icon-btn" id="redoBtn" title="Rehacer">↷</button>
       <div class="divider"></div>
-      <label class="variant-label">Hoja activa <span id="activeSheetSize" class="sheet-size-chip">58 × 30 cm</span></label>
+      <label class="variant-label">Hoja activa <span id="activeSheetSize" class="sheet-size-chip">62 × 30 cm</span></label>
       <button class="ghost-btn" id="qualityBtn">✓ Revisar lienzo</button>
       <button class="autonest-top-btn" id="autoNestTopBtn">✦ Auto Organizar</button>
 <button class="primary-btn shopify-cart-btn" id="exportBtn">🛒 Agregar al carrito</button>
@@ -1331,7 +1331,7 @@ body.bix-checkout-locked{cursor:progress}
       </div>
 <div id="settingsPanel" class="panel-view">
         <label class="field">Ancho
-          <div class="unit-input"><input id="sheetWidth" type="number" value="58" readonly aria-readonly="true" title="El ancho DTF está fijado en 58 cm"><span>cm</span></div>
+          <div class="unit-input"><input id="sheetWidth" type="number" value="62" readonly aria-readonly="true" title="El ancho DTF está fijado en 62 cm"><span>cm</span></div>
         </label>
         <label class="field">Alto
           <div class="unit-input"><input id="sheetHeight" type="number" value="30" min="30" max="310" step="0.1"><span>cm</span></div>
@@ -1648,7 +1648,7 @@ body.bix-checkout-locked{cursor:progress}
         </section>
       </div>
       <div class="modal-foot">
-        <span class="auto-create-summary">Ancho fijo de producción: 58 cm</span>
+        <span class="auto-create-summary">Ancho fijo de producción: 62 cm</span>
         <button id="quickQuoteCancelBtn" class="ghost-btn" type="button">Cerrar</button>
         <button id="quickQuoteCalculateBtn" class="primary-btn" type="button">Calcular cotización</button>
       </div>
@@ -1835,7 +1835,7 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const state = {
   projectId:null,
-  sheets:[{id:"gs1",name:"Gang Sheet 1",sheet:{w:58,h:30,margin:0},objects:[]}],
+  sheets:[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}],
   activeSheetIndex:0,
   zoom:1,
   viewport:{x:80,y:70},
@@ -2693,7 +2693,7 @@ function applySessionPayload(payload){
   state.sheets=payload.sheets.map((s,i)=>({
     id:s.id||("gs"+(i+1)),
     name:s.name||("Gang Sheet "+(i+1)),
-    sheet:{w:58,h:30,margin:0,...(s.sheet||{})},
+    sheet:{w:62,h:30,margin:0,...(s.sheet||{})},
     objects:Array.isArray(s.objects)?s.objects.map(o=>({...o})):[]
   }));
   state.activeSheetIndex=Math.max(0,Math.min(payload.activeSheetIndex||0,state.sheets.length-1));
@@ -2724,7 +2724,7 @@ function applySessionPayload(payload){
 }
 function resetToFreshSession(){
   state.projectId=null;
-  state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:{w:58,h:30,margin:0},objects:[]}];
+  state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}];
   state.activeSheetIndex=0;
   state.nextSheetId=2;
   state.nextId=1;
@@ -3102,7 +3102,7 @@ function restore(raw){
     state.activeSheetIndex=Math.max(0,Math.min(d.activeSheetIndex||0,state.sheets.length-1));
     state.nextSheetId=d.nextSheetId||state.sheets.length+1;
   }else{
-    state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:d.sheet||{w:58,h:30,margin:0},objects:d.objects||[]}];
+    state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:d.sheet||{w:62,h:30,margin:0},objects:d.objects||[]}];
     state.activeSheetIndex=0;
   }
   state.selectedId=null;
@@ -3114,7 +3114,7 @@ function restore(raw){
 function undo(){if(!state.history.length)return;state.future.push(snapshot());restore(state.history.pop())}
 function redo(){if(!state.future.length)return;state.history.push(snapshot());restore(state.future.pop())}
 
-const FIXED_SHEET_WIDTH_CM=58;
+const FIXED_SHEET_WIDTH_CM=62;
 function enforceFixedSheetWidth(){
   for(const record of state.sheets||[]){
     if(record?.sheet) record.sheet.w=FIXED_SHEET_WIDTH_CM;
@@ -3394,10 +3394,10 @@ function ensureSheetHeightForObject(o){
   const m=Math.max(0,+state.sheet.margin||0);
   const box=rotatedAABB(o);
 
-  // Width is hard-limited by the current sheet width (normally 58 cm)
+  // Width is hard-limited by the current sheet width (normally 62 cm)
   // and by the printable margins. Never auto-expand width.
   // Exact printable width:
-  // 58 cm sheet - (margin × 2). With margin 0, all 58 cm are usable.
+  // 62 cm sheet - (margin × 2). With margin 0, all 62 cm are usable.
   const printableW=Math.max(0,state.sheet.w-(m*2));
   if(box.w>printableW+0.0001){
     return {ok:false,reason:"width",requiredWidth:box.w,availableWidth:printableW};
@@ -5757,7 +5757,7 @@ function placeObjectWithAutoGrowth(o,excludeId=null){
   ensureRotationModel(o);
 
   // Before talking about "capacity", verify that the design can physically
-  // fit inside a 58 x 310 cm sheet in at least one allowed orientation.
+  // fit inside a 62 x 310 cm sheet in at least one allowed orientation.
   if(!objectCanEverFitSheet(o)){
     toast("Este diseño es demasiado grande para el ancho útil de la Gang Sheet, incluso con la rotación permitida.");
     return false;
@@ -5863,7 +5863,7 @@ async function insertAsset(a,sizeOverride=null){
    // Oversize import mode:
    // Keep the source's real physical dimensions instead of rejecting/scaling it.
    // It is deliberately placed from the top-left and may extend outside the
-   // 58 cm artboard. The customer can then resize it manually to the desired size.
+   // 62 cm artboard. The customer can then resize it manually to the desired size.
    o.x=state.sheet.margin+0.05;
    o.y=state.sheet.margin+0.05;
    o.rot=0;
