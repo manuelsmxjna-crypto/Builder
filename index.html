@@ -1216,6 +1216,7 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   display:block;width:38%;height:100%;border-radius:inherit;background:#fff;
   animation:bixCheckoutBar 1.25s ease-in-out infinite alternate
 }
+.file-import-overlay .checkout-processing-bar span{animation:none;transform:none;width:4%;transition:width .22s ease}
 @keyframes bixCheckoutBar{
   from{transform:translateX(-80%)}
   to{transform:translateX(250%)}
@@ -1661,6 +1662,15 @@ body.bix-checkout-locked{cursor:progress}
       <b id="checkoutProcessingTitle">Preparando tu pedido…</b>
       <span id="checkoutProcessingSub">No cierres esta ventana ni modifiques el lienzo.</span>
       <div class="checkout-processing-bar"><span></span></div>
+    </div>
+  </div>
+
+  <div id="fileImportOverlay" class="checkout-processing-overlay file-import-overlay" hidden aria-live="polite" aria-busy="true">
+    <div class="checkout-processing-card">
+      <div class="checkout-processing-spinner"></div>
+      <b id="fileImportTitle">Cargando archivos…</b>
+      <span id="fileImportStatus">Preparando imágenes para el lienzo.</span>
+      <div class="checkout-processing-bar"><span id="fileImportProgress"></span></div>
     </div>
   </div>
 
@@ -3074,6 +3084,18 @@ function objectSrc(o){
   return a ? a.src : (o.src||"");
 }
 
+function objectEditorPreviewSrc(o){
+  const a=o?.type==="image"?assetById(o.assetId):null;
+  if(!a) return objectSrc(o);
+  // Keep very large originals for export/cloud rendering, but display their
+  // lightweight thumbnail while editing so several 80 MP files do not remain
+  // decoded in browser memory at the same time.
+  if((a.w||0)*(a.h||0)>50_000_000){
+    return assetLibraryPreviewSrc(a)||a.src;
+  }
+  return a.src;
+}
+
 
 function uid(){return "o"+(state.nextId++)}
 function toast(msg){const t=$("#toast"); t.textContent=msg;t.classList.remove("hidden");clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.add("hidden"),1800)}
@@ -4242,7 +4264,7 @@ function renderObject(o){
  if(o.type==="image"){
    const img=document.createElement("img");
    img.decoding="sync";
-   img.src=objectSrc(o);
+   img.src=objectEditorPreviewSrc(o);
    // Locked = preserve image proportions. Unlocked = image stretches with hitbox.
    img.style.objectFit=o.aspectLocked?"contain":"fill";
    img.addEventListener("load",()=>{
@@ -4865,10 +4887,35 @@ async function ensureAssetAutoTrimmed(asset){
     return {trimmed:false,error:true};
   }
 }
+const LARGE_IMAGE_AUTOTRIM_PIXEL_LIMIT=50_000_000;
+
+function updateFileImportProgress(pct,status,title="Cargando archivos…"){
+  const overlay=$("#fileImportOverlay");
+  if(!overlay) return;
+  overlay.hidden=false;
+  const titleEl=$("#fileImportTitle");
+  const statusEl=$("#fileImportStatus");
+  const bar=$("#fileImportProgress");
+  if(titleEl) titleEl.textContent=title;
+  if(statusEl) statusEl.textContent=status;
+  if(bar) bar.style.width=Math.max(4,Math.min(100,pct||0))+"%";
+}
+
+function hideFileImportProgress(){
+  const overlay=$("#fileImportOverlay");
+  if(overlay) overlay.hidden=true;
+}
+
+function fileImportPaint(){
+  return new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+}
+
 async function addAsset(file,options={}){
+  options.onProgress?.(8,"Leyendo resolución y metadatos…");
   const dpi=await readEmbeddedDpi(file);
   const url=URL.createObjectURL(file);
   try{
+    options.onProgress?.(18,"Abriendo la imagen…");
     const img=await loadImageFromSrc(url);
     const hasEmbedded=!!(dpi?.x);
     const dpiX=hasEmbedded?dpi.x:ASSUMED_SOURCE_DPI;
@@ -4892,14 +4939,24 @@ async function addAsset(file,options={}){
       updatedAt:Date.now()
     };
     let trimInfo={trimmed:false};
-    if(options.skipAutoTrim){
+    const pixelCount=img.naturalWidth*img.naturalHeight;
+    const skipLargeAutoTrim=pixelCount>LARGE_IMAGE_AUTOTRIM_PIXEL_LIMIT;
+    if(options.skipAutoTrim || skipLargeAutoTrim){
       // A PDF page is a physical canvas. Cropping transparent page margins
       // would change the dimensions selected by the customer.
+      options.onProgress?.(
+        42,
+        skipLargeAutoTrim
+          ? `Imagen de ${(pixelCount/1_000_000).toFixed(0)} MP: conservando el lienzo original para evitar bloquear el dispositivo…`
+          : "Conservando las dimensiones originales…"
+      );
       asset.autoTrimmed=true;
       await persistAsset(asset);
     }else{
+      options.onProgress?.(36,"Analizando transparencia y márgenes…");
       trimInfo=await ensureAssetAutoTrimmed(asset);
     }
+    options.onProgress?.(72,"Creando la vista previa…");
     state.assets.unshift(asset);
     renderAssets();
 
@@ -4908,6 +4965,7 @@ async function addAsset(file,options={}){
     void scheduleAssetBackgroundUpload(asset).catch(error=>{
       console.warn("[BixStudio background upload]",asset.name,error);
     });
+    options.onProgress?.(88,"Añadiendo la imagen al lienzo…");
 
     const wcm=asset.physicalWcm, hcm=asset.physicalHcm;
     const trimTxt=trimInfo.trimmed?" · márgenes recortados":"";
@@ -5151,18 +5209,48 @@ async function importAndInsertFiles(files){
   const supported=[...files].filter(file=>
     isPdfFile(file) || file.type.startsWith("image/") || /\.svg$/i.test(file.name||"")
   );
+  if(!supported.length) return;
 
-  for(const file of supported){
-    if(isPdfFile(file)){
-      await importPdfFile(file);
-      continue;
+  try{
+    for(let index=0;index<supported.length;index++){
+      const file=supported[index];
+      const number=index+1;
+      const prefix=`Archivo ${number} de ${supported.length}`;
+
+      if(isPdfFile(file)){
+        // PDF import has its own page-selection and rendering progress modal.
+        hideFileImportProgress();
+        await importPdfFile(file);
+        continue;
+      }
+
+      updateFileImportProgress(
+        index/supported.length*100,
+        `${prefix}: ${file.name}`
+      );
+      await fileImportPaint();
+
+      const asset=await addAsset(file,{
+        onProgress:(localPct,status)=>{
+          const overall=((index+(localPct/100))/supported.length)*100;
+          updateFileImportProgress(overall,`${prefix} · ${status}`);
+        }
+      });
+      if(asset) await insertAsset(asset);
+
+      updateFileImportProgress(
+        number/supported.length*100,
+        asset
+          ? `${file.name} añadida correctamente.`
+          : `${file.name} no pudo cargarse.`
+      );
+      await fileImportPaint();
     }
-    const asset=await addAsset(file);
-    if(asset) await insertAsset(asset);
+  }finally{
+    hideFileImportProgress();
+    // Allow choosing the same file again later.
+    try{fileInput.value=""}catch{}
   }
-
-  // Allow choosing the same file again later.
-  try{fileInput.value=""}catch{}
 }
 
 fileInput.addEventListener("change",async()=>{
