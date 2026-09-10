@@ -8239,6 +8239,36 @@ function addAutoCreateRow(assetId,seed=null){
   renderAutoCreatePlan();
 }
 
+function syncAutoCreatePlanFromCanvas(){
+  const grouped=new Map();
+  const rows=[];
+
+  for(const object of state.objects||[]){
+    if(object.type!=="image" || !object.assetId || !assetById(object.assetId)) continue;
+
+    const w=Math.max(.1,Number(object.w)||.1);
+    const h=Math.max(.1,Number(object.h)||.1);
+    // Two copies count as the same requested measure at the precision shown
+    // by Creación rápida. Different sizes of the same file stay separate.
+    const key=[object.assetId,w.toFixed(2),h.toFixed(2)].join("|");
+    const existing=grouped.get(key);
+    if(existing){
+      existing.qty++;
+      continue;
+    }
+
+    const row={
+      id:uid(),assetId:object.assetId,w,h,qty:1,
+      locked:object.aspectLocked!==false,
+      ratio:w/Math.max(.001,h)
+    };
+    grouped.set(key,row);
+    rows.push(row);
+  }
+
+  autoCreatePlan.splice(0,autoCreatePlan.length,...rows);
+}
+
 function renderAutoCreateAssets(){
   const grid=$("#autoCreateAssetGrid");
   if(!grid) return;
@@ -8317,6 +8347,7 @@ function renderAutoCreatePlan(){
 }
 
 function openAutoCreate(){
+  syncAutoCreatePlanFromCanvas();
   renderAutoCreateAssets();
   renderAutoCreatePlan();
   $("#autoCreateGap").value=nestGapValue();
