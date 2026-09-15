@@ -4630,6 +4630,9 @@ function updateRenderedObjectPosition(o){
   return true;
 }
 function startDrag(e,o,resizing){
+ // El botón derecho sólo abre el menú contextual. No debe iniciar arrastre ni
+ // participar en la detección manual del doble clic de inspección.
+ if(e.button!==0) return;
  if(spaceHeld){
    beginViewportPan(e);
    return;
