@@ -11683,6 +11683,42 @@ window.BixStudioContextSelectObject=(id)=>{
   return true;
 };
 
+window.BixStudioSendSelectionToBottom=()=>{
+  const ids=state.selectedIds.length?state.selectedIds:(state.selectedId?[state.selectedId]:[]);
+  if(ids.length!==1){toast("Selecciona una sola figura para enviarla hasta abajo.");return false}
+  const target=objById(ids[0]);if(!target)return false;
+  ensureRotationModel(target);
+
+  const margin=Math.max(0,+state.sheet.margin||0);
+  const gap=nestGapValue();
+  const targetBox=rotatedAABB(target);
+  const usableWidth=Math.max(0,state.sheet.w-margin*2);
+  if(targetBox.w>usableWidth+.001){toast("La figura es más ancha que el espacio útil del lienzo.");return false}
+
+  let contentBottom=margin;
+  for(const object of state.objects){
+    if(object.id===target.id)continue;
+    const box=rotatedAABB(object);
+    contentBottom=Math.max(contentBottom,box.y+box.h);
+  }
+
+  const top=contentBottom+(state.objects.length>1?gap:0);
+  const maxLeft=Math.max(margin,state.sheet.w-margin-targetBox.w);
+  const left=Math.min(maxLeft,Math.max(margin,targetBox.x));
+  const requiredHeight=Math.max(MIN_SHEET_HEIGHT,Math.ceil((top+targetBox.h+margin)*10)/10);
+  if(requiredHeight>MAX_SHEET_HEIGHT+.001){toast(`No hay espacio para enviarla abajo sin superar ${MAX_SHEET_HEIGHT} cm.`);return false}
+
+  pushHistory();
+  const moved=objectAtAABBTopLeft(target,left,top);
+  target.x=moved.x;target.y=moved.y;
+  growSheetTo(requiredHeight);
+  recalcActiveSheetHeight();
+  renderAll();
+  setTimeout(fitViewport,20);
+  toast("Figura enviada hasta abajo del contenido.");
+  return true;
+};
+
 function cutSelection(){
   if(!copySelection()) return false;
   pushHistory();
@@ -11940,6 +11976,7 @@ showRightPanel("properties");
 <button data-cmd="rotateCCW">↻ Girar 90° antihorario</button>
 <button data-cmd="flipH">⇋ Voltear horizontalmente</button>
 <button data-cmd="flipV">⇅ Voltear verticalmente</button>
+<button data-cmd="sendBottom">↓ Enviar hasta abajo</button>
 <hr>
 <button data-cmd="lock">☑ Bloquear proporciones</button>
 <hr>
@@ -11985,6 +12022,8 @@ document.addEventListener('contextmenu',e=>{
  // Bloquear proporciones solo con una imagen.
  const lockBtn=m.querySelector('[data-cmd="lock"]');
  if(lockBtn) lockBtn.disabled=!hasSelection || ctx.selectionCount!==1;
+ const sendBottomBtn=m.querySelector('[data-cmd="sendBottom"]');
+ if(sendBottomBtn) sendBottomBtn.disabled=!hasSelection || ctx.selectionCount!==1;
 
  // Mostrar primero para conocer su tamaño real.
  m.classList.add('show');
@@ -12013,7 +12052,9 @@ m.addEventListener('click',e=>{
  rotateCW:'rotateCWBtn',rotateCCW:'rotateCCWBtn',
  flipH:'flipHorizontalBtn',flipV:'flipVerticalBtn',
  lock:'aspectLockBtn'};
- if(cmd==='quantity'){alert('Agregar cantidad (pendiente de integrar).');return;} const id=map[cmd]; if(id){const el=document.getElementById(id); if(el)el.click();}
+ if(cmd==='quantity'){alert('Agregar cantidad (pendiente de integrar).');return;}
+ if(cmd==='sendBottom'){window.BixStudioSendSelectionToBottom?.();m.classList.remove('show');return;}
+ const id=map[cmd]; if(id){const el=document.getElementById(id); if(el)el.click();}
  m.classList.remove('show');
 });
 })();
