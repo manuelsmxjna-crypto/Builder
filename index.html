@@ -926,10 +926,16 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
   image-rendering:pixelated;
   image-rendering:crisp-edges;
 }
-.tool-nav.quick-create-nav{color:#bfdbfe;border:1px solid rgba(59,130,246,.38);background:rgba(37,99,235,.12)}
-.tool-nav.quick-create-nav:hover{color:#fff;background:rgba(37,99,235,.28);border-color:rgba(96,165,250,.7)}
-.tool-nav.quick-quote-nav{color:#bbf7d0;border:1px solid rgba(34,197,94,.38);background:rgba(22,163,74,.12)}
-.tool-nav.quick-quote-nav:hover{color:#fff;background:rgba(22,163,74,.28);border-color:rgba(74,222,128,.7)}
+.label-maker-modal{width:min(1040px,96vw);height:min(760px,92vh);display:flex;flex-direction:column}
+.label-maker-body{display:grid;grid-template-columns:minmax(360px,.95fr) minmax(340px,1.05fr);min-height:0;flex:1}
+.label-maker-form{padding:15px;overflow:auto;border-right:1px solid #e2e8f0}.label-maker-preview{padding:18px;background:#eef2f7;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:12px}
+.label-section{border:1px solid #dbe2ea;border-radius:10px;background:#fff;padding:11px;margin-bottom:10px}.label-section h3{margin:0 0 9px;font-size:12px}.label-field-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.label-field{font-size:9px;color:#64748b}.label-field.wide{grid-column:1/-1}.label-field input,.label-field select{display:block;width:100%;margin-top:3px;padding:7px;border:1px solid #cbd5e1;border-radius:7px;background:#fff}.label-field input[type=color]{height:35px;padding:3px}.label-logo-row{display:flex;align-items:center;gap:8px}.label-logo-row input{min-width:0}.label-logo-clear{border:1px solid #fecaca;background:#fff7f7;color:#b91c1c;border-radius:7px;padding:7px;white-space:nowrap}
+.label-logo-controls{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:9px;border:1px solid #fde68a;background:#fffbeb;border-radius:8px}.label-logo-controls[hidden]{display:none}.label-logo-controls label{font-size:9px;color:#92400e;font-weight:700}.label-logo-controls input[type=range]{width:100%;margin-top:6px;accent-color:#d97706}.label-logo-tint{grid-column:1/-1;display:flex;align-items:center;gap:7px!important}.label-logo-tint input{width:auto!important;margin:0!important;accent-color:#d97706}
+.label-fit-option{grid-column:1/-1;display:flex;align-items:flex-start;gap:7px;border:1px solid #bfdbfe;background:#eff6ff;color:#1e3a8a;border-radius:8px;padding:8px;font-size:9px;line-height:1.35}
+.label-care-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.label-care-option{display:flex;align-items:center;gap:6px;border:1px solid #dbe2ea;border-radius:7px;padding:7px;font-size:9px;color:#334155}.label-care-option input{margin:0}
+.label-size-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.label-size-item{display:grid;grid-template-columns:auto 1fr;gap:5px;align-items:center;border:1px solid #dbe2ea;border-radius:7px;padding:6px;font-size:10px;font-weight:800}.label-size-item input[type=number]{width:100%;min-width:0;padding:5px;border:1px solid #cbd5e1;border-radius:5px}.label-size-item small{grid-column:1/-1;color:#64748b;font-size:8px;font-weight:600}
+.label-preview-card{width:min(100%,430px);aspect-ratio:2/1;background-color:#fff;background-image:linear-gradient(45deg,#d7dde5 25%,transparent 25%),linear-gradient(-45deg,#d7dde5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#d7dde5 75%),linear-gradient(-45deg,transparent 75%,#d7dde5 75%);background-size:18px 18px;background-position:0 0,0 9px,9px -9px,-9px 0;border:1px solid #cbd5e1;border-radius:12px;display:grid;place-items:center;overflow:hidden}.label-preview-card img{display:block;width:100%;height:100%;object-fit:contain}.label-preview-note{max-width:430px;font-size:9px;line-height:1.45;color:#64748b;text-align:center}.label-maker-summary{margin-right:auto;font-size:10px;color:#475569;font-weight:750}
+@media(max-width:760px){.label-maker-modal{height:100dvh!important}.label-maker-body{grid-template-columns:1fr;grid-template-rows:minmax(310px,auto) minmax(300px,1fr);overflow:auto}.label-maker-form{border-right:0;border-bottom:1px solid #e2e8f0;overflow:visible}.label-maker-preview{overflow:visible}.label-preview-card{width:min(92vw,390px)}.label-size-grid{grid-template-columns:repeat(2,1fr)}}
 .quick-quote-modal{width:min(1080px,96vw);height:min(760px,92vh);display:flex;flex-direction:column}
 .quick-quote-body{display:grid;grid-template-columns:minmax(340px,.85fr) minmax(380px,1.15fr);gap:0;min-height:0;flex:1}
 .quick-quote-form{padding:16px;overflow:auto;border-right:1px solid #e2e8f0}.quick-quote-preview{padding:16px;overflow:auto;background:#f8fafc;display:flex;flex-direction:column;gap:12px}
@@ -1256,8 +1262,9 @@ body.bix-checkout-locked{cursor:progress}
       <button class="tool-nav active" data-panel="uploads"><span>▣</span><b>Archivos</b></button>
       <button class="tool-nav" data-panel="text"><span>T</span><b>Texto</b></button>
       <button class="tool-nav" data-panel="settings"><span>⚙</span><b>Ajustes</b></button>
-      <button class="tool-nav quick-create-nav" id="autoCreateLaunchBtn" type="button" title="Definir cantidades y medidas antes de organizar"><span>▦</span><b>Creación rápida</b></button>
-      <button class="tool-nav quick-quote-nav" id="quickQuoteLaunchBtn" type="button" title="Cotizar cantidades y medidas sin subir imágenes"><span>▤</span><b>Cotizado rápido</b></button>
+      <button class="tool-nav" id="autoCreateLaunchBtn" type="button" title="Definir cantidades y medidas antes de organizar"><span>▦</span><b>Creación rápida</b></button>
+      <button class="tool-nav" id="quickQuoteLaunchBtn" type="button" title="Cotizar cantidades y medidas sin subir imágenes"><span>▤</span><b>Cotizado rápido</b></button>
+      <button class="tool-nav" id="labelMakerLaunchBtn" type="button" title="Crear etiquetas de cuello y añadirlas al lienzo"><span>🏷</span><b>Creación de etiquetas</b></button>
       <button class="tool-nav restart-nav-btn" id="restartAllBtn" type="button" title="Vaciar únicamente la hoja activa"><span>↺</span><b>Iniciar de nuevo</b></button>
     </aside>
 
@@ -1623,6 +1630,54 @@ body.bix-checkout-locked{cursor:progress}
         <span id="autoCreateSummary" class="auto-create-summary">0 diseños</span>
         <button id="autoCreateCancelBtn" class="ghost-btn" type="button">Cancelar</button>
         <button id="autoCreateRunBtn" class="primary-btn" type="button">Crear y organizar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="labelMakerModal" class="modal-backdrop hidden">
+    <div class="modal label-maker-modal" role="dialog" aria-modal="true" aria-labelledby="labelMakerTitle">
+      <div class="modal-head">
+        <div><h2 id="labelMakerTitle">Creación de etiquetas</h2><div class="muted" style="font-size:10px;margin-top:3px">Crea las tallas necesarias y añádelas directamente al lienzo.</div></div>
+        <button id="labelMakerCloseBtn" class="close-btn" type="button" aria-label="Cerrar">×</button>
+      </div>
+      <div class="label-maker-body">
+        <section class="label-maker-form">
+          <div class="label-section">
+            <h3>Marca y estilo</h3>
+            <div class="label-field-grid">
+              <label class="label-field wide">Nombre de la marca<input id="labelBrand" type="text" value="BixStudio" maxlength="40"></label>
+              <label class="label-field wide">Logo transparente (reemplaza el nombre)<span class="label-logo-row"><input id="labelLogo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><button id="labelLogoClear" class="label-logo-clear" type="button">Quitar</button></span></label>
+              <div id="labelLogoControls" class="label-logo-controls" hidden>
+                <label>Tamaño del logo <span id="labelLogoScaleValue">130%</span><input id="labelLogoScale" type="range" min="70" max="160" step="1" value="130"></label>
+                <label>Posición vertical <span id="labelLogoYValue">0</span><input id="labelLogoY" type="range" min="-10" max="10" step="1" value="0"></label>
+                <label class="label-logo-tint"><input id="labelLogoTint" type="checkbox" checked> Aplicar al logo el color seleccionado</label>
+              </div>
+              <label class="label-field">Tipografía<select id="labelFont"><option value="Arial,sans-serif" selected>Moderna gruesa</option><option value="Georgia,serif">Clásica</option><option value="Impact,sans-serif">Impacto</option><option value="Courier New,monospace">Industrial</option></select></label>
+              <label class="label-field">Color<input id="labelColor" type="color" value="#0f172a"></label>
+              <label class="label-field wide">Información adicional<input id="labelExtra" type="text" value="100% ALGODÓN · HECHO EN MÉXICO" maxlength="90"></label>
+              <div class="label-fit-option"><span><b>Medida estándar: 6 × 3 cm</b><br>Las etiquetas se crean listas para impresión con esta medida.</span></div>
+            </div>
+          </div>
+          <div class="label-section">
+            <h3>Cuidados</h3>
+            <div class="label-care-grid">
+              <label class="label-care-option"><input type="checkbox" data-label-care="LAVAR 30°" checked> Lavar a 30°</label>
+              <label class="label-care-option"><input type="checkbox" data-label-care="NO CLORO" checked> No usar cloro</label>
+              <label class="label-care-option"><input type="checkbox" data-label-care="NO SECADORA"> No usar secadora</label>
+              <label class="label-care-option"><input type="checkbox" data-label-care="PLANCHA BAJA" checked> Plancha baja</label>
+            </div>
+          </div>
+          <div class="label-section"><h3>Tallas y cantidades</h3><div id="labelSizeGrid" class="label-size-grid"></div></div>
+        </section>
+        <section class="label-maker-preview">
+          <div id="labelPreviewCard" class="label-preview-card"><img id="labelPreviewImage" alt="Vista previa de etiqueta"></div>
+          <p class="label-preview-note">La cuadrícula representa transparencia. La etiqueta se añade como SVG vectorial.</p>
+        </section>
+      </div>
+      <div class="modal-foot">
+        <span id="labelMakerSummary" class="label-maker-summary">1 etiqueta</span>
+        <button id="labelMakerCancelBtn" class="ghost-btn" type="button">Cancelar</button>
+        <button id="labelMakerAddBtn" class="primary-btn" type="button">Añadir al lienzo</button>
       </div>
     </div>
   </div>
@@ -4582,9 +4637,10 @@ function startDrag(e,o,resizing){
  e.preventDefault();e.stopPropagation();
  if(activeObjectGesture && activeObjectGesture.pointerId!==e.pointerId) return;
 
- // Alt + arrastrar = duplicar y mover la copia.
+ // Alt + arrastrar = duplicar y mover la copia. Exigimos que Alt esté
+ // físicamente pulsado para evitar estados modificadores pegados.
  let historyCaptured=false;
- if(e.altKey){
+ if(altHeld && e.altKey && e.pointerType==="mouse"){
    pushHistory();
    historyCaptured=true;
    const cloned=JSON.parse(JSON.stringify(o));
@@ -8300,6 +8356,137 @@ $("#quickQuoteCancelBtn").onclick=closeQuickQuote;
 $("#quickQuoteModal").addEventListener("click",event=>{if(event.target===$("#quickQuoteModal")) closeQuickQuote()});
 
 // =====================================================================
+// CREACIÓN DE ETIQUETAS · SVG VECTORIAL, MEDIDA FIJA 6 × 3 CM
+// =====================================================================
+const LABEL_SIZES=["XS","S","M","L","XL","XXL"];
+let labelLogoDataUrl="";
+
+function labelEscapeXml(value){
+  return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&apos;"}[char]));
+}
+async function labelFileDataUrl(file){
+  return await new Promise((resolve,reject)=>{const reader=new FileReader;reader.onload=()=>resolve(String(reader.result||""));reader.onerror=reject;reader.readAsDataURL(file)});
+}
+async function cropLabelLogo(file){
+  if(file.type==="image/svg+xml" || /\.svg$/i.test(file.name||"")) return labelFileDataUrl(file);
+  const source=await labelFileDataUrl(file);
+  const image=await new Promise((resolve,reject)=>{const img=new Image;img.onload=()=>resolve(img);img.onerror=reject;img.src=source});
+  const canvas=document.createElement("canvas");canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+  const context=canvas.getContext("2d",{willReadFrequently:true});context.drawImage(image,0,0);
+  const pixels=context.getImageData(0,0,canvas.width,canvas.height).data;
+  let left=canvas.width,top=canvas.height,right=-1,bottom=-1;
+  for(let y=0;y<canvas.height;y++) for(let x=0;x<canvas.width;x++){
+    if(pixels[(y*canvas.width+x)*4+3]<=8) continue;
+    if(x<left)left=x;if(x>right)right=x;if(y<top)top=y;if(y>bottom)bottom=y;
+  }
+  if(right<left||bottom<top) return source;
+  const width=right-left+1,height=bottom-top+1;
+  if(width===canvas.width&&height===canvas.height) return source;
+  const cropped=document.createElement("canvas");cropped.width=width;cropped.height=height;
+  cropped.getContext("2d").drawImage(canvas,left,top,width,height,0,0,width,height);
+  return cropped.toDataURL("image/png");
+}
+function selectedLabelCare(){return $$('[data-label-care]:checked').map(input=>input.dataset.labelCare)}
+function labelConfig(size="M"){
+  return {
+    brand:$("#labelBrand").value.trim()||"Mi marca",extra:$("#labelExtra").value.trim(),
+    color:$("#labelColor").value||"#0f172a",font:$("#labelFont").value||"Arial,sans-serif",
+    width:6,height:3,care:selectedLabelCare(),size,logo:labelLogoDataUrl,
+    logoScale:Math.max(.7,Math.min(1.6,(+$("#labelLogoScale")?.value||130)/100)),
+    logoY:Math.max(-.1,Math.min(.1,(+$("#labelLogoY")?.value||0)/100)),
+    tintLogo:$("#labelLogoTint")?.checked!==false,safeDtf:true
+  };
+}
+function buildLabelSvg(config,pixelWidth,pixelHeight){
+  const w=Math.max(1,Math.round(pixelWidth)),h=Math.max(1,Math.round(pixelHeight));
+  const color=labelEscapeXml(config.color),center=w/2,brandY=h*.15;
+  const brandSize=Math.max(34,Math.min(w*.14,h*.16));
+  const sizeRadius=Math.max(22,Math.min(w,h)*.1),sizeY=h*.4;
+  const extraSize=Math.max(24,Math.min(w*.043,h*.068));
+  const careSize=Math.max(19,Math.min(w*.033,h*.055));
+  const circleStroke=Math.max(6,w*.009),dividerStroke=Math.max(5,w*.007);
+  const brandOutline=Math.max(1.8,w*.0027),smallOutline=Math.max(1.5,w*.0022);
+  const outlineAttrs=stroke=>` paint-order="stroke fill" stroke="${color}" stroke-width="${stroke}" stroke-linejoin="round"`;
+  const careText=config.care.length?config.care.join("  ·  "):"";
+  const logoWidth=w*.84*config.logoScale,logoHeight=h*.25*config.logoScale;
+  const logoTintFilter=config.logo&&config.tintLogo
+    ? `<defs><filter id="labelLogoTint" color-interpolation-filters="sRGB"><feFlood flood-color="${color}" result="tint"/><feComposite in="tint" in2="SourceAlpha" operator="in"/></filter></defs>`:"";
+  const logo=config.logo
+    ? `<image href="${labelEscapeXml(config.logo)}" x="${(w-logoWidth)/2}" y="${h*(.015+config.logoY)}" width="${logoWidth}" height="${logoHeight}" preserveAspectRatio="xMidYMid meet"${config.tintLogo?' filter="url(#labelLogoTint)"':""}/>`
+    : `<text x="${center}" y="${brandY}" text-anchor="middle" dominant-baseline="middle" fill="${color}" font-family="${labelEscapeXml(config.font)}" font-size="${brandSize}" font-weight="800"${outlineAttrs(brandOutline)}>${labelEscapeXml(config.brand)}</text>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${logoTintFilter}${logo}
+    <circle cx="${center}" cy="${sizeY}" r="${sizeRadius}" fill="none" stroke="${color}" stroke-width="${circleStroke}"/>
+    <text x="${center}" y="${sizeY}" text-anchor="middle" dominant-baseline="middle" fill="${color}" font-family="Arial,sans-serif" font-size="${sizeRadius*.86}" font-weight="900"${outlineAttrs(1.2)}>${labelEscapeXml(config.size)}</text>
+    <text x="${center}" y="${h*.61}" text-anchor="middle" dominant-baseline="middle" fill="${color}" font-family="Arial,sans-serif" font-size="${extraSize}" font-weight="800"${outlineAttrs(smallOutline)}>${labelEscapeXml(config.extra)}</text>
+    <line x1="${w*.05}" y1="${h*.73}" x2="${w*.95}" y2="${h*.73}" stroke="${color}" stroke-width="${dividerStroke}"/>
+    <text x="${center}" y="${h*.86}" text-anchor="middle" dominant-baseline="middle" fill="${color}" font-family="Arial,sans-serif" font-size="${careSize}" font-weight="800"${outlineAttrs(smallOutline)}>${labelEscapeXml(careText)}</text></svg>`;
+}
+function labelSvgDataUrl(svg){return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)}
+function renderLabelPreview(){
+  const config=labelConfig("M"),card=$("#labelPreviewCard");card.style.aspectRatio="2/1";
+  $("#labelPreviewImage").src=labelSvgDataUrl(buildLabelSvg(config,700,350));updateLabelSummary();
+}
+function renderLabelSizeGrid(){
+  const host=$("#labelSizeGrid");host.innerHTML="";
+  LABEL_SIZES.forEach(size=>{const item=document.createElement("label");item.className="label-size-item";item.innerHTML=`<input type="checkbox" data-label-size="${size}" ${size==="M"?"checked":""}><span>${size}</span><small>Cantidad</small><input type="number" data-label-qty="${size}" min="1" max="250" step="1" value="1">`;host.appendChild(item)});
+}
+function chosenLabelSizes(){
+  return LABEL_SIZES.flatMap(size=>{const checked=$(`[data-label-size="${size}"]`)?.checked;const qty=Math.max(1,Math.min(250,Math.round(+$(`[data-label-qty="${size}"]`)?.value||1)));return checked?[{size,qty}]:[]});
+}
+function updateLabelSummary(){
+  const variants=chosenLabelSizes(),total=variants.reduce((sum,row)=>sum+row.qty,0),el=$("#labelMakerSummary");
+  if(el)el.textContent=`${total} etiqueta${total===1?"":"s"} · ${variants.length} talla${variants.length===1?"":"s"}`;
+}
+async function createLabels(){
+  const variants=chosenLabelSizes();if(!variants.length)return toast("Selecciona al menos una talla.");
+  const total=variants.reduce((sum,row)=>sum+row.qty,0);if(total>500)return toast("Puedes añadir hasta 500 etiquetas por operación.");
+  const widthCm=6,heightCm=3,pixelWidth=Math.round(widthCm/2.54*300),pixelHeight=Math.round(heightCm/2.54*300);
+  const button=$("#labelMakerAddBtn");button.disabled=true;button.textContent="Añadiendo…";
+  try{
+    const created=[];
+    for(const row of variants){
+      const config=labelConfig(row.size),svg=buildLabelSvg(config,pixelWidth,pixelHeight);
+      const safeBrand=config.brand.replace(/[^a-z0-9áéíóúüñ_-]+/gi,"_").slice(0,30)||"marca";
+      const file=new File([svg],`Etiqueta_${safeBrand}_${row.size}_6x3cm.svg`,{type:"image/svg+xml"});
+      const asset=await addAsset(file,{skipAutoTrim:true});if(!asset)throw new Error(`No se pudo generar la talla ${row.size}.`);
+      asset.dpiX=300;asset.dpiY=300;asset.dpiSource="generador-etiquetas-svg";asset.dpiAssumed=false;
+      asset.physicalWcm=widthCm;asset.physicalHcm=heightCm;asset.autoTrimmed=true;asset.updatedAt=Date.now();await persistAsset(asset);
+      created.push({asset,qty:row.qty});
+    }
+    pushHistory();let placedCount=0;
+    placement: for(const {asset,qty} of created) for(let copy=0;copy<qty;copy++){
+      const o={id:uid(),type:"image",name:asset.name,assetId:asset.id,naturalW:asset.w,naturalH:asset.h,
+        sourceDpiX:300,sourceDpiY:300,dpiDefined:true,sourceWidthCm:widthCm,sourceHeightCm:heightCm,
+        x:state.sheet.margin+.05,y:state.sheet.margin+.05,w:widthCm,h:heightCm,rot:0,flipX:false,flipY:false,
+        aspectLocked:true,aspectRatio:2,baseW:widthCm,baseH:heightCm};
+      const placed=await placeObjectWithShapeAutoGrowth(o);if(!placed)break placement;
+      state.objects.push(o);state.selectedId=o.id;state.selectedIds=[o.id];placedCount++;
+    }
+    if(!placedCount){state.history.pop();return}
+    recalcActiveSheetHeight();renderAll();closeLabelMaker();hintPropertiesTab();
+    toast(`${placedCount} etiqueta${placedCount===1?"":"s"} añadida${placedCount===1?"":"s"} buscando espacios disponibles.`);
+  }catch(error){console.error("[Creación de etiquetas]",error);toast(error?.message||"No se pudieron crear las etiquetas.")}
+  finally{button.disabled=false;button.textContent="Añadir al lienzo"}
+}
+function openLabelMaker(){renderLabelPreview();modalOpen("labelMakerModal")}
+function closeLabelMaker(){modalClose("labelMakerModal")}
+renderLabelSizeGrid();
+$("#labelMakerLaunchBtn").onclick=openLabelMaker;$("#labelMakerCloseBtn").onclick=closeLabelMaker;$("#labelMakerCancelBtn").onclick=closeLabelMaker;$("#labelMakerAddBtn").onclick=createLabels;
+{
+  const backdrop=$("#labelMakerModal");let backdropPress=null;
+  backdrop.addEventListener("pointerdown",event=>{backdropPress=event.target===backdrop?{x:event.clientX,y:event.clientY}:null});
+  backdrop.addEventListener("pointerup",event=>{if(!backdropPress)return;const moved=Math.hypot(event.clientX-backdropPress.x,event.clientY-backdropPress.y);const shouldClose=event.target===backdrop&&moved<6;backdropPress=null;if(shouldClose)closeLabelMaker()});
+  backdrop.addEventListener("pointercancel",()=>{backdropPress=null});
+}
+[$("#labelBrand"),$("#labelExtra"),$("#labelColor"),$("#labelFont")].forEach(input=>input.addEventListener("input",renderLabelPreview));
+[$("#labelLogoScale"),$("#labelLogoY"),$("#labelLogoTint")].forEach(input=>input.addEventListener("input",()=>{
+  $("#labelLogoScaleValue").textContent=`${$("#labelLogoScale").value}%`;$("#labelLogoYValue").textContent=$("#labelLogoY").value;renderLabelPreview();
+}));
+$$('[data-label-care], [data-label-size], [data-label-qty]').forEach(input=>input.addEventListener("input",renderLabelPreview));
+$("#labelLogo").addEventListener("change",async event=>{const file=event.target.files?.[0];if(!file)return;try{labelLogoDataUrl=await cropLabelLogo(file);$("#labelLogoControls").hidden=false;renderLabelPreview()}catch(error){console.error("[Logo de etiqueta]",error);toast("No se pudo preparar el logo.")}});
+$("#labelLogoClear").onclick=()=>{labelLogoDataUrl="";$("#labelLogo").value="";$("#labelLogoControls").hidden=true;renderLabelPreview()};
+
+// =====================================================================
 // CREACIÓN RÁPIDA · LISTA DE MEDIDAS Y CANTIDADES
 // =====================================================================
 const autoCreatePlan=[];
@@ -11044,6 +11231,7 @@ setTimeout(updateShopifyCartUi,0);
 // ----- Viewport dinámico: zoom + pan tipo editor -----
 const stageScroller=$("#stageScroller");
 let spaceHeld=false;
+let altHeld=false;
 let panSession=null;
 
 // El marco global se activa aquí, cuando stageScroller ya está inicializado.
@@ -11557,6 +11745,7 @@ function isTypingTarget(el){
 }
 
 document.addEventListener("keydown",e=>{
+ if(e.key==="Alt") altHeld=true;
  const typing=isTypingTarget(document.activeElement);
  const mod=e.ctrlKey||e.metaKey;
  const key=e.key.toLowerCase();
@@ -11646,6 +11835,7 @@ document.addEventListener("keydown",e=>{
 });
 
 document.addEventListener("keyup",e=>{
+ if(e.key==="Alt") altHeld=false;
  if(e.code==="Space"){
    spaceHeld=false;
    stageScroller.classList.remove("space-held");
@@ -11653,6 +11843,7 @@ document.addEventListener("keyup",e=>{
  }
 });
 window.addEventListener("blur",()=>{
+ altHeld=false;
  spaceHeld=false;
  stageScroller.classList.remove("space-held");
  endPan({});
