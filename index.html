@@ -1339,7 +1339,7 @@ body.bix-checkout-locked{cursor:progress}
       </div>
 <div id="settingsPanel" class="panel-view">
         <label class="field">Ancho
-          <div class="unit-input"><input id="sheetWidth" type="number" value="62" readonly aria-readonly="true" title="El ancho DTF está fijado en 62 cm"><span>cm</span></div>
+          <div class="unit-input"><input id="sheetWidth" type="number" min="10" max="310" step="0.1" value="62" title="Ancho temporal de la mesa de trabajo"><span>cm</span></div>
         </label>
         <label class="field">Alto
           <div class="unit-input"><input id="sheetHeight" type="number" value="30" min="30" max="310" step="0.1"><span>cm</span></div>
@@ -1704,7 +1704,7 @@ body.bix-checkout-locked{cursor:progress}
         </section>
       </div>
       <div class="modal-foot">
-        <span class="auto-create-summary">Ancho fijo de producción: 62 cm</span>
+        <span class="auto-create-summary">Ancho actual de producción: <span id="quickQuoteWidth">62</span> cm</span>
         <button id="quickQuoteCancelBtn" class="ghost-btn" type="button">Cerrar</button>
         <button id="quickQuoteCalculateBtn" class="primary-btn" type="button">Calcular cotización</button>
       </div>
@@ -2362,7 +2362,7 @@ async function placeObjectWithShapeAutoGrowth(o,excludeId=null){
   createNewSheet();
   pos=await findShapePlacementForObject(o,MAX_SHEET_HEIGHT,null);
   if(!pos){
-    toast(`El diseño no pudo colocarse en una Gang Sheet nueva de ${FIXED_SHEET_WIDTH_CM} × 310 cm.`);
+    toast(`El diseño no pudo colocarse en una Gang Sheet nueva de ${state.sheet.w} × 310 cm.`);
     return false;
   }
   o.x=pos.x;o.y=pos.y;o.rot=pos.rot;
@@ -3194,9 +3194,9 @@ function redo(){if(!state.future.length)return;state.history.push(snapshot());re
 const FIXED_SHEET_WIDTH_CM=62;
 function enforceFixedSheetWidth(){
   for(const record of state.sheets||[]){
-    if(record?.sheet) record.sheet.w=FIXED_SHEET_WIDTH_CM;
+    if(record?.sheet) record.sheet.w=Math.min(310,Math.max(10,+record.sheet.w||FIXED_SHEET_WIDTH_CM));
   }
-  if(state.sheet) state.sheet.w=FIXED_SHEET_WIDTH_CM;
+  if(state.sheet) state.sheet.w=Math.min(310,Math.max(10,+state.sheet.w||FIXED_SHEET_WIDTH_CM));
 }
 
 function syncSheetInputs(){
@@ -5563,7 +5563,7 @@ function switchSheet(index){
 }
 function createNewSheet(){
   const margin=0;
-  const width=FIXED_SHEET_WIDTH_CM;
+  const width=Math.min(310,Math.max(10,+state.sheet?.w||FIXED_SHEET_WIDTH_CM));
   const id="gs"+state.nextSheetId;
   const sheet={id,name:`Gang Sheet ${state.nextSheetId}`,sheet:{w:width,h:MIN_SHEET_HEIGHT,margin},objects:[]};
   state.nextSheetId++;
@@ -5926,7 +5926,7 @@ function placeObjectWithAutoGrowth(o,excludeId=null){
   // Retry from scratch on the empty new sheet, including the optional 90° fallback.
   attempt=placementAttemptWithRotation(o,null);
   if(!attempt.placed){
-    toast(`El diseño no pudo colocarse en una Gang Sheet nueva de ${FIXED_SHEET_WIDTH_CM} × 310 cm.`);
+    toast(`El diseño no pudo colocarse en una Gang Sheet nueva de ${state.sheet.w} × 310 cm.`);
     return false;
   }
 
@@ -6035,7 +6035,7 @@ async function insertAsset(a,sizeOverride=null){
 
    toast(
      `Diseño importado a tamaño original (${reasons.join(" · ")}). `+
-     `Redimensiónalo para colocarlo dentro de la Gang Sheet de ${FIXED_SHEET_WIDTH_CM} cm.`
+     `Redimensiónalo para colocarlo dentro de la Gang Sheet de ${state.sheet.w} cm.`
    );
    return;
  }
@@ -8326,7 +8326,7 @@ function renderQuickQuoteResult(result,totalPieces){
     wrap.innerHTML='<div style="font-size:10px;font-weight:800;margin:10px 12px 3px">Hoja '+(index+1)+' · '+Math.ceil(sheet.height-1e-9)+' cm facturables</div>';
     const board=document.createElement("div");
     board.className="quick-quote-sheet";
-    board.style.width=(FIXED_SHEET_WIDTH_CM*scale)+"px";
+    board.style.width=((+state.sheet.w||FIXED_SHEET_WIDTH_CM)*scale)+"px";
     board.style.height=(Math.max(1,sheet.height)*scale)+"px";
     for(const p of sheet.placed){
       const piece=document.createElement("div");
@@ -8342,6 +8342,7 @@ function renderQuickQuoteResult(result,totalPieces){
 }
 
 function openQuickQuote(){
+  const widthLabel=$("#quickQuoteWidth");if(widthLabel)widthLabel.textContent=(+state.sheet.w||FIXED_SHEET_WIDTH_CM).toFixed(1).replace(".0","");
   if(!quickQuotePlan.length) addQuickQuoteRow({w:10,h:10,qty:1});
   $("#quickQuoteGap").value=nestGapValue();
   $("#quickQuoteRotate").checked=!!$("#allowRotate")?.checked;
@@ -9669,8 +9670,7 @@ $("#artboardCustomColor")?.addEventListener("input",event=>{
 
 $("#applySettingsBtn").onclick=()=>{
  pushHistory();
- enforceFixedSheetWidth();
- state.sheet.w=FIXED_SHEET_WIDTH_CM;
+ state.sheet.w=Math.min(310,Math.max(10,+$("#sheetWidth").value||FIXED_SHEET_WIDTH_CM));
  state.sheet.h=Math.min(MAX_SHEET_HEIGHT,Math.max(MIN_SHEET_HEIGHT,+$("#sheetHeight").value||MIN_SHEET_HEIGHT));
  state.sheet.margin=Math.max(0,+$("#sheetMargin").value||0);
  state.snap=$("#snapToggle").checked;
@@ -10237,7 +10237,7 @@ async function ensureCloudProject(){
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        totalWidthCm:FIXED_SHEET_WIDTH_CM,
+        totalWidthCm:Math.max(...state.sheets.map(s=>+s.sheet?.w||FIXED_SHEET_WIDTH_CM)),
         totalHeightCm:Math.max(30,totalHeight||30)
       })
     });
@@ -11646,6 +11646,7 @@ window.BixNestBridge={
   MIN_SHEET_HEIGHT,
   MAX_SHEET_HEIGHT,
   FIXED_SHEET_WIDTH_CM,
+  sheetWidth:()=>Math.min(310,Math.max(10,+state.sheet?.w||FIXED_SHEET_WIDTH_CM)),
   ensureRotationModel:(o)=>ensureRotationModel(o),
   getAdaptiveNestMask:(item,q,grid)=>getPackingNestMask(item,q,grid),
   pushHistory:()=>pushHistory(),
