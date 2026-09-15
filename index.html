@@ -8318,7 +8318,7 @@ function renderQuickQuoteResult(result,totalPieces){
   results.innerHTML=
     '<div class="quick-quote-stat"><small>Material facturable</small><b>'+totalCm+' cm</b></div>'+
     '<div class="quick-quote-stat"><small>Hojas necesarias</small><b>'+result.sheets.length+'</b></div>'+
-    '<div class="quick-quote-stat"><small>Precio estimado · oferta 25% OFF</small><b>'+shopifyOfferPriceHtml(totalCm*SHOPIFY_PRICE_PER_CM)+'</b></div>';
+    '<div class="quick-quote-stat"><small>Precio estimado</small><b>'+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)+'</b></div>';
   canvas.innerHTML="";
   result.sheets.forEach((sheet,index)=>{
     const scale=5;
@@ -8338,7 +8338,7 @@ function renderQuickQuoteResult(result,totalPieces){
     }
     wrap.appendChild(board);canvas.appendChild(wrap);
   });
-  toast(totalPieces+" piezas · "+totalCm+" cm · "+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)+" · oferta 25% OFF");
+  toast(totalPieces+" piezas · "+totalCm+" cm · "+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM));
 }
 
 function openQuickQuote(){
