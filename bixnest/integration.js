@@ -148,6 +148,7 @@ async function buildProblem(plan,objects,maxHeight=MAX_SHEET_HEIGHT,options={}){
       baseH:o.baseH||o.h,
       flipX:!!o.flipX,
       flipY:!!o.flipY,
+      nestAsRect:!!o.nestAsRect,
       groupKey,
       instance
     };

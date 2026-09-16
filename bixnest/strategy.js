@@ -12,7 +12,8 @@ function groupKeyForObject(o){
     w.toFixed(3),
     h.toFixed(3),
     o.flipX?1:0,
-    o.flipY?1:0
+    o.flipY?1:0,
+    o.nestAsRect?1:0
   ].join("|");
 }
 
