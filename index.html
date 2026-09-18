@@ -9424,13 +9424,26 @@ async function inspectSourceAlphaFast(asset){
     return {semi:false,binary:true,cached:true};
   }
 
-  const cacheKey=asset.src||asset.id;
+  // Never inspect the tiny Recent-library thumbnail: its downscaling may
+  // manufacture intermediate alpha values that do not exist in the PNG.
+  if(asset._srcIsThumbnail){
+    try{await ensureAssetOriginalAvailable(asset,{quiet:true})}
+    catch(error){console.warn("[BixStudio alpha original]",asset?.name,error)}
+  }
+
+  if(asset._srcIsThumbnail){
+    // An unverifiable thumbnail must never be reported as proof of semi-alpha.
+    return {semi:false,error:true,reason:"original-unavailable"};
+  }
+
+  const src=asset.src;
+  const cacheKey=`original:${src||asset.id}`;
   if(asset._preflightAlphaFast?.key===cacheKey){
     return asset._preflightAlphaFast.result;
   }
 
   try{
-    const src=assetLibraryPreviewSrc(asset)||asset.src;
+    if(!src) throw new Error("Archivo sin una fuente disponible");
     const img=await loadImageFromSrc(src);
 
     // Sample at a bounded size. Use nearest-neighbour so the preflight itself
