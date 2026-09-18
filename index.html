@@ -2457,6 +2457,8 @@ const LIGHT_LIBRARY_FULL_BLOB_LIMIT=30;
 const LIGHT_LIBRARY_MAX_ITEMS=500;
 const LIGHT_LIBRARY_THUMB_MAX=260;
 const LIGHT_LIBRARY_THUMB_QUALITY=.78;
+const EDITOR_PREVIEW_MAX_SIDE=4096;
+const EDITOR_PREVIEW_QUALITY=.92;
 
 let assetLibraryVisibleCount=LIGHT_LIBRARY_PAGE_SIZE;
 let assetLibraryLastQuery="";
@@ -2540,6 +2542,38 @@ function assetLibraryPreviewSrc(asset){
     return asset._thumbnailUrl;
   }
   return asset.src||"";
+}
+
+function canvasToEditorPreviewBlob(canvas){
+  return new Promise((resolve,reject)=>{
+    const finish=blob=>blob?resolve(blob):reject(new Error("No se pudo crear la vista de trabajo"));
+    try{canvas.toBlob(blob=>{if(blob)return finish(blob);canvas.toBlob(finish,"image/png")},"image/webp",EDITOR_PREVIEW_QUALITY)}
+    catch(_){canvas.toBlob(finish,"image/png")}
+  });
+}
+
+async function ensureAssetEditorPreview(asset){
+  if(!asset)return null;
+  if(asset._editorPreviewUrl)return asset._editorPreviewUrl;
+  if(asset._editorPreviewPromise)return asset._editorPreviewPromise;
+  // Never enlarge a historical 260 px thumbnail. Wait until its original is hydrated.
+  if(asset._srcIsThumbnail&&!(asset.file instanceof Blob))return null;
+  asset._editorPreviewPromise=(async()=>{
+    const temporarySource=asset.file instanceof Blob?URL.createObjectURL(asset.file):null;
+    const source=temporarySource||asset.src||"";
+    if(!source)return null;
+    try{
+      const image=await loadImageFromSrc(source);
+      const scale=Math.min(1,EDITOR_PREVIEW_MAX_SIDE/Math.max(1,image.naturalWidth,image.naturalHeight));
+      const width=Math.max(1,Math.round(image.naturalWidth*scale)),height=Math.max(1,Math.round(image.naturalHeight*scale));
+      const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
+      const context=canvas.getContext("2d",{alpha:true});context.clearRect(0,0,width,height);context.imageSmoothingEnabled=true;context.imageSmoothingQuality="high";context.drawImage(image,0,0,width,height);
+      const blob=await canvasToEditorPreviewBlob(canvas);canvas.width=0;canvas.height=0;
+      asset._editorPreviewBlob=blob;asset._editorPreviewUrl=URL.createObjectURL(blob);return asset._editorPreviewUrl;
+    }catch(error){console.warn("No se pudo crear vista de trabajo",asset.name,error);return null}
+    finally{if(temporarySource)try{URL.revokeObjectURL(temporarySource)}catch{}}
+  })();
+  try{return await asset._editorPreviewPromise}finally{asset._editorPreviewPromise=null}
 }
 
 function assetCloudStoragePath(asset){
@@ -3210,10 +3244,15 @@ function objectSrc(o){
 function objectEditorPreviewSrc(o){
   const a=o?.type==="image"?assetById(o.assetId):null;
   if(!a) return objectSrc(o);
-  // Keep very large originals for export/cloud rendering, but display their
-  // lightweight thumbnail while editing so several 80 MP files do not remain
-  // decoded in browser memory at the same time.
+  // Very large originals get a dedicated work preview. The 260 px library
+  // thumbnail is far too small for a full prepared canvas and looks blurry.
   if((a.w||0)*(a.h||0)>50_000_000){
+    if(a._editorPreviewUrl)return a._editorPreviewUrl;
+    void ensureAssetEditorPreview(a).then(src=>{
+      if(!src)return;
+      const element=layer?.querySelector(`.design-object[data-id="${CSS.escape(String(o.id))}"] img`);
+      if(element&&element.src!==src)element.src=src;
+    });
     return assetLibraryPreviewSrc(a)||a.src;
   }
   return a.src;
