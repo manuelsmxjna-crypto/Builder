@@ -5054,6 +5054,79 @@ async function ensureAssetAutoTrimmed(asset){
   }
 }
 const LARGE_IMAGE_AUTOTRIM_PIXEL_LIMIT=50_000_000;
+const LARGE_IMAGE_AUTOTRIM_PROBE_PIXELS=4_000_000;
+
+/**
+ * Find transparent margins on a lightweight proxy, then crop from the original
+ * image. This avoids allocating an additional full-size RGBA buffer merely to
+ * discover the bounds of very large artwork.
+ */
+async function ensureLargeAssetAutoTrimmed(asset){
+  if(!asset || asset.autoTrimmed) return {trimmed:false};
+  try{
+    const im=await loadImageFromSrc(asset.src);
+    const srcW=im.naturalWidth,srcH=im.naturalHeight;
+    const scale=Math.min(1,Math.sqrt(LARGE_IMAGE_AUTOTRIM_PROBE_PIXELS/(srcW*srcH)));
+    const probeW=Math.max(1,Math.round(srcW*scale));
+    const probeH=Math.max(1,Math.round(srcH*scale));
+    const probe=document.createElement("canvas");
+    probe.width=probeW;probe.height=probeH;
+    const px=probe.getContext("2d",{willReadFrequently:true});
+    // Nearest-neighbour keeps binary-alpha sources binary and prevents the
+    // proxy itself from inventing semi-transparent edge pixels.
+    px.imageSmoothingEnabled=false;
+    px.clearRect(0,0,probeW,probeH);
+    px.drawImage(im,0,0,probeW,probeH);
+    const rgba=px.getImageData(0,0,probeW,probeH).data;
+    asset.alphaBinary=rgbaIsBinaryAlpha(rgba);
+    const bounds=trimTransparentRgba(rgba,probeW,probeH,{alphaMin:1,pad:0});
+    if(!bounds){
+      asset.autoTrimmed=true;
+      await persistAsset(asset);
+      return {trimmed:false,empty:true};
+    }
+    if(!bounds.trimmed){
+      asset.autoTrimmed=true;
+      await persistAsset(asset);
+      return {trimmed:false};
+    }
+
+    // Convert proxy coordinates back to original pixels. A small safety pad
+    // protects fine antialiased edges that may fall between proxy samples.
+    const safetyPad=Math.max(2,Math.ceil(1/scale));
+    const sx=Math.max(0,Math.floor(bounds.offsetX/scale)-safetyPad);
+    const sy=Math.max(0,Math.floor(bounds.offsetY/scale)-safetyPad);
+    const ex=Math.min(srcW,Math.ceil((bounds.offsetX+bounds.width)/scale)+safetyPad);
+    const ey=Math.min(srcH,Math.ceil((bounds.offsetY+bounds.height)/scale)+safetyPad);
+    const cropW=Math.max(1,ex-sx),cropH=Math.max(1,ey-sy);
+    if(cropW===srcW && cropH===srcH){
+      asset.autoTrimmed=true;
+      await persistAsset(asset);
+      return {trimmed:false};
+    }
+
+    const cropped=document.createElement("canvas");
+    cropped.width=cropW;cropped.height=cropH;
+    const cx=cropped.getContext("2d");
+    cx.clearRect(0,0,cropW,cropH);
+    cx.drawImage(im,sx,sy,cropW,cropH,0,0,cropW,cropH);
+    const blob=await canvasBlob(cropped);
+    try{URL.revokeObjectURL(asset.src)}catch{}
+    asset.src=URL.createObjectURL(blob);
+    asset.file=blob;
+    if(Number.isFinite(asset.physicalWcm)) asset.physicalWcm*=cropW/srcW;
+    if(Number.isFinite(asset.physicalHcm)) asset.physicalHcm*=cropH/srcH;
+    asset.w=cropW;asset.h=cropH;
+    asset.autoTrimmed=true;
+    asset.updatedAt=Date.now();
+    await persistAsset(asset);
+    return {trimmed:true,width:cropW,height:cropH};
+  }catch(e){
+    console.warn("Auto-trim grande falló",e);
+    asset.autoTrimmed=true;
+    return {trimmed:false,error:true};
+  }
+}
 
 function updateFileImportProgress(pct,status,title="Cargando archivos…"){
   const overlay=$("#fileImportOverlay");
@@ -5106,21 +5179,26 @@ async function addAsset(file,options={}){
     };
     let trimInfo={trimmed:false};
     const pixelCount=img.naturalWidth*img.naturalHeight;
-    const skipLargeAutoTrim=pixelCount>LARGE_IMAGE_AUTOTRIM_PIXEL_LIMIT;
-    if(options.skipAutoTrim || skipLargeAutoTrim){
+    const useLargeAutoTrim=pixelCount>LARGE_IMAGE_AUTOTRIM_PIXEL_LIMIT;
+    if(options.skipAutoTrim){
       // A PDF page is a physical canvas. Cropping transparent page margins
       // would change the dimensions selected by the customer.
       options.onProgress?.(
         42,
-        skipLargeAutoTrim
-          ? `Imagen de ${(pixelCount/1_000_000).toFixed(0)} MP: conservando el lienzo original para evitar bloquear el dispositivo…`
-          : "Conservando las dimensiones originales…"
+        "Conservando las dimensiones originales…"
       );
       asset.autoTrimmed=true;
       await persistAsset(asset);
     }else{
-      options.onProgress?.(36,"Analizando transparencia y márgenes…");
-      trimInfo=await ensureAssetAutoTrimmed(asset);
+      options.onProgress?.(
+        36,
+        useLargeAutoTrim
+          ? `Analizando márgenes de la imagen de ${(pixelCount/1_000_000).toFixed(0)} MP…`
+          : "Analizando transparencia y márgenes…"
+      );
+      trimInfo=useLargeAutoTrim
+        ? await ensureLargeAssetAutoTrimmed(asset)
+        : await ensureAssetAutoTrimmed(asset);
     }
     options.onProgress?.(72,"Creando la vista previa…");
     state.assets.unshift(asset);
