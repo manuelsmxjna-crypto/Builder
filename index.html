@@ -8685,7 +8685,7 @@ async function createLabels(){
       const o={id:uid(),type:"image",name:asset.name,assetId:asset.id,naturalW:asset.w,naturalH:asset.h,
         sourceDpiX:300,sourceDpiY:300,dpiDefined:true,sourceWidthCm:widthCm,sourceHeightCm:heightCm,
         x:state.sheet.margin+.05,y:state.sheet.margin+.05,w:widthCm,h:heightCm,rot:0,flipX:false,flipY:false,
-        aspectLocked:true,aspectRatio:2,baseW:widthCm,baseH:heightCm};
+        aspectLocked:true,aspectRatio:2,baseW:widthCm,baseH:heightCm,nestAsRect:true};
       const placed=await placeObjectWithShapeAutoGrowth(o);if(!placed)break placement;
       state.objects.push(o);state.selectedId=o.id;state.selectedIds=[o.id];placedCount++;
     }
