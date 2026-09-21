@@ -1681,7 +1681,7 @@ body.bix-checkout-locked{cursor:progress}
         </section>
         <section class="label-maker-preview">
           <div id="labelPreviewCard" class="label-preview-card"><img id="labelPreviewImage" alt="Vista previa de etiqueta"></div>
-          <p class="label-preview-note">La cuadrícula representa transparencia. La etiqueta se añade como SVG vectorial.</p>
+          <p class="label-preview-note">La cuadrícula representa transparencia. La etiqueta se añade como PNG transparente a 300 DPI para conservar correctamente textos y tipografías.</p>
         </section>
       </div>
       <div class="modal-foot">
@@ -8625,6 +8625,29 @@ function buildLabelSvg(config,pixelWidth,pixelHeight){
     <text x="${center}" y="${h*.86}" text-anchor="middle" dominant-baseline="middle" fill="${color}" font-family="Arial,sans-serif" font-size="${careSize}" font-weight="800"${outlineAttrs(smallOutline)}>${labelEscapeXml(careText)}</text></svg>`;
 }
 function labelSvgDataUrl(svg){return "data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)}
+async function labelSvgToPngBlob(svg,pixelWidth,pixelHeight){
+  if(document.fonts?.ready) await document.fonts.ready;
+  const svgBlob=new Blob([svg],{type:"image/svg+xml;charset=utf-8"});
+  const url=URL.createObjectURL(svgBlob);
+  try{
+    const image=await new Promise((resolve,reject)=>{
+      const img=new Image();
+      img.onload=()=>resolve(img);
+      img.onerror=()=>reject(new Error("No se pudo preparar la etiqueta para impresión."));
+      img.src=url;
+    });
+    const canvas=document.createElement("canvas");
+    canvas.width=pixelWidth;canvas.height=pixelHeight;
+    const context=canvas.getContext("2d",{alpha:true});
+    if(!context)throw new Error("El navegador no pudo crear la etiqueta.");
+    context.clearRect(0,0,pixelWidth,pixelHeight);
+    context.drawImage(image,0,0,pixelWidth,pixelHeight);
+    return await new Promise((resolve,reject)=>canvas.toBlob(
+      blob=>blob?resolve(blob):reject(new Error("No se pudo convertir la etiqueta a PNG.")),
+      "image/png"
+    ));
+  }finally{URL.revokeObjectURL(url)}
+}
 function renderLabelPreview(){
   const config=labelConfig("M"),card=$("#labelPreviewCard");card.style.aspectRatio="2/1";
   $("#labelPreviewImage").src=labelSvgDataUrl(buildLabelSvg(config,700,350));updateLabelSummary();
@@ -8650,9 +8673,10 @@ async function createLabels(){
     for(const row of variants){
       const config=labelConfig(row.size),svg=buildLabelSvg(config,pixelWidth,pixelHeight);
       const safeBrand=config.brand.replace(/[^a-z0-9áéíóúüñ_-]+/gi,"_").slice(0,30)||"marca";
-      const file=new File([svg],`Etiqueta_${safeBrand}_${row.size}_6x3cm.svg`,{type:"image/svg+xml"});
+      const pngBlob=await labelSvgToPngBlob(svg,pixelWidth,pixelHeight);
+      const file=new File([pngBlob],`Etiqueta_${safeBrand}_${row.size}_6x3cm_300dpi.png`,{type:"image/png"});
       const asset=await addAsset(file,{skipAutoTrim:true});if(!asset)throw new Error(`No se pudo generar la talla ${row.size}.`);
-      asset.dpiX=300;asset.dpiY=300;asset.dpiSource="generador-etiquetas-svg";asset.dpiAssumed=false;
+      asset.dpiX=300;asset.dpiY=300;asset.dpiSource="generador-etiquetas-png";asset.dpiAssumed=false;
       asset.physicalWcm=widthCm;asset.physicalHcm=heightCm;asset.autoTrimmed=true;asset.updatedAt=Date.now();await persistAsset(asset);
       created.push({asset,qty:row.qty});
     }
