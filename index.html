@@ -1242,6 +1242,7 @@ body.bix-checkout-locked{cursor:progress}
 .gallery-categories button{border:1px solid #cbd5e1;background:#fff;color:#334155;padding:8px 11px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:700}
 .gallery-categories button.active{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
 .gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.gallery-more{display:block;margin:18px auto 0}.gallery-more[hidden]{display:none}
 .gallery-item{padding:0;border:1px solid #dbe2ea;border-radius:10px;background:#fff;overflow:hidden;text-align:left;cursor:pointer}
 .gallery-item:hover{outline:2px solid #2563eb}
 .gallery-item img{display:block;width:100%;height:145px;object-fit:contain;background-color:#eee;background-image:linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
@@ -1629,6 +1630,7 @@ body.bix-checkout-locked{cursor:progress}
         <div class="gallery-toolbar"><input id="gallerySearch" type="search" placeholder="Buscar diseño o etiqueta…"><button id="galleryRefreshBtn" class="ghost-btn" type="button">Actualizar</button></div>
         <div id="galleryCategories" class="gallery-categories"></div>
         <div id="galleryGrid" class="gallery-grid"></div>
+        <button id="galleryMoreBtn" class="ghost-btn gallery-more" type="button" hidden>Cargar más diseños</button>
       </div>
       <div class="modal-foot"><span id="galleryStatus" class="muted" style="font-size:10px;margin-right:auto"></span><button id="galleryCancelBtn" class="ghost-btn" type="button">Cerrar</button></div>
     </div>
@@ -5475,41 +5477,48 @@ $(".upload-zone").addEventListener("drop",async e=>{
 // Galería pública: las miniaturas se consultan al abrir, y el original se
 // descarga únicamente cuando el cliente decide añadirlo al lienzo.
 const GALLERY_API_URL="https://bixstudio-gallery-admin-t2boxswjva-uc.a.run.app/api/gallery";
-const galleryState={categories:[],images:[],category:"all",busy:false};
+const GALLERY_CACHE_MS=5*60*1000;
+const GALLERY_PAGE_SIZE=24;
+const galleryState={categories:[],images:[],category:"all",busy:false,loadedAt:0,visibleCount:GALLERY_PAGE_SIZE,loadPromise:null};
 function galleryStatus(message){$("#galleryStatus").textContent=message||""}
 function galleryClose(){if(!galleryState.busy)modalClose("galleryModal")}
 function galleryRender(){
   const categories=$("#galleryCategories"),grid=$("#galleryGrid");
   categories.replaceChildren();grid.replaceChildren();
-  const allButton=document.createElement("button");allButton.type="button";allButton.textContent="Todas";allButton.classList.toggle("active",galleryState.category==="all");allButton.onclick=()=>{galleryState.category="all";galleryRender()};categories.appendChild(allButton);
+  const allButton=document.createElement("button");allButton.type="button";allButton.textContent="Todas";allButton.classList.toggle("active",galleryState.category==="all");allButton.onclick=()=>{galleryState.category="all";galleryState.visibleCount=GALLERY_PAGE_SIZE;galleryRender()};categories.appendChild(allButton);
   for(const category of galleryState.categories){
-    const button=document.createElement("button");button.type="button";button.textContent=category.name;button.classList.toggle("active",galleryState.category===category.id);button.onclick=()=>{galleryState.category=category.id;galleryRender()};categories.appendChild(button);
+    const button=document.createElement("button");button.type="button";button.textContent=category.name;button.classList.toggle("active",galleryState.category===category.id);button.onclick=()=>{galleryState.category=category.id;galleryState.visibleCount=GALLERY_PAGE_SIZE;galleryRender()};categories.appendChild(button);
   }
   const query=$("#gallerySearch").value.trim().toLocaleLowerCase("es");
   const visible=galleryState.images.filter(image=>(galleryState.category==="all"||image.categoryId===galleryState.category)&&(!query||`${image.name} ${(image.tags||[]).join(" ")}`.toLocaleLowerCase("es").includes(query)));
   if(!visible.length){const empty=document.createElement("p");empty.className="gallery-empty";empty.textContent="No hay diseños en esta categoría.";grid.appendChild(empty)}
-  for(const image of visible){
+  for(const image of visible.slice(0,galleryState.visibleCount)){
     const button=document.createElement("button");button.type="button";button.className="gallery-item";button.title=`Añadir ${image.name} al lienzo`;
     const thumbnail=document.createElement("img");thumbnail.src=image.thumbnailUrl;thumbnail.alt="";thumbnail.loading="lazy";
     const title=document.createElement("span");title.textContent=image.name;
     button.append(thumbnail,title);button.onclick=()=>galleryInsert(image);grid.appendChild(button);
   }
-  galleryStatus(`${visible.length} diseño${visible.length===1?"":"s"}`);
+  const moreBtn=$("#galleryMoreBtn");
+  moreBtn.hidden=visible.length<=galleryState.visibleCount;
+  galleryStatus(`Mostrando ${Math.min(visible.length,galleryState.visibleCount)} de ${visible.length} diseño${visible.length===1?"":"s"}`);
 }
-async function galleryLoad(){
+async function galleryLoad({force=false}={}){
+  if(!force&&galleryState.loadedAt&&Date.now()-galleryState.loadedAt<GALLERY_CACHE_MS){galleryRender();return}
+  if(galleryState.loadPromise)return galleryState.loadPromise;
   galleryStatus("Cargando galería…");
-  try{
-    const response=await fetch(GALLERY_API_URL,{cache:"no-store"});
+  galleryState.loadPromise=(async()=>{try{
+    const response=await fetch(GALLERY_API_URL,{cache:force?"no-cache":"default"});
     if(!response.ok)throw new Error(`La galería respondió ${response.status}.`);
     const data=await response.json();
     if(!data.ok||!Array.isArray(data.categories)||!Array.isArray(data.images))throw new Error("La respuesta de la galería no es válida.");
-    galleryState.categories=data.categories;galleryState.images=data.images;
+    galleryState.categories=data.categories;galleryState.images=data.images;galleryState.loadedAt=Date.now();
     if(galleryState.category!=="all"&&!data.categories.some(category=>category.id===galleryState.category))galleryState.category="all";
     galleryRender();
   }catch(error){
     galleryStatus(error.message||"No se pudo cargar la galería.");
     $("#galleryGrid").replaceChildren();
-  }
+  }finally{galleryState.loadPromise=null}})();
+  return galleryState.loadPromise;
 }
 async function galleryInsert(image){
   if(galleryState.busy)return;
@@ -5529,8 +5538,9 @@ async function galleryInsert(image){
 $("#galleryLaunchBtn").onclick=()=>{modalOpen("galleryModal");void galleryLoad()};
 $("#galleryCloseBtn").onclick=galleryClose;
 $("#galleryCancelBtn").onclick=galleryClose;
-$("#galleryRefreshBtn").onclick=()=>void galleryLoad();
-$("#gallerySearch").oninput=galleryRender;
+$("#galleryRefreshBtn").onclick=()=>void galleryLoad({force:true});
+$("#galleryMoreBtn").onclick=()=>{galleryState.visibleCount+=GALLERY_PAGE_SIZE;galleryRender()};
+$("#gallerySearch").oninput=()=>{galleryState.visibleCount=GALLERY_PAGE_SIZE;galleryRender()};
 $("#galleryModal").addEventListener("click",event=>{if(event.target.id==="galleryModal")galleryClose()});
 function objectSizeKey(o){
   return `${(+o.w||0).toFixed(2)}×${(+o.h||0).toFixed(2)}`;
