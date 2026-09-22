@@ -1234,6 +1234,19 @@ body.bix-checkout-locked{cursor:progress}
   .shopify-cart-btn{min-width:0!important;padding:7px 10px!important;font-size:11px!important}
 }
 
+.gallery-modal{width:min(1050px,96vw);height:min(800px,92vh);display:flex;flex-direction:column}
+.gallery-modal-body{padding:18px;overflow:auto;flex:1;background:#f8fafc}
+.gallery-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+.gallery-toolbar input{flex:1;min-width:0;padding:10px 12px;border:1px solid #cbd5e1;border-radius:8px}
+.gallery-categories{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px}
+.gallery-categories button{border:1px solid #cbd5e1;background:#fff;color:#334155;padding:8px 11px;border-radius:999px;cursor:pointer;font-size:11px;font-weight:700}
+.gallery-categories button.active{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+.gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.gallery-item{padding:0;border:1px solid #dbe2ea;border-radius:10px;background:#fff;overflow:hidden;text-align:left;cursor:pointer}
+.gallery-item:hover{outline:2px solid #2563eb}
+.gallery-item img{display:block;width:100%;height:145px;object-fit:contain;background-color:#eee;background-image:linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.gallery-item span{display:block;padding:9px;font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gallery-empty{padding:32px;text-align:center;color:#64748b;font-size:12px}
 </style>
 </head>
 <body>
@@ -1261,6 +1274,7 @@ body.bix-checkout-locked{cursor:progress}
   <div class="workspace">
     <aside class="leftbar">
       <button class="tool-nav active" data-panel="uploads"><span>▣</span><b>Archivos</b></button>
+      <button class="tool-nav" id="galleryLaunchBtn" type="button" title="Explorar diseños disponibles"><span>▧</span><b>Galería</b></button>
       <button class="tool-nav" data-panel="text"><span>T</span><b>Texto</b></button>
       <button class="tool-nav" data-panel="settings"><span>⚙</span><b>Ajustes</b></button>
       <button class="tool-nav" id="autoCreateLaunchBtn" type="button" title="Definir cantidades y medidas antes de organizar"><span>▦</span><b>Creación rápida</b></button>
@@ -1608,6 +1622,17 @@ body.bix-checkout-locked{cursor:progress}
     <button type="button" class="quality-cta" data-mobile-nav="quality"><span>✓</span>Lienzo</button>
   </nav>
 
+  <div id="galleryModal" class="modal-backdrop hidden">
+    <div class="modal gallery-modal" role="dialog" aria-modal="true" aria-labelledby="galleryTitle">
+      <div class="modal-head"><div><h2 id="galleryTitle">Galería de diseños</h2><div class="muted" style="font-size:10px;margin-top:3px">Elige un diseño para añadirlo al lienzo.</div></div><button id="galleryCloseBtn" class="close-btn" type="button" aria-label="Cerrar">×</button></div>
+      <div class="gallery-modal-body">
+        <div class="gallery-toolbar"><input id="gallerySearch" type="search" placeholder="Buscar diseño o etiqueta…"><button id="galleryRefreshBtn" class="ghost-btn" type="button">Actualizar</button></div>
+        <div id="galleryCategories" class="gallery-categories"></div>
+        <div id="galleryGrid" class="gallery-grid"></div>
+      </div>
+      <div class="modal-foot"><span id="galleryStatus" class="muted" style="font-size:10px;margin-right:auto"></span><button id="galleryCancelBtn" class="ghost-btn" type="button">Cerrar</button></div>
+    </div>
+  </div>
   <div id="autoCreateModal" class="modal-backdrop hidden">
     <div class="modal auto-create-modal" role="dialog" aria-modal="true" aria-labelledby="autoCreateTitle">
       <div class="modal-head">
@@ -5446,6 +5471,67 @@ $(".upload-zone").addEventListener("drop",async e=>{
   e.preventDefault();
   await importAndInsertFiles(e.dataTransfer.files);
 });
+
+// Galería pública: las miniaturas se consultan al abrir, y el original se
+// descarga únicamente cuando el cliente decide añadirlo al lienzo.
+const GALLERY_API_URL="https://bixstudio-gallery-admin-t2boxswjva-uc.a.run.app/api/gallery";
+const galleryState={categories:[],images:[],category:"all",busy:false};
+function galleryStatus(message){$("#galleryStatus").textContent=message||""}
+function galleryClose(){if(!galleryState.busy)modalClose("galleryModal")}
+function galleryRender(){
+  const categories=$("#galleryCategories"),grid=$("#galleryGrid");
+  categories.replaceChildren();grid.replaceChildren();
+  const allButton=document.createElement("button");allButton.type="button";allButton.textContent="Todas";allButton.classList.toggle("active",galleryState.category==="all");allButton.onclick=()=>{galleryState.category="all";galleryRender()};categories.appendChild(allButton);
+  for(const category of galleryState.categories){
+    const button=document.createElement("button");button.type="button";button.textContent=category.name;button.classList.toggle("active",galleryState.category===category.id);button.onclick=()=>{galleryState.category=category.id;galleryRender()};categories.appendChild(button);
+  }
+  const query=$("#gallerySearch").value.trim().toLocaleLowerCase("es");
+  const visible=galleryState.images.filter(image=>(galleryState.category==="all"||image.categoryId===galleryState.category)&&(!query||`${image.name} ${(image.tags||[]).join(" ")}`.toLocaleLowerCase("es").includes(query)));
+  if(!visible.length){const empty=document.createElement("p");empty.className="gallery-empty";empty.textContent="No hay diseños en esta categoría.";grid.appendChild(empty)}
+  for(const image of visible){
+    const button=document.createElement("button");button.type="button";button.className="gallery-item";button.title=`Añadir ${image.name} al lienzo`;
+    const thumbnail=document.createElement("img");thumbnail.src=image.thumbnailUrl;thumbnail.alt="";thumbnail.loading="lazy";
+    const title=document.createElement("span");title.textContent=image.name;
+    button.append(thumbnail,title);button.onclick=()=>galleryInsert(image);grid.appendChild(button);
+  }
+  galleryStatus(`${visible.length} diseño${visible.length===1?"":"s"}`);
+}
+async function galleryLoad(){
+  galleryStatus("Cargando galería…");
+  try{
+    const response=await fetch(GALLERY_API_URL,{cache:"no-store"});
+    if(!response.ok)throw new Error(`La galería respondió ${response.status}.`);
+    const data=await response.json();
+    if(!data.ok||!Array.isArray(data.categories)||!Array.isArray(data.images))throw new Error("La respuesta de la galería no es válida.");
+    galleryState.categories=data.categories;galleryState.images=data.images;
+    if(galleryState.category!=="all"&&!data.categories.some(category=>category.id===galleryState.category))galleryState.category="all";
+    galleryRender();
+  }catch(error){
+    galleryStatus(error.message||"No se pudo cargar la galería.");
+    $("#galleryGrid").replaceChildren();
+  }
+}
+async function galleryInsert(image){
+  if(galleryState.busy)return;
+  galleryState.busy=true;galleryStatus(`Descargando ${image.name}…`);
+  try{
+    const response=await fetch(image.imageUrl);
+    if(!response.ok)throw new Error(`No se pudo descargar ${image.name}.`);
+    const blob=await response.blob();
+    const extension=blob.type==="image/jpeg"?"jpg":blob.type==="image/webp"?"webp":"png";
+    const filename=`${String(image.name||"galeria").replace(/[^\p{L}\p{N}._-]+/gu,"_")}.${extension}`;
+    const file=new File([blob],filename,{type:blob.type||"image/png"});
+    await importAndInsertFiles([file]);
+    modalClose("galleryModal");
+  }catch(error){galleryStatus(error.message||"No se pudo añadir el diseño.")}
+  finally{galleryState.busy=false}
+}
+$("#galleryLaunchBtn").onclick=()=>{modalOpen("galleryModal");void galleryLoad()};
+$("#galleryCloseBtn").onclick=galleryClose;
+$("#galleryCancelBtn").onclick=galleryClose;
+$("#galleryRefreshBtn").onclick=()=>void galleryLoad();
+$("#gallerySearch").oninput=galleryRender;
+$("#galleryModal").addEventListener("click",event=>{if(event.target.id==="galleryModal")galleryClose()});
 function objectSizeKey(o){
   return `${(+o.w||0).toFixed(2)}×${(+o.h||0).toFixed(2)}`;
 }
