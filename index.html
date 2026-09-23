@@ -5490,6 +5490,8 @@ const SECURE_GALLERY_CHECKOUT=false;
 // Set this to the restricted public gateway URL only in the staged secure build.
 const BIX_SECURE_API_URL="";
 const BIX_SECURE_GALLERY_API_URL="";
+// Public site key only. Keep the Turnstile secret in the gateway's Secret Manager.
+const BIX_TURNSTILE_SITE_KEY="0x4AAAAAAFBZabd7fqDhQNrv";
 const GALLERY_API_URL=SECURE_GALLERY_CHECKOUT
   ? BIX_SECURE_GALLERY_API_URL
   : "https://bixstudio-gallery-admin-t2boxswjva-uc.a.run.app/api/gallery";
@@ -10525,6 +10527,65 @@ const BIX_RENDERER_URL = SECURE_GALLERY_CHECKOUT
   : "https://bixstudio-renderer-318403647962.us-central1.run.app";
 
 let cloudProjectPromise=null;
+let bixTurnstileScriptPromise=null;
+
+function bixLoadTurnstile(){
+  if(window.turnstile) return Promise.resolve();
+  if(!bixTurnstileScriptPromise){
+    bixTurnstileScriptPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement("script");
+      script.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async=true;
+      script.onload=()=>window.turnstile?resolve():reject(new Error("Turnstile no inició."));
+      script.onerror=()=>reject(new Error("No se pudo cargar la verificación de seguridad."));
+      document.head.appendChild(script);
+    }).catch(error=>{bixTurnstileScriptPromise=null;throw error});
+  }
+  return bixTurnstileScriptPromise;
+}
+
+async function bixGetTurnstileToken(){
+  if(!BIX_TURNSTILE_SITE_KEY) throw new Error("Falta configurar Turnstile para el armador seguro.");
+  await bixLoadTurnstile();
+  return new Promise((resolve,reject)=>{
+    const overlay=document.createElement("div");
+    overlay.style.cssText="position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:#11182799;padding:20px";
+    const panel=document.createElement("div");
+    panel.style.cssText="background:white;border-radius:14px;padding:24px;max-width:420px;width:100%;box-shadow:0 15px 40px #11182755;color:#111827";
+    const title=document.createElement("h2");
+    title.textContent="Verificación de seguridad";
+    const description=document.createElement("p");
+    description.textContent="Confirma la verificación para comenzar tu lienzo.";
+    const widget=document.createElement("div");
+    const cancel=document.createElement("button");
+    cancel.type="button";
+    cancel.textContent="Cancelar";
+    cancel.style.cssText="margin-top:16px;padding:8px 14px;cursor:pointer";
+    panel.append(title,description,widget,cancel);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    let widgetId=null;
+    let settled=false;
+    const finish=(error,token)=>{
+      if(settled)return;
+      settled=true;
+      if(widgetId!==null)window.turnstile.remove(widgetId);
+      overlay.remove();
+      if(error)reject(error);else resolve(token);
+    };
+    cancel.onclick=()=>finish(new Error("Se canceló la verificación de seguridad."));
+    try{
+      widgetId=window.turnstile.render(widget,{
+        sitekey:BIX_TURNSTILE_SITE_KEY,
+        action:"create_project",
+        language:"es",
+        callback:token=>finish(null,token),
+        "error-callback":()=>finish(new Error("Falló la verificación de seguridad.")),
+        "expired-callback":()=>finish(new Error("La verificación venció; inténtalo de nuevo."))
+      });
+    }catch(error){finish(error)}
+  });
+}
 
 async function bixApi(path,options={}){
   if(!BIX_RENDERER_URL) throw new Error("Falta configurar la API segura de BixStudio.");
@@ -10558,9 +10619,10 @@ async function ensureCloudProject(){
       state.projectTokenExpiresAt=null;
     }
     const totalHeight=state.sheets.reduce((sum,s)=>sum+(+s.sheet?.h||0),0);
+    const turnstileToken=SECURE_GALLERY_CHECKOUT?await bixGetTurnstileToken():null;
     const data=await bixApi("/projects",{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{"Content-Type":"application/json",...(turnstileToken?{"X-BixStudio-Turnstile-Token":turnstileToken}:{})},
       body:JSON.stringify({
         totalWidthCm:Math.max(...state.sheets.map(s=>+s.sheet?.w||FIXED_SHEET_WIDTH_CM)),
         totalHeightCm:Math.max(30,totalHeight||30)
