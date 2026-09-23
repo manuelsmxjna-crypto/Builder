@@ -2631,6 +2631,7 @@ async function persistAsset(asset,{skipPrune=false}={}){
         renderUpload:asset._renderUpload||null,
         renderProjectId:asset._renderProjectId||null,
         galleryId:asset.galleryId||null,
+        galleryRevision:asset.galleryRevision||null,
         sourcePdfBlob:asset.sourcePdfFile instanceof Blob ? asset.sourcePdfFile : null,
         sourcePdfName:asset.sourcePdfName||null,
         sourcePdfPage:Number.isFinite(asset.sourcePdfPage)?asset.sourcePdfPage:null,
@@ -2971,6 +2972,7 @@ async function loadPersistedAssets(){
       _renderUpload:row.renderUpload||null,
       _renderProjectId:row.renderProjectId||null,
       galleryId:row.galleryId||null,
+      galleryRevision:row.galleryRevision||null,
       sourcePdfFile:row.sourcePdfBlob instanceof Blob ? row.sourcePdfBlob : null,
       sourcePdfName:row.sourcePdfName||null,
       sourcePdfPage:Number.isFinite(row.sourcePdfPage)?row.sourcePdfPage:null,
@@ -5542,25 +5544,30 @@ async function galleryInsert(image){
   if(galleryState.busy)return;
   galleryState.busy=true;galleryStatus(`Preparando ${image.name}…`);
   try{
-    const response=await fetch(SECURE_GALLERY_CHECKOUT?image.thumbnailUrl:image.imageUrl);
+    const protectedImage=!!image.watermarked || SECURE_GALLERY_CHECKOUT;
+    const previewUrl=image.watermarked?image.previewUrl:(SECURE_GALLERY_CHECKOUT?image.thumbnailUrl:image.imageUrl);
+    if(!previewUrl)throw new Error("El diseño no tiene una vista previa disponible.");
+    const response=await fetch(previewUrl);
     if(!response.ok)throw new Error(`No se pudo descargar ${image.name}.`);
     const blob=await response.blob();
     const extension=blob.type==="image/jpeg"?"jpg":blob.type==="image/webp"?"webp":"png";
     const filename=`${String(image.name||"galeria").replace(/[^\p{L}\p{N}._-]+/gu,"_")}.${extension}`;
     const file=new File([blob],filename,{type:blob.type||"image/png"});
-    if(SECURE_GALLERY_CHECKOUT){
+    if(protectedImage){
       const asset=await addAsset(file,{skipAutoTrim:true,skipCloudUpload:true});
       if(!asset)throw new Error("No se pudo preparar la vista previa.");
       const width=Number(image.width),height=Number(image.height);
       if(!(width>0&&height>0))throw new Error("Este diseño no tiene dimensiones registradas.");
       const dpi=Number(image.densityDpi)||300;
       asset.galleryId=image.id;
+      asset.galleryRevision=image.revision||null;
+      asset.autoTrimmed=true; // Keep identical geometry to the private source.
       asset.w=width;asset.h=height;asset.dpiX=dpi;asset.dpiY=dpi;
       asset.dpiSource="galería";asset.dpiAssumed=false;
       asset.physicalWcm=width/dpi*2.54;asset.physicalHcm=height/dpi*2.54;
       await persistAsset(asset);
       await insertAsset(asset);
-      toast("Vista previa protegida; el original se usará después del pago.");
+      toast("Diseño de galería añadido; tu impresión no llevará marca de agua.");
     }else await importAndInsertFiles([file]);
     modalClose("galleryModal");
   }catch(error){galleryStatus(error.message||"No se pudo añadir el diseño.")}
@@ -6226,7 +6233,7 @@ async function insertAsset(a,sizeOverride=null){
  void persistAsset(asset);
 
  // Trim transparent margins before placing (covers older library assets too).
- if(!asset.autoTrimmed){
+ if(!asset.autoTrimmed && !asset.galleryId){
    toast("Recortando márgenes…");
    if(assetInstanceCount(asset.id)>0){
      // Don't mutate a bitmap already used on the sheet.
@@ -6311,6 +6318,7 @@ async function insertAsset(a,sizeOverride=null){
 function selectedImageObject(){
  const o=objById(state.selectedId);
  if(!o || o.type!=="image"){toast("Selecciona una imagen primero.");return null}
+ if(assetById(o.assetId)?.galleryId){toast("Los diseños de galería ya están preparados. Puedes cambiar tamaño, girar y acomodar.");return null}
  return o;
 }
 function modalOpen(id){const el=$("#"+id);if(el)el.classList.remove("hidden")}
@@ -7462,7 +7470,7 @@ function updateSelectionPanel(){
    if(lockBtn) lockBtn.disabled=false;
  }
  const procTools=$("#imageProcessingTools");
- if(procTools) procTools.classList.toggle("hidden",!isImage);
+ if(procTools) procTools.classList.toggle("hidden",!isImage || !!assetById(o.assetId)?.galleryId);
  const textTools=$("#textStyleTools");
  if(textTools) textTools.classList.toggle("hidden",!isText || state.selectedIds.length>1);
  if(isText && state.selectedIds.length<=1) syncSelectedTextControls(o);
@@ -9307,7 +9315,7 @@ async function cleanCurrentCanvasSemiTransparency(){
  const btn=$("#cleanAlphaBtn");
  const threshold=+$("#alphaThreshold").value||128;
 
- if(SECURE_GALLERY_CHECKOUT && state.objects.some(o=>o.type==="image"&&assetById(o.assetId)?.galleryId)){
+ if(state.objects.some(o=>o.type==="image"&&assetById(o.assetId)?.galleryId)){
    toast("La limpieza de píxeles no modifica diseños protegidos de la galería.");
    return;
  }
@@ -10965,6 +10973,7 @@ function assetAlreadyUploaded(asset,projectId){
 
 function scheduleAssetBackgroundUpload(asset,{priority=false}={}){
   if(!asset) return Promise.reject(new Error("Asset inválido"));
+  if(asset.galleryId) return Promise.resolve({galleryId:asset.galleryId,galleryRevision:asset.galleryRevision});
 
   if(asset._renderUpload?.storagePath && asset._renderProjectId===state.projectId && state.projectId){
     return Promise.resolve(asset._renderUpload);
@@ -11135,7 +11144,7 @@ async function runBackgroundUploadLoop(){
 
 async function ensureAssetUploadedForRenderer(asset){
   if(!asset) throw new Error("No se encontró una imagen del diseño.");
-  if(SECURE_GALLERY_CHECKOUT && asset.galleryId) return {galleryId:asset.galleryId};
+  if(asset.galleryId) return {galleryId:asset.galleryId,galleryRevision:asset.galleryRevision};
   const projectId=await ensureCloudProject();
 
   if(assetAlreadyUploaded(asset,projectId)) return asset._renderUpload;
@@ -11300,7 +11309,7 @@ async function prepareSheetForCloudRenderer(record,{onProgress}={}){
 
     return {
       id:o.id,
-      ...(uploadInfo.galleryId?{galleryId:uploadInfo.galleryId}:{storagePath:uploadInfo.storagePath}),
+      ...(uploadInfo.galleryId?{galleryId:uploadInfo.galleryId,galleryRevision:uploadInfo.galleryRevision}:{storagePath:uploadInfo.storagePath}),
       x:+o.x||0,
       y:+o.y||0,
       width:+o.w||1,
