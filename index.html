@@ -2628,6 +2628,7 @@ async function persistAsset(asset,{skipPrune=false}={}){
         autoTrimmed:!!asset.autoTrimmed,
         renderUpload:asset._renderUpload||null,
         renderProjectId:asset._renderProjectId||null,
+        galleryId:asset.galleryId||null,
         sourcePdfBlob:asset.sourcePdfFile instanceof Blob ? asset.sourcePdfFile : null,
         sourcePdfName:asset.sourcePdfName||null,
         sourcePdfPage:Number.isFinite(asset.sourcePdfPage)?asset.sourcePdfPage:null,
@@ -2961,6 +2962,7 @@ async function loadPersistedAssets(){
       autoTrimmed:!!row.autoTrimmed,
       _renderUpload:row.renderUpload||null,
       _renderProjectId:row.renderProjectId||null,
+      galleryId:row.galleryId||null,
       sourcePdfFile:row.sourcePdfBlob instanceof Blob ? row.sourcePdfBlob : null,
       sourcePdfName:row.sourcePdfName||null,
       sourcePdfPage:Number.isFinite(row.sourcePdfPage)?row.sourcePdfPage:null,
@@ -5173,7 +5175,7 @@ async function addAsset(file,options={}){
 
     // v4.5: start uploading the source immediately in the background.
     // The customer can keep arranging the gang sheet while transfer happens.
-    void scheduleAssetBackgroundUpload(asset).catch(error=>{
+    if(!options.skipCloudUpload)void scheduleAssetBackgroundUpload(asset).catch(error=>{
       console.warn("[BixStudio background upload]",asset.name,error);
     });
     options.onProgress?.(88,"Añadiendo la imagen al lienzo…");
@@ -5474,8 +5476,9 @@ $(".upload-zone").addEventListener("drop",async e=>{
   await importAndInsertFiles(e.dataTransfer.files);
 });
 
-// Galería pública: las miniaturas se consultan al abrir, y el original se
-// descarga únicamente cuando el cliente decide añadirlo al lienzo.
+// Activar solo después de desplegar y probar el webhook de pago, el renderer
+// seguro y GALLERY_SECURE_PREVIEW_ONLY. El modo anterior permanece operativo.
+const SECURE_GALLERY_CHECKOUT=false;
 const GALLERY_API_URL="https://bixstudio-gallery-admin-t2boxswjva-uc.a.run.app/api/gallery";
 const GALLERY_CACHE_MS=5*60*1000;
 const GALLERY_PAGE_SIZE=24;
@@ -5522,15 +5525,28 @@ async function galleryLoad({force=false}={}){
 }
 async function galleryInsert(image){
   if(galleryState.busy)return;
-  galleryState.busy=true;galleryStatus(`Descargando ${image.name}…`);
+  galleryState.busy=true;galleryStatus(`Preparando ${image.name}…`);
   try{
-    const response=await fetch(image.imageUrl);
+    const response=await fetch(SECURE_GALLERY_CHECKOUT?image.thumbnailUrl:image.imageUrl);
     if(!response.ok)throw new Error(`No se pudo descargar ${image.name}.`);
     const blob=await response.blob();
     const extension=blob.type==="image/jpeg"?"jpg":blob.type==="image/webp"?"webp":"png";
     const filename=`${String(image.name||"galeria").replace(/[^\p{L}\p{N}._-]+/gu,"_")}.${extension}`;
     const file=new File([blob],filename,{type:blob.type||"image/png"});
-    await importAndInsertFiles([file]);
+    if(SECURE_GALLERY_CHECKOUT){
+      const asset=await addAsset(file,{skipAutoTrim:true,skipCloudUpload:true});
+      if(!asset)throw new Error("No se pudo preparar la vista previa.");
+      const width=Number(image.width),height=Number(image.height);
+      if(!(width>0&&height>0))throw new Error("Este diseño no tiene dimensiones registradas.");
+      const dpi=Number(image.densityDpi)||300;
+      asset.galleryId=image.id;
+      asset.w=width;asset.h=height;asset.dpiX=dpi;asset.dpiY=dpi;
+      asset.dpiSource="galería";asset.dpiAssumed=false;
+      asset.physicalWcm=width/dpi*2.54;asset.physicalHcm=height/dpi*2.54;
+      await persistAsset(asset);
+      await insertAsset(asset);
+      toast("Vista previa protegida; el original se usará después del pago.");
+    }else await importAndInsertFiles([file]);
     modalClose("galleryModal");
   }catch(error){galleryStatus(error.message||"No se pudo añadir el diseño.")}
   finally{galleryState.busy=false}
@@ -9276,6 +9292,11 @@ async function cleanCurrentCanvasSemiTransparency(){
  const btn=$("#cleanAlphaBtn");
  const threshold=+$("#alphaThreshold").value||128;
 
+ if(SECURE_GALLERY_CHECKOUT && state.objects.some(o=>o.type==="image"&&assetById(o.assetId)?.galleryId)){
+   toast("La limpieza de píxeles no modifica diseños protegidos de la galería.");
+   return;
+ }
+
  btn.disabled=true;
  btn.textContent="Comprobando mesa…";
 
@@ -10090,6 +10111,7 @@ function expectedPixelsForCm(cm,dpi=300){
 
 function canExportAssetPixelPerfect(o,asset,dpi=300){
   if(!asset || !asset.w || !asset.h) return false;
+  if(SECURE_GALLERY_CHECKOUT && asset.galleryId) return false;
 
   const rot=((o.rot||0)%360+360)%360;
   if(rot!==0 || o.flipX || o.flipY) return false;
@@ -10659,6 +10681,10 @@ function shopifyLineProperties(uploadInfos=[]){
     "_BixStudio":"Gang Sheet Builder"
   };
   if(state.projectId) props["_BixStudio Project ID"]=String(state.projectId);
+  if(SECURE_GALLERY_CHECKOUT){
+    if(uploadInfos.some(info=>!info?.draftId))throw new Error("Falta una composición pendiente del pedido.");
+    props["_BixStudio Draft IDs"]=uploadInfos.map(info=>info.draftId).join(",");
+  }
 
   const medidas=[];
 
@@ -10673,9 +10699,11 @@ function shopifyLineProperties(uploadInfos=[]){
     // Keep every print file attached to the same Shopify line item.
     // Leading "_" keeps technical properties hidden in themes that follow
     // Shopify's private-line-property convention.
-    if(info?.id) props[`_Gang Sheet ${n} ID`]=String(info.id);
-    if(info?.path) props[`_Gang Sheet ${n} Path`]=String(info.path);
-    if(info?.downloadUrl) props[`_Archivo Hoja ${n}`]=String(info.downloadUrl);
+    if(!SECURE_GALLERY_CHECKOUT){
+      if(info?.id) props[`_Gang Sheet ${n} ID`]=String(info.id);
+      if(info?.path) props[`_Gang Sheet ${n} Path`]=String(info.path);
+      if(info?.downloadUrl) props[`_Archivo Hoja ${n}`]=String(info.downloadUrl);
+    }
   });
 
   props["Medidas"]=medidas.join(" | ");
@@ -11001,6 +11029,7 @@ async function runBackgroundUploadLoop(){
 
 async function ensureAssetUploadedForRenderer(asset){
   if(!asset) throw new Error("No se encontró una imagen del diseño.");
+  if(SECURE_GALLERY_CHECKOUT && asset.galleryId) return {galleryId:asset.galleryId};
   const projectId=await ensureCloudProject();
 
   if(assetAlreadyUploaded(asset,projectId)) return asset._renderUpload;
@@ -11169,7 +11198,7 @@ async function prepareSheetForCloudRenderer(record,{onProgress}={}){
 
     return {
       id:o.id,
-      storagePath:uploadInfo.storagePath,
+      ...(uploadInfo.galleryId?{galleryId:uploadInfo.galleryId}:{storagePath:uploadInfo.storagePath}),
       x:+o.x||0,
       y:+o.y||0,
       width:+o.w||1,
@@ -11204,6 +11233,14 @@ async function queueSheetRender(record,{onProgress}={}){
   // "Ajustando mesa: ... recortado(s)" para no alarmar al cliente.
   const payload=await prepareSheetForCloudRenderer(record,{onProgress});
   payload.projectId=projectId;
+
+  if(SECURE_GALLERY_CHECKOUT){
+    const draft=await bixApi("/secure-orders/drafts",{
+      method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)
+    });
+    if(!draft.draftId)throw new Error("El servidor no guardó la composición segura.");
+    return {draftId:draft.draftId,billableCm:draft.billableCm};
+  }
 
   const response=await fetch(`${BIX_RENDERER_URL}/render-queue`,{
     method:"POST",
@@ -11432,7 +11469,7 @@ async function addActiveSheetToShopifyCart(){
     if(btn) btn.textContent="🛒 Añadiendo al carrito…";
     setCheckoutLocked(true,{
       title:"Añadiendo al carrito…",
-      sub:"Tus archivos están listos. Espera la confirmación de Shopify."
+      sub:SECURE_GALLERY_CHECKOUT?"Tus diseños quedaron registrados. La impresión se generará después del pago.":"Tus archivos están listos. Espera la confirmación de Shopify."
     });
     await checkoutPaint();
 
@@ -11483,7 +11520,9 @@ window.addEventListener("message",e=>{
     shopifyCartBusy=false;
     setCheckoutLocked(false);
     updateShopifyCartUi();
-    toast(`✓ Pedido añadido al carrito · ${count} hoja(s) · el archivo final seguirá procesándose en servidor`);
+    toast(SECURE_GALLERY_CHECKOUT
+      ?`✓ Pedido añadido al carrito · ${count} hoja(s) · se procesará después del pago`
+      :`✓ Pedido añadido al carrito · ${count} hoja(s) · el archivo final seguirá procesándose en servidor`);
   }else if(d.type==="BIXSTUDIO_CART_ERROR"){
     if(shopifyCartRequest && d.requestId && d.requestId!==shopifyCartRequest.id) return;
     clearShopifyCartRequest();
