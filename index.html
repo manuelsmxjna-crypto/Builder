@@ -10942,11 +10942,7 @@ async function putSignedAsset(item,asset){
 
   for(let attempt=1;attempt<=3;attempt++){
     try{
-      const put=await fetch(item.uploadUrl,{
-        method:"PUT",
-        headers:{"Content-Type":item.contentType||blob.type||"image/png"},
-        body:blob
-      });
+      const put=await uploadSignedBlob(item,blob);
       if(!put.ok) throw new Error(`Cloud Storage respondió HTTP ${put.status}`);
       return {blob,item};
     }catch(error){
@@ -10955,6 +10951,21 @@ async function putSignedAsset(item,asset){
     }
   }
   throw lastError||new Error("No se pudo subir el recurso.");
+}
+
+async function uploadSignedBlob(item,blob){
+  if(item.uploadPostUrl && item.uploadFields){
+    const form=new FormData();
+    for(const [key,value] of Object.entries(item.uploadFields)) form.append(key,String(value));
+    form.append("file",blob,item.originalName||"asset.png");
+    return fetch(item.uploadPostUrl,{method:"POST",body:form});
+  }
+  if(!item.uploadUrl) throw new Error("El servidor no devolvió una URL de subida.");
+  return fetch(item.uploadUrl,{
+    method:"PUT",
+    headers:{"Content-Type":item.contentType||blob.type||"image/png"},
+    body:blob
+  });
 }
 
 async function runBackgroundUploadLoop(){
@@ -11017,7 +11028,7 @@ async function runBackgroundUploadLoop(){
         const d=backgroundUploadDeferred.get(asset.id);
         try{
           const item=byClient.get(asset.id);
-          if(!item?.uploadUrl || !item?.storagePath){
+          if(!(item?.uploadUrl || item?.uploadPostUrl) || !item?.storagePath){
             throw new Error("El servidor no devolvió una URL de subida.");
           }
 
@@ -11091,15 +11102,11 @@ async function uploadTransientBlob(blob,name,{widthPx=null,heightPx=null,dpiX=nu
   });
 
   const item=data.assets?.[0];
-  if(!item?.uploadUrl || !item?.storagePath){
+  if(!(item?.uploadUrl || item?.uploadPostUrl) || !item?.storagePath){
     throw new Error("El servidor no devolvió la URL del recurso temporal.");
   }
 
-  const put=await fetch(item.uploadUrl,{
-    method:"PUT",
-    headers:{"Content-Type":contentType},
-    body:blob
-  });
+  const put=await uploadSignedBlob(item,blob);
   if(!put.ok) throw new Error(`Cloud Storage respondió HTTP ${put.status}`);
 
   void bixApi("/assets-confirm",{
