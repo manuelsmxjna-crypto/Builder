@@ -2,7 +2,8 @@
   "name": "bixstudio-builder",
   "private": true,
   "scripts": {
-    "build:pages": "node scripts/build-pages.mjs"
+    "build:pages": "node scripts/build-pages.mjs",
+    "test:syntax": "node scripts/check-inline-js.mjs"
   },
   "devDependencies": {
     "pdfjs-dist": "^5.4.624"

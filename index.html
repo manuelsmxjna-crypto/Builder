@@ -1932,6 +1932,8 @@ const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const state = {
   projectId:null,
+  projectToken:null,
+  projectTokenExpiresAt:null,
   sheets:[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}],
   activeSheetIndex:0,
   zoom:1,
@@ -2750,6 +2752,8 @@ function buildSessionPayload(){
     version:1,
     savedAt:Date.now(),
     projectId:state.projectId||null,
+    projectToken:state.projectToken||null,
+    projectTokenExpiresAt:state.projectTokenExpiresAt||null,
     sheets,
     activeSheetIndex:state.activeSheetIndex,
     nextSheetId:state.nextSheetId,
@@ -2825,6 +2829,8 @@ async function clearSessionPayload(){
 function applySessionPayload(payload){
   if(!payload||!Array.isArray(payload.sheets)||!payload.sheets.length) return false;
   state.projectId=payload.projectId||null;
+  state.projectToken=typeof payload.projectToken==="string"?payload.projectToken:null;
+  state.projectTokenExpiresAt=Number(payload.projectTokenExpiresAt)||null;
   state.sheets=payload.sheets.map((s,i)=>({
     id:s.id||("gs"+(i+1)),
     name:s.name||("Gang Sheet "+(i+1)),
@@ -2859,6 +2865,8 @@ function applySessionPayload(payload){
 }
 function resetToFreshSession(){
   state.projectId=null;
+  state.projectToken=null;
+  state.projectTokenExpiresAt=null;
   state.sheets=[{id:"gs1",name:"Gang Sheet 1",sheet:{w:62,h:30,margin:0},objects:[]}];
   state.activeSheetIndex=0;
   state.nextSheetId=2;
@@ -5479,7 +5487,12 @@ $(".upload-zone").addEventListener("drop",async e=>{
 // Activar solo después de desplegar y probar el webhook de pago, el renderer
 // seguro y GALLERY_SECURE_PREVIEW_ONLY. El modo anterior permanece operativo.
 const SECURE_GALLERY_CHECKOUT=false;
-const GALLERY_API_URL="https://bixstudio-gallery-admin-t2boxswjva-uc.a.run.app/api/gallery";
+// Set this to the restricted public gateway URL only in the staged secure build.
+const BIX_SECURE_API_URL="";
+const BIX_SECURE_GALLERY_API_URL="";
+const GALLERY_API_URL=SECURE_GALLERY_CHECKOUT
+  ? BIX_SECURE_GALLERY_API_URL
+  : "https://bixstudio-gallery-admin-t2boxswjva-uc.a.run.app/api/gallery";
 const GALLERY_CACHE_MS=5*60*1000;
 const GALLERY_PAGE_SIZE=24;
 const galleryState={categories:[],images:[],category:"all",busy:false,loadedAt:0,visibleCount:GALLERY_PAGE_SIZE,loadPromise:null};
@@ -10507,14 +10520,22 @@ const SHOPIFY_DTF_VARIANT_ID = 52961074610357;
 const SHOPIFY_PRICE_PER_CM = 2.00;
 const SHOPIFY_OFFER_DISCOUNT = 0.25;
 const GANGSHEET_UPLOAD_URL = "https://qrpxaqvybfmpkkkgqaoe.supabase.co/functions/v1/rapid-function";
-const BIX_RENDERER_URL = "https://bixstudio-renderer-318403647962.us-central1.run.app";
+const BIX_RENDERER_URL = SECURE_GALLERY_CHECKOUT
+  ? BIX_SECURE_API_URL
+  : "https://bixstudio-renderer-318403647962.us-central1.run.app";
 
 let cloudProjectPromise=null;
 
 async function bixApi(path,options={}){
+  if(!BIX_RENDERER_URL) throw new Error("Falta configurar la API segura de BixStudio.");
+  const headers={...(options.headers||{})};
+  if(SECURE_GALLERY_CHECKOUT && path!=="/projects" && state.projectToken){
+    headers["X-BixStudio-Project-Token"]=state.projectToken;
+  }
   const response=await fetch(`${BIX_RENDERER_URL}${path}`,{
     cache:"no-store",
-    ...options
+    ...options,
+    headers
   });
   let data={};
   try{data=await response.json()}catch(_){}
@@ -10525,10 +10546,17 @@ async function bixApi(path,options={}){
 }
 
 async function ensureCloudProject(){
-  if(state.projectId) return state.projectId;
+  const hasValidSecureToken=state.projectToken && state.projectTokenExpiresAt>Date.now()+60000;
+  if(state.projectId && (!SECURE_GALLERY_CHECKOUT || hasValidSecureToken)) return state.projectId;
   if(cloudProjectPromise) return cloudProjectPromise;
 
   cloudProjectPromise=(async()=>{
+    // A legacy session has no gateway token; create a fresh secure project.
+    if(SECURE_GALLERY_CHECKOUT && !hasValidSecureToken){
+      state.projectId=null;
+      state.projectToken=null;
+      state.projectTokenExpiresAt=null;
+    }
     const totalHeight=state.sheets.reduce((sum,s)=>sum+(+s.sheet?.h||0),0);
     const data=await bixApi("/projects",{
       method:"POST",
@@ -10539,7 +10567,12 @@ async function ensureCloudProject(){
       })
     });
     if(!data?.projectId) throw new Error("El servidor no devolvió projectId.");
+    if(SECURE_GALLERY_CHECKOUT && (!data.projectToken || !data.projectTokenExpiresAt)) throw new Error("El servidor no devolvió el acceso al proyecto.");
     state.projectId=data.projectId;
+    if(SECURE_GALLERY_CHECKOUT){
+      state.projectToken=data.projectToken;
+      state.projectTokenExpiresAt=data.projectTokenExpiresAt;
+    }
     if(sessionSaveReady) scheduleSessionSave();
     return state.projectId;
   })();
