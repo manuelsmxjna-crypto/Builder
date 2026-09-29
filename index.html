@@ -5486,7 +5486,7 @@ const GALLERY_API_URL="https://bixstudio-gallery-admin-t2boxswjva-uc.a.run.app/a
 const GALLERY_CACHE_MS=5*60*1000;
 const GALLERY_PAGE_SIZE=24;
 const GALLERY_THUMBNAIL_CONCURRENCY=6;
-const galleryState={categories:[],images:[],category:"all",busy:false,loadedAt:0,visibleCount:GALLERY_PAGE_SIZE,loadPromise:null,thumbnailReady:new Set(),thumbnailFailed:new Set(),thumbnailLoading:new Map(),thumbnailGeneration:0,renderQueued:false};
+const galleryState={categories:[],images:[],category:"all",busy:false,loadedAt:0,visibleCount:GALLERY_PAGE_SIZE,loadPromise:null,thumbnailReady:new Set(),thumbnailFailed:new Set(),thumbnailLoading:new Map(),thumbnailGeneration:0,renderQueued:false,categoriesKey:"",gridKey:""};
 function galleryStatus(message){$("#galleryStatus").textContent=message||""}
 function galleryClose(){if(!galleryState.busy)modalClose("galleryModal")}
 function galleryFilteredImages(){const query=$("#gallerySearch").value.trim().toLocaleLowerCase("es");return galleryState.images.filter(image=>(galleryState.category==="all"||image.categoryId===galleryState.category)&&(!query||`${image.name} ${(image.tags||[]).join(" ")}`.toLocaleLowerCase("es").includes(query)))}
@@ -5495,23 +5495,26 @@ function galleryCancelThumbnailLoads(){galleryState.thumbnailGeneration++;for(co
 function galleryPrioritizeThumbnails(){galleryCancelThumbnailLoads();galleryPumpThumbnails()}
 function galleryNextThumbnail(){const priority=galleryFilteredImages(),seen=new Set(priority.map(image=>image.id));for(const image of [...priority,...galleryState.images.filter(image=>!seen.has(image.id))])if(image.thumbnailUrl&&!galleryState.thumbnailReady.has(image.id)&&!galleryState.thumbnailFailed.has(image.id)&&!galleryState.thumbnailLoading.has(image.id))return image;return null}
 function galleryPumpThumbnails(){while(galleryState.thumbnailLoading.size<GALLERY_THUMBNAIL_CONCURRENCY){const image=galleryNextThumbnail();if(!image)break;const loader=new Image(),job={loader,generation:galleryState.thumbnailGeneration};galleryState.thumbnailLoading.set(image.id,job);const finish=success=>{if(galleryState.thumbnailLoading.get(image.id)!==job)return;galleryState.thumbnailLoading.delete(image.id);if(success)galleryState.thumbnailReady.add(image.id);else galleryState.thumbnailFailed.add(image.id);galleryScheduleRender();galleryPumpThumbnails()};loader.onload=()=>finish(true);loader.onerror=()=>finish(false);loader.decoding="async";loader.src=image.thumbnailUrl}}
+function galleryCard(image){const button=document.createElement("button");button.type="button";button.className="gallery-item";button.dataset.galleryId=image.id;button.title=`Añadir ${image.name} al lienzo`;const thumbnail=document.createElement("img");thumbnail.src=image.thumbnailUrl;thumbnail.alt="";thumbnail.decoding="async";const title=document.createElement("span");title.textContent=image.name;button.append(thumbnail,title);button.onclick=()=>galleryInsert(image);return button}
 function galleryRender(){
   const categories=$("#galleryCategories"),grid=$("#galleryGrid");
-  categories.replaceChildren();grid.replaceChildren();
-  const allButton=document.createElement("button");allButton.type="button";allButton.textContent="Todas";allButton.classList.toggle("active",galleryState.category==="all");allButton.onclick=()=>{galleryState.category="all";galleryState.visibleCount=GALLERY_PAGE_SIZE;galleryPrioritizeThumbnails();galleryRender()};categories.appendChild(allButton);
-  for(const category of galleryState.categories){
-    const button=document.createElement("button");button.type="button";button.textContent=category.name;button.classList.toggle("active",galleryState.category===category.id);button.onclick=()=>{galleryState.category=category.id;galleryState.visibleCount=GALLERY_PAGE_SIZE;galleryPrioritizeThumbnails();galleryRender()};categories.appendChild(button);
+  const categoriesKey=`${galleryState.category}|${galleryState.categories.map(category=>`${category.id}:${category.name}`).join("|")}`;
+  if(categoriesKey!==galleryState.categoriesKey){
+    galleryState.categoriesKey=categoriesKey;categories.replaceChildren();
+    const allButton=document.createElement("button");allButton.type="button";allButton.textContent="Todas";allButton.classList.toggle("active",galleryState.category==="all");allButton.onclick=()=>{galleryState.category="all";galleryState.visibleCount=GALLERY_PAGE_SIZE;galleryPrioritizeThumbnails();galleryRender()};categories.appendChild(allButton);
+    for(const category of galleryState.categories){const button=document.createElement("button");button.type="button";button.textContent=category.name;button.classList.toggle("active",galleryState.category===category.id);button.onclick=()=>{galleryState.category=category.id;galleryState.visibleCount=GALLERY_PAGE_SIZE;galleryPrioritizeThumbnails();galleryRender()};categories.appendChild(button)}
   }
   const visible=galleryFilteredImages(),page=visible.slice(0,galleryState.visibleCount),ready=page.filter(image=>galleryState.thumbnailReady.has(image.id));
-  if(!visible.length){const empty=document.createElement("p");empty.className="gallery-empty";empty.textContent="No hay diseños en esta categoría.";grid.appendChild(empty)}
-  for(const image of ready){
-    const button=document.createElement("button");button.type="button";button.className="gallery-item";button.title=`Añadir ${image.name} al lienzo`;
-    const thumbnail=document.createElement("img");thumbnail.src=image.thumbnailUrl;thumbnail.alt="";thumbnail.decoding="async";
-    const title=document.createElement("span");title.textContent=image.name;
-    button.append(thumbnail,title);button.onclick=()=>galleryInsert(image);grid.appendChild(button);
+  const query=$("#gallerySearch").value.trim().toLocaleLowerCase("es"),gridKey=`${galleryState.loadedAt}|${galleryState.category}|${query}|${galleryState.visibleCount}`;
+  if(gridKey!==galleryState.gridKey){
+    galleryState.gridKey=gridKey;grid.replaceChildren();
+    if(!visible.length){const empty=document.createElement("p");empty.className="gallery-empty";empty.textContent="No hay diseños en esta categoría.";grid.appendChild(empty)}
+    else for(const image of page){if(galleryState.thumbnailReady.has(image.id))grid.appendChild(galleryCard(image));else if(!galleryState.thumbnailFailed.has(image.id)){const skeleton=document.createElement("div");skeleton.className="gallery-skeleton";skeleton.dataset.galleryId=image.id;skeleton.setAttribute("aria-hidden","true");grid.appendChild(skeleton)}}
+  }else{
+    const slots=new Map([...grid.children].map(element=>[element.dataset.galleryId,element]));
+    for(const image of page){const slot=slots.get(image.id);if(slot?.classList.contains("gallery-skeleton")&&galleryState.thumbnailReady.has(image.id))slot.replaceWith(galleryCard(image));else if(slot?.classList.contains("gallery-skeleton")&&galleryState.thumbnailFailed.has(image.id))slot.remove()}
   }
   const pending=page.filter(image=>!galleryState.thumbnailReady.has(image.id)&&!galleryState.thumbnailFailed.has(image.id)).length;
-  for(let index=0;index<Math.min(6,pending);index++){const skeleton=document.createElement("div");skeleton.className="gallery-skeleton";skeleton.setAttribute("aria-hidden","true");grid.appendChild(skeleton)}
   const moreBtn=$("#galleryMoreBtn");
   moreBtn.hidden=visible.length<=galleryState.visibleCount;
   const failed=page.filter(image=>galleryState.thumbnailFailed.has(image.id)).length;
@@ -5527,7 +5530,7 @@ async function galleryLoad({force=false}={}){
     if(!response.ok)throw new Error(`La galería respondió ${response.status}.`);
     const data=await response.json();
     if(!data.ok||!Array.isArray(data.categories)||!Array.isArray(data.images))throw new Error("La respuesta de la galería no es válida.");
-    if(force){galleryCancelThumbnailLoads();galleryState.thumbnailReady.clear();galleryState.thumbnailFailed.clear()}
+    if(force){galleryCancelThumbnailLoads();galleryState.thumbnailReady.clear();galleryState.thumbnailFailed.clear();galleryState.gridKey=""}
     galleryState.categories=data.categories;galleryState.images=data.images;galleryState.loadedAt=Date.now();
     if(galleryState.category!=="all"&&!data.categories.some(category=>category.id===galleryState.category))galleryState.category="all";
     galleryRender();galleryPumpThumbnails();
