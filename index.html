@@ -1821,11 +1821,11 @@ body.bix-checkout-locked{cursor:progress}
           <div id="qualityList" class="quality-list"></div>
           <div id="alphaTools" class="alpha-tools hidden">
             <div class="alpha-tools-head">
-              <div><b>Limpiar semitransparencias</b><small>Alfa menor al umbral → transparente; igual o mayor → opaco.</small></div>
+              <div><b>Limpiar semitransparencias</b><small>Se aplica a todas las imágenes al generar la impresión; los originales permanecen intactos.</small></div>
               <span id="alphaCountBadge" class="alpha-count-badge">0 px</span>
             </div>
             <label class="alpha-threshold-label"><span>Umbral <b id="alphaThresholdValue">128</b></span><input id="alphaThreshold" type="range" min="1" max="254" value="128" step="1"></label>
-            <button id="cleanAlphaBtn" class="primary-btn wide" type="button">Limpiar píxeles semitransparentes</button>
+            <button id="cleanAlphaBtn" class="primary-btn wide" type="button">Aplicar limpieza a todas las imágenes</button>
           </div>
         </div>
       </div>
@@ -9315,84 +9315,30 @@ async function cleanCurrentCanvasSemiTransparency(){
  const btn=$("#cleanAlphaBtn");
  const threshold=+$("#alphaThreshold").value||128;
 
- if(state.objects.some(o=>o.type==="image"&&assetById(o.assetId)?.galleryId)){
-   toast("La limpieza de píxeles no modifica diseños protegidos de la galería.");
-   return;
- }
-
  btn.disabled=true;
  btn.textContent="Comprobando mesa…";
 
  try{
-   // The only truth for the button is the rendered ACTIVE SHEET.
-   const before=await scanSemiTransparentPixels();
-
-   if(!before.total){
-     toast("La mesa de trabajo activa ya está libre de semitransparencias");
+   const images=state.objects.filter(object=>object.type==="image");
+   if(!images.length){
+     toast("No hay imágenes en la mesa activa");
      return;
    }
 
-   // Work only with unique raster assets actually used on the active sheet.
-   const seen=new Set();
-   const assets=[];
-
-   for(const o of state.objects){
-     if(o.type!=="image" || !o.assetId || seen.has(o.assetId)) continue;
-     seen.add(o.assetId);
-     const asset=assetById(o.assetId);
-     if(asset) assets.push(asset);
+   pushHistory();
+   for(const image of images){
+     image.alphaCleanup=true;
+     image.alphaThreshold=threshold;
    }
 
-   let sourcePixelsChanged=0;
-   let binaryFlagsFixed=0;
-
-   for(let i=0;i<assets.length;i++){
-     const asset=assets[i];
-     btn.textContent=`Limpiando ${i+1}/${assets.length}…`;
-
-     // Inspect the source at native resolution.
-     const info=await inspectSourceAlpha(asset);
-
-     if(info.binary){
-       // The source is already 0/255. If the sheet nevertheless had
-       // semi-alpha, it was being created during resize/rotation.
-       // Marking it binary forces drawExportImageExact() to threshold the
-       // transformed temporary layer before it reaches the sheet.
-       if(!asset.alphaBinary){
-         asset.alphaBinary=true;
-         asset.alphaThreshold=threshold;
-         binaryFlagsFixed++;
-         await persistAsset(asset);
-       }else if(!Number.isFinite(asset.alphaThreshold)){
-         asset.alphaThreshold=threshold;
-         await persistAsset(asset);
-       }
-     }else if(info.semi>0){
-       // The source itself really contains semi-transparent pixels.
-       sourcePixelsChanged+=await cleanAssetAlpha(asset,threshold);
-     }
-
-     // Allow UI to repaint between large assets.
-     await new Promise(resolve=>setTimeout(resolve,0));
-   }
-
-   renderAssets();
    renderAll();
 
    btn.textContent="Verificando resultado…";
 
-   // Re-scan the actual rendered active sheet. This result controls the UI
-   // and the final message, never the source-file inspection above.
    const after=await runQualityCheck();
 
    if(after && after.total===0){
-     const detail=sourcePixelsChanged
-       ? `${sourcePixelsChanged.toLocaleString()} píxeles de origen corregidos`
-       : binaryFlagsFixed
-         ? `${binaryFlagsFixed} archivo${binaryFlagsFixed===1?"":"s"} configurado${binaryFlagsFixed===1?"":"s"} como alpha sólido`
-         : "la mesa fue normalizada";
-
-     toast(`✓ Semitransparencias eliminadas: ${detail}`);
+     toast(`✓ Limpieza aplicada a ${images.length} imagen${images.length===1?"":"es"}`);
    }else{
      const remaining=after?.total??0;
      toast(`Quedan ${remaining.toLocaleString()} píxeles semitransparentes en la mesa activa`);
@@ -9402,7 +9348,7 @@ async function cleanCurrentCanvasSemiTransparency(){
    toast("No se pudieron limpiar las semitransparencias");
  }finally{
    btn.disabled=false;
-   btn.textContent="Limpiar píxeles semitransparentes";
+   btn.textContent="Aplicar limpieza a todas las imágenes";
  }
 }
 async function inspectSourceAlphaFast(asset){
@@ -10157,7 +10103,7 @@ async function drawExportImageExact(ctx,o,s,dpi=300){
   // PATH A: true 1:1 pixel copy.
   // No scaling, no interpolation, no alpha changes.
   // ----------------------------------------------------------
-  if(canExportAssetPixelPerfect(o,asset,dpi)){
+  if(canExportAssetPixelPerfect(o,asset,dpi) && !o.alphaCleanup){
     const x=Math.round(o.x*s);
     const y=Math.round(o.y*s);
 
@@ -10172,7 +10118,7 @@ async function drawExportImageExact(ctx,o,s,dpi=300){
   // PATH B: transformed/resized image.
   // Preserve the original alpha policy.
   // ----------------------------------------------------------
-  const keepBinary=!!(asset?.alphaBinary || asset?.alphaCleaned);
+  const keepBinary=!!(o.alphaCleanup || asset?.alphaBinary || asset?.alphaCleaned);
 
   if(!keepBinary){
     ctx.save();
@@ -10221,7 +10167,9 @@ async function drawExportImageExact(ctx,o,s,dpi=300){
 
   hardThresholdCanvasAlpha(
     tmp,
-    Number.isFinite(asset?.alphaThreshold)?asset.alphaThreshold:128
+    Number.isFinite(o.alphaThreshold)
+      ? o.alphaThreshold
+      : Number.isFinite(asset?.alphaThreshold)?asset.alphaThreshold:128
   );
 
   const centerX=(o.x+o.w/2)*s;
@@ -11222,7 +11170,11 @@ async function prepareSheetForCloudRenderer(record,{onProgress}={}){
       height:+o.h||1,
       rotation:+o.rot||0,
       flipX:!!o.flipX,
-      flipY:!!o.flipY
+      flipY:!!o.flipY,
+      alphaCleanup:!!o.alphaCleanup,
+      alphaThreshold:Number.isFinite(o.alphaThreshold)
+        ? Math.max(1,Math.min(254,Math.round(o.alphaThreshold)))
+        : 128
     };
   }));
 
