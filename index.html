@@ -9414,15 +9414,17 @@ async function inspectSourceAlphaFast(asset){
 }
 
 async function scanSemiTransparentAssetsFast(){
-  const seen=new Set();
-  const assets=[];
+  const usageByAsset=new Map();
 
   for(const o of state.objects){
-    if(o.type!=="image" || !o.assetId || seen.has(o.assetId)) continue;
-    seen.add(o.assetId);
+    if(o.type!=="image" || !o.assetId) continue;
     const asset=assetById(o.assetId);
-    if(asset) assets.push(asset);
+    if(!asset) continue;
+    const usage=usageByAsset.get(o.assetId)||{asset,allObjectsCleaned:true};
+    if(!o.alphaCleanup) usage.allObjectsCleaned=false;
+    usageByAsset.set(o.assetId,usage);
   }
+  const assets=[...usageByAsset.values()];
 
   if(!assets.length){
     return {total:0,affectedAssets:0,unknownAssets:0,analyzed:"fast-assets"};
@@ -9438,9 +9440,13 @@ async function scanSemiTransparentAssetsFast(){
   async function worker(){
     while(cursor<assets.length){
       const index=cursor++;
-      const asset=assets[index];
+      const {asset,allObjectsCleaned}=assets[index];
 
-      if(asset.alphaBinary || asset.alphaCleaned) continue;
+      // Cleanup is applied after transforming each object in both the local
+      // export and Cloud renderer. The source may remain semitransparent by
+      // design, so it is no longer an outstanding preflight issue when every
+      // use of this asset on the active sheet carries that policy.
+      if(allObjectsCleaned || asset.alphaBinary || asset.alphaCleaned) continue;
 
       const info=await inspectSourceAlphaFast(asset);
       if(info.error) unknownAssets++;
