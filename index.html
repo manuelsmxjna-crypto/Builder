@@ -8653,7 +8653,7 @@ function renderQuickQuoteResult(result,totalPieces){
   results.innerHTML=
     '<div class="quick-quote-stat"><small>Material facturable</small><b>'+totalCm+' cm</b></div>'+
     '<div class="quick-quote-stat"><small>Hojas necesarias</small><b>'+result.sheets.length+'</b></div>'+
-    '<div class="quick-quote-stat"><small>Precio estimado</small><b>'+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)+'</b></div>';
+    '<div class="quick-quote-stat"><small>Precio estimado</small><b>'+shopifyMoney(shopifyOrderTotal(totalCm))+'</b></div>';
   canvas.innerHTML="";
   result.sheets.forEach((sheet,index)=>{
     const scale=5;
@@ -8673,7 +8673,7 @@ function renderQuickQuoteResult(result,totalPieces){
     }
     wrap.appendChild(board);canvas.appendChild(wrap);
   });
-  toast(totalPieces+" piezas · "+totalCm+" cm · "+shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM));
+  toast(totalPieces+" piezas · "+totalCm+" cm · "+shopifyMoney(shopifyOrderTotal(totalCm)));
 }
 
 function openQuickQuote(){
@@ -10537,8 +10537,11 @@ async function exportPng(){
 // Shopify bridge · BixStudio dentro de iframe
 // PNG 300 DPI -> Supabase Storage -> Shopify cart
 // ============================================================
-const SHOPIFY_DTF_VARIANT_ID = 52961074610357;
-const SHOPIFY_PRICE_PER_CM = 2.00;
+const SHOPIFY_PRICE_TIERS = Object.freeze([
+  {minCm:1500,variantId:53409796849845,pricePerCm:1.80,label:"Tarifa mayoreo 2"},
+  {minCm:1000,variantId:53409796817077,pricePerCm:1.90,label:"Tarifa mayoreo 1"},
+  {minCm:0,variantId:52961074610357,pricePerCm:2.00,label:"Tarifa normal"}
+]);
 const GANGSHEET_UPLOAD_URL = "https://qrpxaqvybfmpkkkgqaoe.supabase.co/functions/v1/rapid-function";
 const BIX_RENDERER_URL = "https://bixstudio-renderer-318403647962.us-central1.run.app";
 
@@ -10670,6 +10673,17 @@ function shopifyMoney(v){
   }).format(v);
 }
 
+function shopifyPriceTier(cm){
+  const billableCm=Math.max(0,Math.floor(Number(cm)||0));
+  return SHOPIFY_PRICE_TIERS.find(tier=>billableCm>=tier.minCm)
+    || SHOPIFY_PRICE_TIERS[SHOPIFY_PRICE_TIERS.length-1];
+}
+
+function shopifyOrderTotal(cm){
+  const billableCm=Math.max(0,Math.floor(Number(cm)||0));
+  return billableCm*shopifyPriceTier(billableCm).pricePerCm;
+}
+
 function shopifyOfferPriceHtml(total){
   return shopifyMoney(total);
 }
@@ -10689,7 +10703,7 @@ function updateShopifyCartUi(){
   }
 
   const cm=shopifyBillableCm();
-  const total=cm*SHOPIFY_PRICE_PER_CM;
+  const total=shopifyOrderTotal(cm);
   if(chip) chip.innerHTML=shopifyOfferPriceHtml(total);
 
   const sheetLabel=orderSheets.length>1 ? ` · ${orderSheets.length} hojas` : "";
@@ -10707,6 +10721,7 @@ function shopifyLineProperties(uploadInfos=[]){
   const props={
     "Hojas":String(orderSheets.length),
     "Largo facturado":`${totalCm} cm`,
+    "Tarifa aplicada":`${shopifyPriceTier(totalCm).label} · ${shopifyMoney(shopifyPriceTier(totalCm).pricePerCm)}/cm`,
     "_BixStudio":"Gang Sheet Builder"
   };
   if(state.projectId) props["_BixStudio Project ID"]=String(state.projectId);
@@ -11329,7 +11344,7 @@ function confirmCheckout(orderSheets){
     summary.textContent=
       `${orderSheets.length} Gang Sheet${orderSheets.length===1?"":"s"} · `+
       `${objectCount} diseño${objectCount===1?"":"s"} · `+
-      `${totalCm} cm facturables · ${shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)}`;
+      `${totalCm} cm facturables · ${shopifyPriceTier(totalCm).label} · ${shopifyMoney(shopifyOrderTotal(totalCm))}`;
   }
 
   checkoutConfirmBusy=true;
@@ -11428,6 +11443,7 @@ async function addActiveSheetToShopifyCart(){
 
   const btn=$("#exportBtn");
   const quantity=orderSheets.reduce((sum,{record})=>sum+shopifyBillableCmForSheet(record),0);
+  const priceTier=shopifyPriceTier(quantity);
   const totalResources=orderSheets.reduce((n,{record})=>n+(record.objects?.length||0),0);
 
   if(btn){
@@ -11475,10 +11491,10 @@ async function addActiveSheetToShopifyCart(){
       cartMessage={
         type:"BIXSTUDIO_ADD_TO_CART",
         requestId:shopifyRequestId(),
-        variantId:SHOPIFY_DTF_VARIANT_ID,
+        variantId:priceTier.variantId,
         quantity,
         properties:shopifyLineProperties(uploads),
-        total:quantity*SHOPIFY_PRICE_PER_CM,
+        total:shopifyOrderTotal(quantity),
         sheetCount:orderSheets.length,
         projectId:state.projectId,
         renderJobs:uploads.map(x=>x.renderJobId)
