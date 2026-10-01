@@ -3251,7 +3251,9 @@ async function ensureObjectAlphaDisplayPreview(o,source){
     canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
     const context=canvas.getContext("2d",{willReadFrequently:true});
     context.clearRect(0,0,canvas.width,canvas.height);
-    context.drawImage(image,0,0);
+    context.imageSmoothingEnabled=true;
+    context.imageSmoothingQuality="high";
+    context.drawImage(image,0,0,canvas.width,canvas.height);
     hardThresholdCanvasAlpha(canvas,threshold);
     const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error("No se pudo crear la vista limpia")),"image/png"));
     canvas.width=canvas.height=0;
@@ -4455,6 +4457,7 @@ function renderObject(o){
    const img=document.createElement("img");
    img.decoding="sync";
    img.src=objectEditorPreviewSrc(o);
+    img.style.imageRendering=o.alphaCleanup?"pixelated":"auto";
    // Locked = preserve image proportions. Unlocked = image stretches with hitbox.
    img.style.objectFit=o.aspectLocked?"contain":"fill";
    img.addEventListener("load",()=>{
