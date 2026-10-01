@@ -3214,21 +3214,76 @@ function objectSrc(o){
   return a ? a.src : (o.src||"");
 }
 
-function objectEditorPreviewSrc(o){
+function objectEditorPreviewBaseSrc(o){
   const a=o?.type==="image"?assetById(o.assetId):null;
   if(!a) return objectSrc(o);
   // Very large originals get a dedicated work preview. The 260 px library
   // thumbnail is far too small for a full prepared canvas and looks blurry.
   if((a.w||0)*(a.h||0)>50_000_000){
     if(a._editorPreviewUrl)return a._editorPreviewUrl;
-    void ensureAssetEditorPreview(a).then(src=>{
+    void ensureAssetEditorPreview(a).then(async src=>{
       if(!src)return;
+      const displaySrc=o.alphaCleanup?await ensureObjectAlphaDisplayPreview(o,src):src;
       const element=layer?.querySelector(`.design-object[data-id="${CSS.escape(String(o.id))}"] img`);
-      if(element&&element.src!==src)element.src=src;
+      if(element&&element.src!==displaySrc)element.src=displaySrc;
     });
     return assetLibraryPreviewSrc(a)||a.src;
   }
   return a.src;
+}
+
+const alphaDisplayPreviewCache=new Map();
+async function ensureObjectAlphaDisplayPreview(o,source){
+  if(!o?.alphaCleanup || !source) return source;
+  const threshold=Number.isFinite(o.alphaThreshold)?Math.max(1,Math.min(254,Math.round(o.alphaThreshold))):128;
+  const key=`${o.assetId||o.id}|${source}|${threshold}`;
+  const existing=alphaDisplayPreviewCache.get(key);
+  if(existing?.url) return existing.url;
+  if(existing?.promise) return existing.promise;
+
+  const record={url:null,promise:null};
+  record.promise=(async()=>{
+    const image=await loadImageFromSrc(source);
+    const canvas=document.createElement("canvas");
+    const maxSide=1600;
+    const scale=Math.min(1,maxSide/Math.max(1,image.naturalWidth,image.naturalHeight));
+    canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));
+    canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
+    const context=canvas.getContext("2d",{willReadFrequently:true});
+    context.clearRect(0,0,canvas.width,canvas.height);
+    context.drawImage(image,0,0);
+    hardThresholdCanvasAlpha(canvas,threshold);
+    const blob=await new Promise((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error("No se pudo crear la vista limpia")),"image/png"));
+    canvas.width=canvas.height=0;
+    const url=URL.createObjectURL(blob);
+    if(alphaDisplayPreviewCache.get(key)!==record){
+      URL.revokeObjectURL(url);
+      return source;
+    }
+    record.url=url;
+    record.promise=null;
+    return url;
+  })().catch(error=>{
+    console.warn("No se pudo generar la demostración visual de alfa",o.name,error);
+    if(alphaDisplayPreviewCache.get(key)===record) alphaDisplayPreviewCache.delete(key);
+    return source;
+  });
+  alphaDisplayPreviewCache.set(key,record);
+  return record.promise;
+}
+
+function objectEditorPreviewSrc(o){
+  const source=objectEditorPreviewBaseSrc(o);
+  if(!o?.alphaCleanup || !source) return source;
+  const threshold=Number.isFinite(o.alphaThreshold)?Math.max(1,Math.min(254,Math.round(o.alphaThreshold))):128;
+  const key=`${o.assetId||o.id}|${source}|${threshold}`;
+  const cached=alphaDisplayPreviewCache.get(key);
+  if(cached?.url) return cached.url;
+  void ensureObjectAlphaDisplayPreview(o,source).then(preview=>{
+    const element=layer?.querySelector(`.design-object[data-id="${CSS.escape(String(o.id))}"] img`);
+    if(element&&objectEditorPreviewBaseSrc(o)===source&&element.src!==preview) element.src=preview;
+  });
+  return source;
 }
 
 
