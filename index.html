@@ -3233,10 +3233,10 @@ function objectEditorPreviewBaseSrc(o){
 }
 
 const alphaDisplayPreviewCache=new Map();
-async function ensureObjectAlphaDisplayPreview(o,source){
+async function ensureObjectAlphaDisplayPreview(o,source,maxSide=1600){
   if(!o?.alphaCleanup || !source) return source;
   const threshold=Number.isFinite(o.alphaThreshold)?Math.max(1,Math.min(254,Math.round(o.alphaThreshold))):128;
-  const key=`${o.assetId||o.id}|${source}|${threshold}`;
+  const key=`${o.assetId||o.id}|${source}|${threshold}|${maxSide}`;
   const existing=alphaDisplayPreviewCache.get(key);
   if(existing?.url) return existing.url;
   if(existing?.promise) return existing.promise;
@@ -3245,7 +3245,6 @@ async function ensureObjectAlphaDisplayPreview(o,source){
   record.promise=(async()=>{
     const image=await loadImageFromSrc(source);
     const canvas=document.createElement("canvas");
-    const maxSide=1600;
     const scale=Math.min(1,maxSide/Math.max(1,image.naturalWidth,image.naturalHeight));
     canvas.width=Math.max(1,Math.round(image.naturalWidth*scale));
     canvas.height=Math.max(1,Math.round(image.naturalHeight*scale));
@@ -6399,7 +6398,7 @@ function applyInspectTransform(){
   const world=$("#inspectWorld"), label=$("#inspectZoomLabel");
   if(!world) return;
   world.style.transform=`translate(${inspect.x}px,${inspect.y}px) scale(${inspect.scale})`;
-  world.classList.toggle("pixelated", inspect.scale >= 2.5);
+  world.classList.toggle("pixelated", inspect.scale >= 2.5 || !!objById(inspect.objectId)?.alphaCleanup);
   if(label) label.textContent=`${Math.round(inspect.scale*100)}%`;
 }
 function inspectFitScale(){
@@ -6446,9 +6445,13 @@ function closeInspectPreview(){
 }
 async function openInspectPreview(o){
   if(!o || o.type!=="image") return;
-  const src=objectSrc(o);
-  if(!src){toast("No se encontró la imagen para inspeccionar.");return}
   const asset=assetById(o.assetId);
+  let src=objectSrc(o);
+  if(o.alphaCleanup&&src){
+    const detailedSource=await ensureAssetEditorPreview(asset).catch(()=>null);
+    src=await ensureObjectAlphaDisplayPreview(o,detailedSource||src,4096);
+  }
+  if(!src){toast("No se encontró la imagen para inspeccionar.");return}
   const title=$("#inspectTitle"), meta=$("#inspectMeta"), img=$("#inspectImage");
   if(title) title.textContent=o.name || (asset && asset.name) || "Inspeccionar imagen";
   if(!img){toast("No se pudo abrir la inspección");return}
