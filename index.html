@@ -1154,9 +1154,6 @@ kbd{display:inline-flex;align-items:center;justify-content:center;min-width:20px
 .nest-block-option{display:flex;align-items:flex-start;gap:9px;margin:8px 0 4px;padding:10px;border:1px solid #dbe2ea;border-radius:9px;background:#f8fafc;color:#334155;cursor:pointer}.nest-block-option input{margin:2px 0 0;accent-color:#2563eb}.nest-block-option span{font-size:10px;font-weight:800;line-height:1.3}.nest-block-option small{display:block;margin-top:3px;color:#64748b;font-size:9px;font-weight:500;line-height:1.35}
 
 
-.regular-price{text-decoration:line-through;color:#94a3b8;font-weight:700;margin-right:5px;font-size:.78em}
-.offer-badge{display:inline-flex;align-items:center;border-radius:999px;background:#dc2626;color:#fff;padding:2px 5px;font-size:9px;font-weight:950;line-height:1;vertical-align:middle}
-.shopify-cart-btn .offer-badge{margin-left:4px;background:#fff;color:#15803d}
 .shopify-cart-btn{
   background:#16a34a!important;border-color:#16a34a!important;
   min-width:150px;white-space:nowrap
@@ -10542,7 +10539,6 @@ async function exportPng(){
 // ============================================================
 const SHOPIFY_DTF_VARIANT_ID = 52961074610357;
 const SHOPIFY_PRICE_PER_CM = 2.00;
-const SHOPIFY_OFFER_DISCOUNT = 0.25;
 const GANGSHEET_UPLOAD_URL = "https://qrpxaqvybfmpkkkgqaoe.supabase.co/functions/v1/rapid-function";
 const BIX_RENDERER_URL = "https://bixstudio-renderer-318403647962.us-central1.run.app";
 
@@ -10674,12 +10670,8 @@ function shopifyMoney(v){
   }).format(v);
 }
 
-function shopifyRegularPrice(offerPrice){
-  return offerPrice/(1-SHOPIFY_OFFER_DISCOUNT);
-}
-
 function shopifyOfferPriceHtml(total){
-  return `<span class="regular-price">${shopifyMoney(shopifyRegularPrice(total))}</span> ${shopifyMoney(total)} <span class="offer-badge">OFERTA −25%</span>`;
+  return shopifyMoney(total);
 }
 
 function updateShopifyCartUi(){
@@ -10701,7 +10693,7 @@ function updateShopifyCartUi(){
   if(chip) chip.innerHTML=shopifyOfferPriceHtml(total);
 
   const sheetLabel=orderSheets.length>1 ? ` · ${orderSheets.length} hojas` : "";
-  btn.innerHTML=`🛒 Agregar · ${shopifyMoney(total)}${sheetLabel} <span class="offer-badge">−25%</span>`;
+  btn.textContent=`🛒 Agregar · ${shopifyMoney(total)}${sheetLabel}`;
   btn.disabled=false;
 }
 
@@ -11337,7 +11329,7 @@ function confirmCheckout(orderSheets){
     summary.textContent=
       `${orderSheets.length} Gang Sheet${orderSheets.length===1?"":"s"} · `+
       `${objectCount} diseño${objectCount===1?"":"s"} · `+
-      `${totalCm} cm facturables · ${shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)} · OFERTA −25%`;
+      `${totalCm} cm facturables · ${shopifyMoney(totalCm*SHOPIFY_PRICE_PER_CM)}`;
   }
 
   checkoutConfirmBusy=true;
